@@ -30,7 +30,13 @@ const PRECACHE = [
   '/assets/bundle.js',
   '/assets/styles.css',
   '/manifest.webmanifest',
+  // ~37 KB of icons, against a 5 MB deck — cheap enough to guarantee they are there.
   '/assets/icons/icon.svg',
+  '/assets/icons/icon-180px.png',
+  '/assets/icons/icon-192px.png',
+  '/assets/icons/icon-512px.png',
+  '/assets/icons/icon-maskable-192px.png',
+  '/assets/icons/icon-maskable-512px.png',
   `/assets/packs/${LANG}/deck.${LANG}.json`,
 ];
 

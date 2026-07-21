@@ -1,7 +1,8 @@
 # Manual checklist — Phase 3 (PWA UI)
 
-`npm test` covers everything that runs without a browser. These are the checks that need
-real eyes, a real device and a real network tab.
+`npm test` now covers the review loop, the card fronts and backs, tone colouring and the
+split-word rules under jsdom. These are the checks that still need real eyes, a real
+device and a real network tab — mostly install, audio, touch and the service worker.
 
 Run `npm run dev` and open the URL Wrangler prints.
 
@@ -17,29 +18,29 @@ Run `npm run dev` and open the URL Wrangler prints.
 
 ## The five modes
 
-- [ ] **REC** — large hanzi on the front; back shows coloured pinyin, definitions,
-      traditional form when it differs, and an audio button.
+Structure for REC, PROD and SENT is asserted in `tests/views.test.js`; these confirm they
+look and feel right on a real screen.
+
+- [ ] **REC** — the hanzi is comfortably large on a phone (clamp 48-96px).
 - [ ] **LIS** — audio plays on its own, nothing else visible; back shows the sentence,
-      pinyin, translation and definitions.
-- [ ] **PROD** — English definitions and an input; typing the right pinyin preselects
-      Good, a wrong answer preselects Again, and you can still override before confirming.
-- [ ] **SENT** — the sentence in hanzi with the target word highlighted.
+      pinyin, translation and definitions. (Needs a real speech engine.)
+- [ ] **PROD** — the input focuses without the mobile keyboard covering the card, and
+      typing does not fire the 1-4 shortcuts.
+- [ ] **SENT** — the highlighted word is legible against the rest of the sentence.
 - [ ] **WRITE** — a drawing canvas per character; the outline shows for the first
-      character only. It works with a finger on a touch screen.
+      character only. It works with a finger on a touch screen. (Needs real pointer
+      events; hanzi-writer is mocked in tests.)
 
 ## Interaction
 
-- [ ] Space (or tapping the card) flips. Keys 1-4 grade. Typing in the PROD input does
-      not trigger those shortcuts.
+- [ ] Tapping the card flips it (the space/1-4 path is covered by tests).
 - [ ] Grading advances to the next card and the "N left" counter falls.
 - [ ] A new card is not the very first thing in a session with reviews due.
 
 ## Language display
 
-- [ ] Tone colours: 好 is t3, 传统 is t2 t3, 谢谢 is t4 t5.
-- [ ] A split word (e.g. 别) shows a "not biè" hint on its REC front.
-- [ ] The non-primary member of a split (别 biè) has **no** audio button and never shows
-      a listening card.
+- [ ] Tone colours are actually distinguishable on your screen (the classes and hexes are
+      asserted in tests; this is about contrast, including in light theme).
 - [ ] With no Chinese voice installed, the dismissible banner appears once and listening
       cards fall back to showing text. Dismissing it sticks across reloads.
 

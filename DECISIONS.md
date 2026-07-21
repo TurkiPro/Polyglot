@@ -90,12 +90,16 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   version it keys its cache on is injected at build time by `scripts/build.mjs`, because
   packVersion is generated data rather than configuration. `npm run build` therefore runs
   that script instead of a bare esbuild call.
-- Phase 3: icons are SVG. Generating PNGs would need a font rasterizer, and the allowlist
-  rules one out; Chrome accepts SVG icons with `sizes: "any"` for installability.
-- Phase 3: view rendering is not unit-tested — vitest runs in node and no DOM
-  implementation is on the allowlist. The pure logic behind the views (search matching,
-  pass rate, band progress, tone reading, voice selection, routing) is tested, and
-  rendering is covered by CHECKLIST.md.
+- Phase 3: `jsdom` added as a **dev-only** dependency with explicit human approval per
+  §4.3. **Scope**: opted into per file with a `@vitest-environment jsdom` docblock, never
+  globally, and used only to assert rendered DOM — logic that can be tested without a
+  document stays in a node suite. It never ships; runtime dependencies are unchanged.
+  With `fake-indexeddb` it also covers the review loop end to end (store → engine → db),
+  which moved the keyboard shortcuts, the §9 front/back table, the split-word audio rule
+  and durability-across-reload out of CHECKLIST.md and into assertions.
+- Phase 3: icons are human-supplied PNGs (180/192/512, plain and maskable) with the SVG
+  kept only as a favicon. PNG is what iOS needs for `apple-touch-icon` and what makes
+  installability predictable; the maskable variants inset the glyph into the safe zone.
 - Phase 3: the service worker precaches **only** the app shell and `deck.zh.json`. The
   10 MB dictionary and the 3,087 stroke files are runtime-cached on first use, cache-first
   thereafter. Precaching everything would make first load ~29 MB for every new user.

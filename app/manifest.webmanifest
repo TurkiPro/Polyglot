@@ -10,7 +10,10 @@
   "theme_color": "#121316",
   "categories": ["education"],
   "icons": [
-    { "src": "/assets/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "/assets/icons/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+    { "src": "/assets/icons/icon-192px.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/icon-512px.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/icon-maskable-180px.png", "sizes": "180x180", "type": "image/png", "purpose": "maskable" },
+    { "src": "/assets/icons/icon-maskable-192px.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/assets/icons/icon-maskable-512px.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
