@@ -4,6 +4,7 @@ import { cardId, cardIdsForWord, createDeck, modesForWord, parseCardId } from '.
 import { createEvent, mergeEvents, sortEvents, toWire } from '../app/src/engine/events.js';
 import { buildQueue, interleave, isDue, newCardCandidates } from '../app/src/engine/queue.js';
 import {
+  HASHED_FIELDS,
   applyEvent,
   nextLocalMidnight,
   rebuildFromEvents,
@@ -304,6 +305,73 @@ describe('queue', () => {
 
     expect(interleave([], fresh)).toEqual(fresh);
     expect(interleave(due, [])).toEqual(due);
+  });
+});
+
+describe('stateHash covers durable state only', () => {
+  const seeded = () => {
+    const deck = deckOf(word('a'));
+    const log = [];
+    review(log, 'a#REC', RATING.GOOD, T0);
+    review(log, 'a#REC', RATING.GOOD, T0 + 3 * DAY);
+    return { deck, log, states: rebuildFromEvents(deck, log).states };
+  };
+
+  it('hashes exactly the durable FSRS fields plus suspended', () => {
+    expect(HASHED_FIELDS).toEqual([
+      'due',
+      'stability',
+      'difficulty',
+      'elapsed_days',
+      'scheduled_days',
+      'learning_steps',
+      'reps',
+      'lapses',
+      'state',
+      'suspended',
+    ]);
+    expect(HASHED_FIELDS).not.toContain('buriedUntil');
+  });
+
+  it('ignores buriedUntil — it is timezone-derived and ephemeral', () => {
+    const { states } = seeded();
+    const before = stateHash(states);
+    for (const s of states.values()) s.buriedUntil = (s.buriedUntil ?? 0) + 12 * 3600000;
+    expect(stateHash(states)).toBe(before);
+    for (const s of states.values()) s.buriedUntil = null;
+    expect(stateHash(states)).toBe(before);
+  });
+
+  it('reacts to every field it claims to cover', () => {
+    for (const field of HASHED_FIELDS) {
+      const { states } = seeded();
+      const before = stateHash(states);
+      const card = states.get('a#REC');
+      if (field === 'due') card.due = new Date(new Date(card.due).getTime() + DAY);
+      else if (field === 'suspended') card.suspended = !card.suspended;
+      else card[field] = (card[field] ?? 0) + 1;
+      expect(stateHash(states), `${field} must affect the hash`).not.toBe(before);
+    }
+  });
+
+  it('agrees across timezones — the same log replayed in Kiritimati and LA', () => {
+    const original = process.env.TZ;
+    try {
+      const hashes = ['UTC', 'Pacific/Kiritimati', 'America/Los_Angeles'].map((tz) => {
+        process.env.TZ = tz;
+        const { states } = seeded();
+        // Bury really does differ per timezone — that is the point.
+        return { tz, hash: stateHash(states), buried: states.get('a#PROD').buriedUntil };
+      });
+
+      const [utc, kiritimati, la] = hashes;
+      expect(kiritimati.hash).toBe(utc.hash);
+      expect(la.hash).toBe(utc.hash);
+      // Guard against the test being vacuous: local midnight must genuinely differ.
+      expect(new Set(hashes.map((h) => h.buried)).size).toBeGreaterThan(1);
+    } finally {
+      process.env.TZ = original;
+    }
   });
 });
 

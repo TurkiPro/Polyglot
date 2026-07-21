@@ -123,24 +123,52 @@ export function rebuildFromEvents(deck, events) {
 }
 
 /**
+ * The fields `stateHash` covers: the durable scheduling state, and nothing else.
+ *
+ * `buriedUntil` is deliberately absent. Bury is ephemeral session state derived from the
+ * device's local midnight, so two devices in different timezones legitimately compute
+ * different values from the same log. Including it would make the determinism test pass
+ * in one timezone while a real cross-device sync looked corrupted the first time someone
+ * reviewed while travelling.
+ *
+ * `suspended` is included: it derives from the REC card's FSRS interval, which is
+ * timezone-independent, so it must agree across devices.
+ */
+export const HASHED_FIELDS = Object.freeze([
+  'due',
+  'stability',
+  'difficulty',
+  'elapsed_days',
+  'scheduled_days',
+  'learning_steps',
+  'reps',
+  'lapses',
+  'state',
+  'suspended',
+]);
+
+/**
  * A stable fingerprint of replayed state, for the export→wipe→import check (§9) and the
  * two-device sync check (§12). Dates are normalized to epoch ms so a state that has been
  * through JSON hashes the same as one that has not.
  */
 export function stateHash(states) {
   const rows = [...states.values()]
-    .map((s) => [
-      s.cardId,
-      new Date(s.due).getTime(),
-      s.stability.toFixed(6),
-      s.difficulty.toFixed(6),
-      s.scheduled_days,
-      s.reps,
-      s.lapses,
-      s.state,
-      s.suspended ? 1 : 0,
-      s.buriedUntil ?? 0,
-    ].join(':'))
+    .map((s) =>
+      [
+        s.cardId,
+        new Date(s.due).getTime(),
+        s.stability.toFixed(6),
+        s.difficulty.toFixed(6),
+        s.elapsed_days ?? 0,
+        s.scheduled_days,
+        s.learning_steps ?? 0,
+        s.reps,
+        s.lapses,
+        s.state,
+        s.suspended ? 1 : 0,
+      ].join(':'),
+    )
     .sort();
 
   // FNV-1a over the sorted rows — short, dependency-free, and enough to catch drift.

@@ -253,6 +253,8 @@ characters appearing in deck words** (~3–4k files). Client points hanzi-writer
 - No sentences → no SENT card. No stroke data → no WRITE card.
 - Split groups (one spelling taught as several words): the pipeline emits
   `splitGroup: [sibling ids]` on every member. Non-primary members get no LIS card.
+- Unlocking is one-way: a later lapse on the REC card never re-suspends the word's
+  other cards.
 
 ### 5.5 Review event (the atom of sync)
 ```json

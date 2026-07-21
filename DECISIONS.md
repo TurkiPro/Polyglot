@@ -66,7 +66,19 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   rather than a new file, keeping the §3 engine listing exact. Local-day helpers live in
   `replay.js` beside bury, which is their only current caller.
 - Phase 2: unlocking is one-way — a later lapse does not re-suspend a word's non-REC
-  cards, because the learner has already met them.
+  cards, because the learner has already met them. Now written into §5.4 of CLAUDE.md.
+- Phase 2: `stateHash` covers the durable scheduling fields plus `suspended`, and
+  deliberately **excludes** `buriedUntil`. Bury is derived from the device's local
+  midnight, so two devices in different timezones compute different values from the same
+  log — legitimately, since bury is ephemeral session state. Had it stayed in the hash,
+  the determinism test would pass in one timezone while a real cross-device sync looked
+  corrupted the first time someone reviewed while travelling. `HASHED_FIELDS` is exported
+  and pinned by a test, including a replay under three timezones.
+- Phase 2: `fake-indexeddb` added as a **dev-only** dependency with explicit human
+  approval per §4.3, to test `db.js`. It never ships — the runtime dependency list is
+  unchanged, so §1.2 and the no-third-party-requests rule are untouched. Writing our own
+  IndexedDB fake would have given false confidence: a fake that quietly diverges from the
+  real semantics is worse than no test.
 - Phase 3: the service worker precaches **only** the app shell and `deck.zh.json`. The
   10 MB dictionary and the 3,087 stroke files are runtime-cached on first use, cache-first
   thereafter. Precaching everything would make first load ~29 MB for every new user.
