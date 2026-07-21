@@ -24,3 +24,27 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   knows wins. Without this, 97 words were dropped and band 1 held only 292 of 300.
 - Phase 1: `packVersion` is the build date (`YYYY.MM.DD`), so it moves only when the pack
   is actually rebuilt.
+- Phase 1: `packs/zh/overrides.json` holds hand-written deck-word entries merged over the
+  generated deck — after HSK resolution so overrides win, before sentences and strokes so
+  an added word is finished like a generated one.
+- Phase 1: an HSK homograph marker (`别1`/`别2`) does **not** automatically mint a second
+  deck word. Of 41 marked spellings only 12 have enough distinct readings to split, and
+  assigning readings in marker order is wrong where it matters (`会2` is band 3 "meeting",
+  huì, but frequency order hands it kuài "accounting"). Every marked entry and its
+  untaught readings are listed in `report.txt`; genuine splits are curated in
+  overrides.json. Eight are seeded there (别 为 调 露 过去 打 省 称).
+- Phase 1: the `~N` id-collision path is unreachable from HSK resolution — words are
+  deduplicated by resolved spelling before ids are assigned. It remains as a guard for
+  overrides.
+- Phase 1: `altReadings` is display-only data (pinyin + one-line gloss) for card backs;
+  no cards, no ids, no scheduling effect. Readings taught as their own deck word are
+  excluded so a split reading never repeats on its sibling's card back.
+- Phase 1: when a spelling is taught as several words, only the primary reading gets the
+  shared example sentences. The sentence index matches on spelling and cannot tell 别 bié
+  from 别 biè, so the others get none — and therefore no SENT card (§5.4) — rather than a
+  sentence in the wrong reading. Currently 8 words.
+- Phase 3 (binding, not yet implemented): the service worker precaches **only** the app
+  shell and `deck.zh.json`. The 10 MB dictionary and the 3,087 stroke files go in a
+  runtime cache, fetched on first use and kept forever after. Precaching all of it would
+  make first load ~29 MB for every new user. This supersedes §9's "precaches shell +
+  pack".

@@ -70,6 +70,61 @@ describe('deck pack', () => {
     }
   });
 
+  it('carries alternate readings as display-only data', () => {
+    const withAlts = deck.words.filter((w) => w.altReadings);
+    expect(withAlts.length).toBeGreaterThan(0);
+
+    for (const w of withAlts) {
+      expect(w.altReadings.length).toBeLessThanOrEqual(3);
+      for (const alt of w.altReadings) {
+        expect(alt.pinyin).toBe(numToMarks(alt.pinyinNum));
+        expect(alt.gloss.length).toBeGreaterThan(0);
+        // An alternate reading is never the word's own reading.
+        expect(alt.pinyinNum.toLowerCase()).not.toBe(w.pinyinNum.toLowerCase());
+      }
+    }
+
+    const hao = deck.words.find((w) => w.id === 'zh:好:hao3');
+    expect(hao.altReadings[0]).toMatchObject({ pinyin: 'hào' });
+  });
+
+  it('never offers an alternate reading that is taught as its own word', () => {
+    const taught = new Map();
+    for (const w of deck.words) {
+      if (!taught.has(w.simp)) taught.set(w.simp, new Set());
+      taught.get(w.simp).add(w.pinyinNum.toLowerCase());
+    }
+    for (const w of deck.words) {
+      for (const alt of w.altReadings ?? []) {
+        expect(taught.get(w.simp).has(alt.pinyinNum.toLowerCase())).toBe(false);
+      }
+    }
+  });
+
+  it('never gives two readings of one spelling the same sentences', () => {
+    // The sentence index matches on spelling, so a shared sentence cannot be attributed
+    // to a reading. Only the primary keeps them; see attachSentences in build.mjs.
+    const bySpelling = new Map();
+    for (const w of deck.words) {
+      if (!bySpelling.has(w.simp)) bySpelling.set(w.simp, []);
+      bySpelling.get(w.simp).push(w);
+    }
+    for (const [, group] of bySpelling) {
+      if (group.length < 2) continue;
+      expect(group.filter((w) => w.sentences.length > 0).length).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('includes the curated overrides', () => {
+    const byId = new Map(deck.words.map((w) => [w.id, w]));
+    // A word CC-CEDICT does not have.
+    expect(byId.get('zh:新媒体:xin1_mei2_ti3')).toMatchObject({ band: 6, defs: ['new media'] });
+    // A curated homograph split: both readings present, distinct ids, no ~N suffix.
+    expect(byId.get('zh:别:bie2')).toBeDefined();
+    expect(byId.get('zh:别:bie4')).toBeDefined();
+    expect(deck.words.filter((w) => w.simp === '别')).toHaveLength(2);
+  });
+
   it('spot-checks tone marks for the §7 words', () => {
     const bySimp = new Map(deck.words.map((w) => [w.simp, w]));
     expect(bySimp.get('好').pinyin).toBe('hǎo');

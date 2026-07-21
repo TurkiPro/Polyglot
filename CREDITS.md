@@ -5,7 +5,7 @@
 polyglot is built on freely licensed data and libraries. Each source below is
 used under the license named, and keeps its own copyright.
 
-Pack version `2026.07.21`, generated 2026-07-21T18:40:24.647Z.
+Pack version `2026.07.21`, generated 2026-07-21T19:02:24.167Z.
 
 ## CC-CEDICT
 

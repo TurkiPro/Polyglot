@@ -39,8 +39,22 @@ export function wordVariants(raw) {
 }
 
 /**
+ * The homograph marker on an entry, or null.
+ *
+ * Note what this marker does and does not mean: it separates *senses*, not necessarily
+ * pronunciations. 点1 and 点2 are both `diǎn`; 别1/别2 really are `bié`/`biè`. So a
+ * marker is not on its own grounds for minting a second deck word — see
+ * `packs/zh/overrides.json` for how genuine splits are curated.
+ * @param {string} raw
+ */
+export function homographMarker(raw) {
+  const m = /^(.+?)([0-9]+)$/.exec(raw.trim());
+  return m ? Number(m[2]) : null;
+}
+
+/**
  * @param {Array<{ filename: string, text: string }>} files in ascending band order
- * @returns {{ entries: Array<{ raw: string, variants: string[], band: number }>, listed: number }}
+ * @returns {{ entries: Array<{ raw: string, variants: string[], band: number, marker: number|null }>, listed: number }}
  */
 export function parseHsk(files) {
   const entries = [];
@@ -53,7 +67,7 @@ export function parseHsk(files) {
       if (!raw || raw.startsWith('#')) continue;
       listed++;
       const variants = wordVariants(raw);
-      if (variants.length) entries.push({ raw, variants, band });
+      if (variants.length) entries.push({ raw, variants, band, marker: homographMarker(raw) });
     }
   }
 
