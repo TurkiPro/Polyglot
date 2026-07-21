@@ -52,6 +52,21 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
 - Phase 1: the four reviewed-and-declined homograph candidates (会 和 喂 乘) live in
   `overrides.json` under `declinedSplits`, each with its reason. `report.txt` prints them
   as DECLINED rather than re-raising them as candidates on every rebuild.
+- Phase 2: `enable_fuzz: false` on the FSRS scheduler. Fuzz randomizes intervals, which
+  would make `rebuildFromEvents` non-deterministic and break the sync merge (§2). It
+  happens to be the ts-fsrs default; we set it explicitly so an upstream default change
+  cannot silently corrupt sync.
+- Phase 2: `applyEvent(deck, states, event)` is the single definition of what a review
+  does. A live session calls it per answer and `rebuildFromEvents` folds it over the log,
+  so there is no second implementation to drift from the one sync and import trust.
+- Phase 2: `db.js` is the only module that performs IO; queue, replay, srs, deck and
+  events take plain objects. That is what lets §8's behaviour be tested headless under
+  vitest, where IndexedDB does not exist and the dependency allowlist rules out a fake.
+- Phase 2: the grading adapters (PROD normalizer, WRITE mistake mapping) live in `srs.js`
+  rather than a new file, keeping the §3 engine listing exact. Local-day helpers live in
+  `replay.js` beside bury, which is their only current caller.
+- Phase 2: unlocking is one-way — a later lapse does not re-suspend a word's non-REC
+  cards, because the learner has already met them.
 - Phase 3: the service worker precaches **only** the app shell and `deck.zh.json`. The
   10 MB dictionary and the 3,087 stroke files are runtime-cached on first use, cache-first
   thereafter. Precaching everything would make first load ~29 MB for every new user.
