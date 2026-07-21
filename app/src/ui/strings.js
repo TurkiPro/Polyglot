@@ -1,0 +1,138 @@
+/**
+ * Every user-facing string. This is the i18n seam (§9) — nothing else in the app should
+ * contain English prose.
+ */
+export const strings = Object.freeze({
+  appName: 'polyglot',
+
+  nav: {
+    home: 'Home',
+    review: 'Review',
+    browse: 'Browse',
+    stats: 'Stats',
+    settings: 'Settings',
+    credits: 'Credits',
+  },
+
+  home: {
+    due: 'Due today',
+    newWords: 'New words',
+    streak: 'Streak',
+    level: 'Level',
+    xp: 'XP',
+    start: 'Start reviewing',
+    allDone: 'Nothing due. Come back tomorrow.',
+    nothingYet: 'Your deck is ready. Start with your first words.',
+    days: (n) => (n === 1 ? '1 day' : `${n} days`),
+  },
+
+  review: {
+    show: 'Show answer',
+    again: 'Again',
+    hard: 'Hard',
+    good: 'Good',
+    easy: 'Easy',
+    typeAnswer: 'Type the pinyin',
+    check: 'Check',
+    correct: 'Correct',
+    incorrect: 'Not quite',
+    play: 'Play audio',
+    replay: 'Play again',
+    reveal: 'Show me',
+    clear: 'Clear',
+    listenPrompt: 'Listen, then answer',
+    writePrompt: 'Write the characters',
+    sessionDone: 'Session complete',
+    reviewed: (n) => `${n} reviewed`,
+    remaining: (n) => `${n} left`,
+    backHome: 'Back to home',
+    alsoRead: (pinyin) => `also ${pinyin}`,
+    notSibling: (pinyin) => `not ${pinyin}`,
+    hint: 'Hint',
+    noAudioTitle: 'No Chinese voice installed',
+    noAudioBody:
+      'Your device has no Chinese speech voice, so audio is unavailable. Install one in your operating system’s language settings. Listening cards will show text instead.',
+    dismiss: 'Dismiss',
+  },
+
+  browse: {
+    title: 'Browse the dictionary',
+    placeholder: 'Search characters, pinyin, or English',
+    loading: 'Preparing the dictionary…',
+    loadingHint: 'One-time setup. It runs entirely on your device.',
+    noResults: 'No matches.',
+    resultCap: (n) => `Showing the first ${n} matches.`,
+    add: 'Add to my words',
+    added: 'Added',
+    inDeck: 'Already in your deck',
+  },
+
+  word: {
+    back: 'Back',
+    definitions: 'Definitions',
+    examples: 'Examples',
+    otherReadings: 'Other readings',
+    alsoTaught: 'Also taught separately',
+    band: (n) => `HSK band ${n}`,
+    custom: 'Your word',
+    progress: 'Progress',
+    notStarted: 'Not started yet',
+    suspended: 'Locked until recognition matures',
+    due: (when) => `Due ${when}`,
+    noSuchWord: 'That word is not in your deck.',
+  },
+
+  stats: {
+    title: 'Statistics',
+    totalReviews: 'Total reviews',
+    wordsStarted: 'Words started',
+    passRate: 'Pass rate (30 days)',
+    perBand: 'Progress by band',
+    comingSoon: 'Streaks, XP and the activity heatmap arrive with gamification.',
+  },
+
+  settings: {
+    title: 'Settings',
+    study: 'Study',
+    newPerDay: 'New words per day',
+    maxPerDay: 'Maximum reviews per day',
+    appearance: 'Appearance',
+    theme: 'Theme',
+    themeDark: 'Dark',
+    themeLight: 'Light',
+    data: 'Your data',
+    dataBody: 'Everything lives on this device. Export it whenever you like.',
+    export: 'Export JSON',
+    import: 'Import JSON',
+    importing: 'Importing…',
+    imported: (n) => `Imported ${n} reviews.`,
+    importFailed: 'That file could not be read as a polyglot export.',
+    account: 'Account',
+    accountBody: 'Sync across devices is coming. polyglot works fully without an account.',
+    danger: 'Danger zone',
+    dangerBody: 'This erases every review, card and custom word on this device. It cannot be undone.',
+    wipe: 'Delete all local data',
+    wipeConfirm: (word) => `Type ${word} to confirm`,
+    wipeWord: 'DELETE',
+    wipeDone: 'Local data erased.',
+    cancel: 'Cancel',
+  },
+
+  credits: {
+    title: 'Credits',
+    body: 'polyglot is built on freely licensed data and libraries.',
+    license: 'License',
+    source: 'Source data',
+    home: 'Home page',
+    packVersion: (v) => `Pack version ${v}`,
+  },
+
+  common: {
+    loading: 'Loading…',
+    error: 'Something went wrong.',
+    retry: 'Retry',
+    close: 'Close',
+  },
+});
+
+export default strings;

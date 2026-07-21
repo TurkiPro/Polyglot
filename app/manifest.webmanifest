@@ -1,0 +1,16 @@
+{
+  "name": "polyglot",
+  "short_name": "polyglot",
+  "description": "Free, open-source, local-first language learning.",
+  "start_url": "/#home",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#121316",
+  "theme_color": "#121316",
+  "categories": ["education"],
+  "icons": [
+    { "src": "/assets/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/assets/icons/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

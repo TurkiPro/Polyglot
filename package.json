@@ -6,7 +6,7 @@
   "license": "AGPL-3.0",
   "type": "module",
   "scripts": {
-    "build": "esbuild app/src/main.js --bundle --format=esm --outfile=app/assets/bundle.js",
+    "build": "node scripts/build.mjs",
     "dev": "bash scripts/dev.sh",
     "test": "vitest run",
     "deck": "node packs/zh/build.mjs"

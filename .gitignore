@@ -3,3 +3,4 @@ app/assets/bundle.js
 packs/zh/data/
 .dev.vars
 .wrangler
+app/sw.js

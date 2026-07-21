@@ -79,6 +79,23 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   unchanged, so §1.2 and the no-third-party-requests rule are untouched. Writing our own
   IndexedDB fake would have given false confidence: a fake that quietly diverges from the
   real semantics is worse than no test.
+- Phase 3: `app/src/store.js` holds the db handle, deck and live card states; views never
+  touch `db.js`. It sits beside `main.js` rather than in `engine/`, which stays pure and
+  headless-testable.
+- Phase 3: `views/card.js` holds the per-mode fronts and backs, split from `review.js`
+  (which owns the session loop) to stay under the §4.6 file cap. Same reason,
+  `packs/zh/lib/report.js` was split out of `build.mjs`.
+- Phase 3: `sw.js` is now a build artifact (`app/src/sw.js` → `app/sw.js`, gitignored like
+  `bundle.js`) so it can import §0 values from config instead of restating them. The pack
+  version it keys its cache on is injected at build time by `scripts/build.mjs`, because
+  packVersion is generated data rather than configuration. `npm run build` therefore runs
+  that script instead of a bare esbuild call.
+- Phase 3: icons are SVG. Generating PNGs would need a font rasterizer, and the allowlist
+  rules one out; Chrome accepts SVG icons with `sizes: "any"` for installability.
+- Phase 3: view rendering is not unit-tested — vitest runs in node and no DOM
+  implementation is on the allowlist. The pure logic behind the views (search matching,
+  pass rate, band progress, tone reading, voice selection, routing) is tested, and
+  rendering is covered by CHECKLIST.md.
 - Phase 3: the service worker precaches **only** the app shell and `deck.zh.json`. The
   10 MB dictionary and the 3,087 stroke files are runtime-cached on first use, cache-first
   thereafter. Precaching everything would make first load ~29 MB for every new user.
