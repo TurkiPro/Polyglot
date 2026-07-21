@@ -1,0 +1,24 @@
+{
+  "name": "polyglot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Free, open-source, local-first language learning. No ads, no telemetry, no signup wall.",
+  "license": "AGPL-3.0",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild app/src/main.js --bundle --format=esm --outfile=app/assets/bundle.js",
+    "dev": "bash scripts/dev.sh",
+    "test": "vitest run",
+    "deck": "node packs/zh/build.mjs"
+  },
+  "dependencies": {
+    "hanzi-writer": "3.7.3",
+    "hanzi-writer-data": "2.0.1",
+    "ts-fsrs": "5.4.1"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.1",
+    "vitest": "4.1.10",
+    "wrangler": "4.112.0"
+  }
+}

@@ -1,0 +1,28 @@
+# polyglot Worker — serves the PWA and the /api/* JSON API from one origin.
+# Identity values here mirror §0 of CLAUDE.md; wrangler.toml is one of the two places
+# (with config/app.config.js) allowed to state them literally.
+
+name = "polyglot"
+main = "src/index.js"
+compatibility_date = "2026-07-21"
+
+# The PWA. Served straight from app/ — same origin as the API, so no CORS anywhere.
+[assets]
+directory = "../app"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+# The API must win over asset routing for /api/*.
+run_worker_first = ["/api/*"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "polyglot-db"
+# Replace with the real id from `wrangler d1 create polyglot-db` (§13.2).
+# Local dev (`wrangler dev`) works with this placeholder.
+database_id = "00000000-0000-0000-0000-000000000000"
+
+# Secrets (never committed — set with `wrangler secret put`, or .dev.vars locally):
+#   GITHUB_CLIENT_ID  GITHUB_CLIENT_SECRET
+#   GOOGLE_CLIENT_ID  GOOGLE_CLIENT_SECRET
+#   TURNSTILE_SECRET
+#   DEV_MODE=1        (.dev.vars only — enables POST /api/auth/dev)

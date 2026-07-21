@@ -1,0 +1,53 @@
+/* polyglot — the one stylesheet. Every color, space and size is a variable here.
+   Phase 3 fills in the design system; Phase 0 keeps the shell readable. */
+
+:root {
+  --bg: #121316;
+  --surface: #1c1e23;
+  --fg: #e8e8ea;
+  --fg-dim: #a0a3ab;
+  --accent: #6ea8fe;
+  --border: #2c2f36;
+
+  /* Tone colors --t1..--t5 are set at boot from config/app.config.js (§0) — they are
+     deliberately not literals here, so §0 stays the only place they are written. */
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --radius: 10px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans SC", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font);
+  line-height: 1.5;
+}
+
+.app-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.brand {
+  color: var(--fg);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+#app {
+  padding: var(--space-4);
+}
