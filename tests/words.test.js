@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { parseCedict } from '../packs/zh/lib/cedict.js';
 import { homographMarker } from '../packs/zh/lib/hsk.js';
-import { applyOverrides, attachAltReadings, distinctReadings, resolveWords } from '../packs/zh/lib/words.js';
+import {
+  applyOverrides,
+  attachAltReadings,
+  distinctReadings,
+  markSplitGroups,
+  resolveWords,
+} from '../packs/zh/lib/words.js';
 
 const CEDICT = [
   '好 好 [hao3] /good/well/proper/',
@@ -81,6 +87,56 @@ describe('attachAltReadings', () => {
     const state = resolveWords([entry('学习', 1)], bySimp, 'zh');
     attachAltReadings(state.words, bySimp);
     expect(state.words[0].altReadings).toBeUndefined();
+  });
+});
+
+describe('markSplitGroups', () => {
+  /** 别 taught as both bié and biè. */
+  const splitDeck = () => {
+    const state = resolveWords([entry('别1', 2)], bySimp, 'zh');
+    applyOverrides({ words: [{ simp: '别', pinyinNum: 'bie4', band: 5 }] }, state, bySimp);
+    return state;
+  };
+
+  it('names each member siblings and marks exactly one primary', () => {
+    const state = splitDeck();
+    const stats = markSplitGroups(state.words, bySimp);
+    expect(stats).toEqual({ groups: 1, members: 2 });
+
+    const bie2 = state.words.find((w) => w.id === 'zh:别:bie2');
+    const bie4 = state.words.find((w) => w.id === 'zh:别:bie4');
+    expect(bie2.splitGroup).toEqual(['zh:别:bie4']);
+    expect(bie4.splitGroup).toEqual(['zh:别:bie2']);
+    // The CC-CEDICT primary reading wins — that is what TTS would say.
+    expect(bie2.splitPrimary).toBe(true);
+    expect(bie4.splitPrimary).toBe(false);
+    expect(bie2.splitGroup).not.toContain(bie2.id);
+  });
+
+  it('leaves words that do not share a spelling untouched', () => {
+    const state = resolveWords([entry('好', 1), entry('学习', 1)], bySimp, 'zh');
+    markSplitGroups(state.words, bySimp);
+    for (const w of state.words) {
+      expect(w.splitGroup).toBeUndefined();
+      expect(w.splitPrimary).toBeUndefined();
+    }
+  });
+
+  it('still picks a primary when CC-CEDICT knows neither reading', () => {
+    const state = resolveWords([], bySimp, 'zh');
+    applyOverrides(
+      {
+        words: [
+          { simp: '新媒体', pinyinNum: 'xin1 mei2 ti3', band: 6, defs: ['new media'] },
+          { simp: '新媒体', pinyinNum: 'xin1 mei2 ti4', band: 7, defs: ['coined variant'] },
+        ],
+      },
+      state,
+      bySimp,
+    );
+    markSplitGroups(state.words, bySimp);
+    expect(state.words.filter((w) => w.splitPrimary)).toHaveLength(1);
+    expect(state.words[0].splitPrimary).toBe(true);
   });
 });
 

@@ -251,6 +251,8 @@ characters appearing in deck words** (~3–4k files). Client points hanzi-writer
 - **Bury:** answering any card of word W sets `buriedUntil = next local midnight` on W's
   other cards.
 - No sentences → no SENT card. No stroke data → no WRITE card.
+- Split groups (one spelling taught as several words): the pipeline emits
+  `splitGroup: [sibling ids]` on every member. Non-primary members get no LIS card.
 
 ### 5.5 Review event (the atom of sync)
 ```json
@@ -399,13 +401,18 @@ Hash routes: `#home` (due count, streak, XP, start), `#review`, `#browse`, `#wor
   `zh-CN`), rate 0.9. No zh voice → one-time dismissible banner (install a Chinese voice
   at OS level); LIS fronts fall back to showing sentence text.
 - `writer.js`: hanzi-writer wired to the local strokes path (§5.3).
+- Split-group members: REC fronts append one hint line per sibling ("not <sibling
+  pinyin>"). TTS buttons are suppressed on non-primary members — default TTS speaks
+  the primary reading, and wrong audio is worse than none.
 
 **Browse**: search the local `dict` store across simp/trad/pinyinNum/defs, cap 50
 results; each result has "Add to my words" → customWord + its cards.
 
 **PWA**: `manifest.webmanifest` (PROJECT_NAME, standalone, theme colors, simple
-generated icons using the character 语); `sw.js` precaches shell + pack, cache name
-keyed on DECK_SCHEMA_VERSION + packVersion; cache-first assets, network-only `/api/*`.
+generated icons using the character 语); `sw.js` precaches only the app shell and
+`deck.zh.json` (cache keyed on DECK_SCHEMA_VERSION + packVersion). The dictionary and
+stroke files are runtime-cached on first use, cache-first thereafter; `/api/*` is
+network-only.
 
 **Design**: dark default + light toggle. Every color/spacing/type size is a CSS variable
 in one `:root` block (tone colors from §0). System font stack; hanzi large on card

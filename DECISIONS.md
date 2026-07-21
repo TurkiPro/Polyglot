@@ -43,8 +43,16 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   shared example sentences. The sentence index matches on spelling and cannot tell 别 bié
   from 别 biè, so the others get none — and therefore no SENT card (§5.4) — rather than a
   sentence in the wrong reading. Currently 8 words.
-- Phase 3 (binding, not yet implemented): the service worker precaches **only** the app
-  shell and `deck.zh.json`. The 10 MB dictionary and the 3,087 stroke files go in a
-  runtime cache, fetched on first use and kept forever after. Precaching all of it would
-  make first load ~29 MB for every new user. This supersedes §9's "precaches shell +
-  pack".
+- Phase 1: split groups are emitted per §5.4 as `splitGroup` (the sibling ids) plus
+  `splitPrimary` on exactly one member — the CC-CEDICT primary reading, which is what
+  greedy segmentation assumed and what `speechSynthesis` will actually say. The engine
+  gives non-primary members no LIS card and no TTS button. `splitPrimary` is not in §5.4,
+  but "non-primary" has to be recorded somewhere and deriving it from the empty sentence
+  list would be accidental.
+- Phase 1: the four reviewed-and-declined homograph candidates (会 和 喂 乘) live in
+  `overrides.json` under `declinedSplits`, each with its reason. `report.txt` prints them
+  as DECLINED rather than re-raising them as candidates on every rebuild.
+- Phase 3: the service worker precaches **only** the app shell and `deck.zh.json`. The
+  10 MB dictionary and the 3,087 stroke files are runtime-cached on first use, cache-first
+  thereafter. Precaching everything would make first load ~29 MB for every new user.
+  Now written into §9 of CLAUDE.md.

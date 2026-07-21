@@ -133,6 +133,45 @@ export function attachAltReadings(words, bySimp, limit = 3) {
 }
 
 /**
+ * Mark the words that share a spelling (§5.4 split groups).
+ *
+ * Every member gets `splitGroup` — the ids of its siblings — which the REC front uses for
+ * its "not <sibling pinyin>" hint. Exactly one member is the primary: the CC-CEDICT
+ * primary reading, the one greedy segmentation assumes and the one `speechSynthesis`
+ * will actually say. Non-primary members carry `splitPrimary: false`, and the engine
+ * gives them no LIS card and no TTS button — wrong audio is worse than none.
+ *
+ * @returns {{ groups: number, members: number }}
+ */
+export function markSplitGroups(words, bySimp) {
+  const bySpelling = new Map();
+  for (const w of words) {
+    if (!bySpelling.has(w.simp)) bySpelling.set(w.simp, []);
+    bySpelling.get(w.simp).push(w);
+  }
+
+  let groups = 0;
+  let members = 0;
+  for (const [simp, group] of bySpelling) {
+    if (group.length < 2) continue;
+    groups++;
+    members += group.length;
+
+    const primary = pickPrimary(bySimp.get(simp));
+    const primaryReading = primary?.pinyinNum.toLowerCase();
+    // If CC-CEDICT cannot say, the first member in deck order carries the reading.
+    let chosen = group.find((w) => w.pinyinNum.toLowerCase() === primaryReading) ?? group[0];
+
+    for (const word of group) {
+      word.splitGroup = group.filter((w) => w.id !== word.id).map((w) => w.id);
+      word.splitPrimary = word === chosen;
+    }
+  }
+
+  return { groups, members };
+}
+
+/**
  * Merge `overrides.json` over the resolved deck.
  *
  * Applied after HSK resolution so overrides win, but before sentences and stroke data so

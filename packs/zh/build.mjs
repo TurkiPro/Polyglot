@@ -15,7 +15,7 @@ import { buildCredits, renderCreditsMarkdown } from './lib/credits.js';
 import { download, readSource, readSourceText } from './lib/download.js';
 import { parseHsk } from './lib/hsk.js';
 import { numToMarks } from './lib/pinyin.js';
-import { applyOverrides, attachAltReadings, resolveWords } from './lib/words.js';
+import { applyOverrides, attachAltReadings, markSplitGroups, resolveWords } from './lib/words.js';
 import {
   charLength,
   indexWordSentences,
@@ -116,22 +116,14 @@ async function attachSentences(words, bySimp) {
   /*
    * When a spelling is taught as several words (别 bié / 别 biè), the sentence index
    * cannot tell which reading a given sentence uses — 别动！is bié, but it matches the
-   * spelling either way. Only the primary reading keeps the shared sentences; the other
-   * readings get none, and so get no SENT card (§5.4), rather than a mismatched one.
+   * spelling either way. Only the split-group primary keeps the shared sentences; the
+   * other readings get none, and so no SENT card (§5.4), rather than a mismatched one.
    */
-  const spellingCounts = new Map();
-  for (const w of words) spellingCounts.set(w.simp, (spellingCounts.get(w.simp) ?? 0) + 1);
-  const ambiguous = (word) => {
-    if ((spellingCounts.get(word.simp) ?? 0) < 2) return false;
-    const primary = pickPrimary(bySimp.get(word.simp));
-    return !primary || primary.pinyinNum.toLowerCase() !== word.pinyinNum.toLowerCase();
-  };
-
   let withSentences = 0;
   let total = 0;
   let skippedAmbiguous = 0;
   for (const word of words) {
-    if (ambiguous(word)) {
+    if (word.splitPrimary === false) {
       skippedAmbiguous++;
       continue;
     }
@@ -235,7 +227,7 @@ async function writeArtifacts({ words, cedict, version, generatedAt }) {
  * invented pinyin on a card. Entries flagged `CANDIDATE` do have an unused reading and
  * are worth a look; promote the real ones by hand in overrides.json.
  */
-function homographReport(homographs, words) {
+function homographReport(homographs, words, declined = {}) {
   const lines = [`homograph-marked HSK entries (${homographs.length}):`];
 
   // Readings the final deck actually teaches, so a split already curated in
@@ -254,12 +246,16 @@ function homographReport(homographs, words) {
 
   for (const [simp, entries] of bySpelling) {
     const covered = taught.get(simp) ?? new Set();
+    const reason = declined[simp];
     lines.push(
-      `  ${simp} — ${entries[0].readingCount} distinct reading(s) in CC-CEDICT, ${covered.size} taught`,
+      `  ${simp} — ${entries[0].readingCount} distinct reading(s) in CC-CEDICT, ${covered.size} taught` +
+        (reason ? '  DECLINED' : ''),
     );
+    if (reason) lines.push(`    reason: ${reason}`);
+
     for (const h of entries) {
       const unused = h.alternatives.filter((a) => !covered.has(a.pinyinNum.toLowerCase()));
-      const isCandidate = h.marker > 1 && unused.length > 0;
+      const isCandidate = !reason && h.marker > 1 && unused.length > 0;
       lines.push(
         `    ${h.raw} (band ${h.band}) → ${h.resolvedPinyin} [${h.resolvedPinyinNum}]` +
           (isCandidate ? '  CANDIDATE' : ''),
@@ -290,6 +286,7 @@ async function writeReport(stats) {
     `id collisions (~2, ~3, …):  ${stats.collisions}`,
     `overrides added / patched:  ${stats.overrides.added} / ${stats.overrides.patched}`,
     `words with altReadings:     ${stats.withAlts}`,
+    `split groups / members:     ${stats.splits.groups} / ${stats.splits.members}`,
     '',
     'words per band:',
     ...stats.perBand.map(([band, count]) => `  band ${band}: ${count}`),
@@ -306,7 +303,7 @@ async function writeReport(stats) {
     `HSK words missing from CEDICT (${stats.missing.length}):`,
     ...stats.missing.map((w) => `  - ${w}`),
     '',
-    ...homographReport(stats.homographs, stats.words),
+    ...homographReport(stats.homographs, stats.words, stats.declinedSplits),
   ];
   await writeFile(new URL('data/report.txt', import.meta.url), lines.join('\n'));
 }
@@ -348,9 +345,13 @@ async function main() {
   const { words, missing, duplicates, homographs, collisions } = resolved;
   log(`  ${words.length} deck words (${duplicates} repeats, ${missing.length} absent from CEDICT)`);
 
-  const overrides = applyOverrides(await loadOverrides(), resolved, cedict.bySimp);
+  const overridesFile = await loadOverrides();
+  const overrides = applyOverrides(overridesFile, resolved, cedict.bySimp);
   log(`  overrides: +${overrides.added} added, ${overrides.patched} patched, ${overrides.removed} removed`);
   for (const w of overrides.warnings) warn(`override: ${w}`);
+
+  const splits = markSplitGroups(words, cedict.bySimp);
+  log(`  ${splits.groups} split groups covering ${splits.members} words`);
 
   const withAlts = attachAltReadings(words, cedict.bySimp);
   log(`  ${withAlts} words carry alternate readings`);
@@ -377,6 +378,8 @@ async function main() {
     homographs,
     overrides,
     withAlts,
+    splits,
+    declinedSplits: overridesFile.declinedSplits ?? {},
     deckWords: words.length,
     missing,
     collisions,

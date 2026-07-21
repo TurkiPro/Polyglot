@@ -12,6 +12,17 @@
     "Adding a word here mints a permanent card id — change `simp`/`pinyinNum` of an",
     "existing entry only if you accept that its review history is orphaned."
   ],
+  "$declinedNote": [
+    "Homograph candidates reviewed and deliberately NOT split. report.txt prints these",
+    "as DECLINED with the reason instead of re-raising them as candidates every build.",
+    "Remove a spelling from here to have it surface as a candidate again."
+  ],
+  "declinedSplits": {
+    "会": "The only untaught reading is kuài, a bound form living almost entirely in 会计 (accounting). Band 3 会2 is the noun sense 'meeting; gathering' (开会, 会议) — still huì. Splitting would put kuài on a card that means meeting.",
+    "和": "Untaught readings are huò (to mix), hè (to reply in verse) and huó (to knead flour). Band 7 和2 is ambiguous across all three, and may well still be hé in a further sense. Three plausible candidates and no way to choose.",
+    "喂": "Readings are wèi (to feed; hey) and wéi (hello, on the phone). CC-CEDICT's wèi entry already covers 'hey', and the phone greeting is pronounced wèi by most speakers. Two cards learners cannot tell apart by sound.",
+    "乘": "The untaught reading shèng is glossed '(archaic) four-horse military chariot' — a classical measure word, not band-6 vocabulary. Band 6 乘2 is far more likely chéng ('to multiply', 乘法; 'to take advantage of', 乘机), which is the reading already taught."
+  },
   "words": [
     {
       "$group": "HSK 3.0 words absent from CC-CEDICT. Definitions hand-written — review welcome.",

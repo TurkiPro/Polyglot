@@ -101,6 +101,36 @@ describe('deck pack', () => {
     }
   });
 
+  it('marks split groups per §5.4', () => {
+    const bySpelling = new Map();
+    for (const w of deck.words) {
+      if (!bySpelling.has(w.simp)) bySpelling.set(w.simp, []);
+      bySpelling.get(w.simp).push(w);
+    }
+
+    const byId = new Map(deck.words.map((w) => [w.id, w]));
+    let groups = 0;
+    for (const [, group] of bySpelling) {
+      if (group.length < 2) {
+        expect(group[0].splitGroup).toBeUndefined();
+        continue;
+      }
+      groups++;
+      expect(group.filter((w) => w.splitPrimary === true)).toHaveLength(1);
+      for (const w of group) {
+        // Siblings are the other members, resolvable, and never the word itself.
+        expect(w.splitGroup).toEqual(group.filter((s) => s.id !== w.id).map((s) => s.id));
+        expect(w.splitGroup.every((id) => byId.has(id))).toBe(true);
+        expect(w.splitGroup).not.toContain(w.id);
+      }
+      // Non-primary members carry no sentences, so the engine gives them no SENT card.
+      for (const w of group.filter((m) => m.splitPrimary === false)) {
+        expect(w.sentences).toEqual([]);
+      }
+    }
+    expect(groups).toBeGreaterThan(0);
+  });
+
   it('never gives two readings of one spelling the same sentences', () => {
     // The sentence index matches on spelling, so a shared sentence cannot be attributed
     // to a reading. Only the primary keeps them; see attachSentences in build.mjs.
