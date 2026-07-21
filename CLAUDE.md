@@ -60,7 +60,9 @@ T1 = #e53935    T2 = #43a047    T3 = #1e88e5    T4 = #8e24aa    T5 = #9e9e9e
 
 # ── Data sources (verify URLs before first pipeline run) ──
 SRC_CEDICT_URL   = https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz
-SRC_TATOEBA_BASE = https://downloads.tatoeba.org/exports/
+SRC_TATOEBA_LINKS    = https://downloads.tatoeba.org/exports/links.tar.bz2
+SRC_TATOEBA_SENT_CMN = https://downloads.tatoeba.org/exports/per_language/cmn/cmn_sentences.tsv.bz2
+SRC_TATOEBA_SENT_ENG = https://downloads.tatoeba.org/exports/per_language/eng/eng_sentences.tsv.bz2
 SRC_HSK30_BASE = https://raw.githubusercontent.com/krmanik/HSK-3.0/182692ce5a11bc30bdc771835d2f0f27491c25de/New%20HSK%20(2025)/HSK%20Words/
 SRC_HSK30_FILES = HSK_Level_1_words.txt, HSK_Level_2_words.txt, HSK_Level_3_words.txt,
                   HSK_Level_4_words.txt, HSK_Level_5_words.txt, HSK_Level_6_words.txt,

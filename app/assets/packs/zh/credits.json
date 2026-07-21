@@ -1,0 +1,44 @@
+{
+  "packVersion": "2026.07.21",
+  "generatedAt": "2026-07-21T18:40:24.647Z",
+  "sources": [
+    {
+      "name": "CC-CEDICT",
+      "description": "Chinese-English dictionary: headwords, pinyin readings and definitions.",
+      "url": "https://www.mdbg.net/chinese/dictionary?page=cc-cedict",
+      "downloadUrl": "https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    },
+    {
+      "name": "Tatoeba Project",
+      "description": "Example sentences (Mandarin) and their English translations.",
+      "url": "https://tatoeba.org/",
+      "downloadUrl": "https://downloads.tatoeba.org/exports/per_language/cmn/cmn_sentences.tsv.bz2",
+      "license": "CC BY 2.0 FR",
+      "licenseUrl": "https://creativecommons.org/licenses/by/2.0/fr/"
+    },
+    {
+      "name": "HSK 3.0 word lists",
+      "description": "Band assignments for the 2021 HSK 3.0 (New HSK) standard.",
+      "url": "https://github.com/krmanik/HSK-3.0",
+      "downloadUrl": "https://raw.githubusercontent.com/krmanik/HSK-3.0/182692ce5a11bc30bdc771835d2f0f27491c25de/New%20HSK%20(2025)/HSK%20Words/",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/krmanik/HSK-3.0/blob/master/LICENSE"
+    },
+    {
+      "name": "hanzi-writer",
+      "description": "Stroke-order animation and handwriting quiz rendering.",
+      "url": "https://hanziwriter.org/",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/chanind/hanzi-writer/blob/master/LICENSE"
+    },
+    {
+      "name": "hanzi-writer-data",
+      "description": "Per-character stroke outline and median data, derived from Make Me a Hanzi.",
+      "url": "https://github.com/chanind/hanzi-writer-data",
+      "license": "LGPL-3.0 (data derived from Make Me a Hanzi, ARPHIC Public License)",
+      "licenseUrl": "https://github.com/chanind/hanzi-writer-data/blob/master/LICENSE"
+    }
+  ]
+}

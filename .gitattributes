@@ -3,3 +3,10 @@
 
 # Shell scripts must keep LF endings so they run under bash on any host.
 *.sh text eol=lf
+
+# bzip2 fixtures are compared byte-for-byte against their compressed pairs — any
+# line-ending normalization would corrupt the comparison on checkout.
+tests/fixtures/** -text
+
+# Committed pack artifacts are build output; keep them byte-stable across platforms.
+app/assets/packs/** -text

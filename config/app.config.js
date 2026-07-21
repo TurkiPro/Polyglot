@@ -85,7 +85,19 @@ export const config = deepFreeze({
   // ── Data sources (verify URLs before first pipeline run) ──
   sources: {
     cedictUrl: 'https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz',
-    tatoebaBase: 'https://downloads.tatoeba.org/exports/',
+    /**
+     * Tatoeba exports, verified 2026-07-21 against
+     * https://downloads.tatoeba.org/exports/ (last-modified 2026-07-18).
+     * The per-language links file is the cmn↔eng subset of the full links export:
+     * 477 KB instead of 148 MB, same pairs, no tar to unpack. Columns are
+     * `<cmn sentence id>\t<eng sentence id>`; the sentence files are
+     * `<id>\t<lang>\t<text>`.
+     */
+    tatoebaLinks: 'https://downloads.tatoeba.org/exports/per_language/cmn/cmn-eng_links.tsv.bz2',
+    tatoebaSentencesCmn:
+      'https://downloads.tatoeba.org/exports/per_language/cmn/cmn_sentences.tsv.bz2',
+    tatoebaSentencesEng:
+      'https://downloads.tatoeba.org/exports/per_language/eng/eng_sentences.tsv.bz2',
     hsk30Base:
       'https://raw.githubusercontent.com/krmanik/HSK-3.0/182692ce5a11bc30bdc771835d2f0f27491c25de/New%20HSK%20(2025)/HSK%20Words/',
     /** Band 7-9 collapses to band 7 per §5.1. */
