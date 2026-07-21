@@ -314,6 +314,29 @@ describe('review session', () => {
     expect(store.store.events).toHaveLength(after);
   });
 
+  it('grades over plain HTTP, where crypto.randomUUID does not exist', async () => {
+    // Reproduces testing on a phone against a dev machine's LAN address: a non-secure
+    // context, so `crypto.randomUUID` is undefined and every grade used to throw,
+    // leaving the session stuck on the back of the first card.
+    const original = Object.getOwnPropertyDescriptor(globalThis.crypto, 'randomUUID');
+    try {
+      Object.defineProperty(globalThis.crypto, 'randomUUID', { value: undefined, configurable: true });
+
+      const teardown = renderReview(root, { navigate: () => {} });
+      key(' ');
+      expect(root.querySelector('.ratings')).not.toBeNull();
+
+      key('3');
+      await until(() => store.store.events.length === 1, 'the review to be recorded');
+      await until(() => root.querySelector('.ratings') === null, 'the session to advance');
+
+      expect(store.store.events[0].id).toMatch(/^[0-9a-f-]{36}$/);
+      teardown?.();
+    } finally {
+      if (original) Object.defineProperty(globalThis.crypto, 'randomUUID', original);
+    }
+  });
+
   it('offers no more new cards than the daily limit allows', async () => {
     await store.updateSettings({ newPerDay: 2 });
     const { cards, newCount } = store.queue();

@@ -100,6 +100,12 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
 - Phase 3: icons are human-supplied PNGs (180/192/512, plain and maskable) with the SVG
   kept only as a favicon. PNG is what iOS needs for `apple-touch-icon` and what makes
   installability predictable; the maskable variants inset the glyph into the safe zone.
+- Phase 3: event ids come from `uuidv4()` in `events.js`, not `crypto.randomUUID`
+  directly. `randomUUID` is `[SecureContext]`, so it is missing over plain HTTP from a
+  LAN address — which is how the app gets tested on a phone. `crypto.getRandomValues`
+  carries no such restriction, so the v4 is assembled from it when the shortcut is absent.
+  Node and localhost both have `randomUUID`, which is why every test passed while grading
+  was broken on a real device; both suites now force the fallback path.
 - Phase 3: the service worker precaches **only** the app shell and `deck.zh.json`. The
   10 MB dictionary and the 3,087 stroke files are runtime-cached on first use, cache-first
   thereafter. Precaching everything would make first load ~29 MB for every new user.

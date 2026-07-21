@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { config } from '../config/app.config.js';
 import { cardId, cardIdsForWord, createDeck, modesForWord, parseCardId } from '../app/src/engine/deck.js';
-import { createEvent, mergeEvents, sortEvents, toWire } from '../app/src/engine/events.js';
+import { createEvent, mergeEvents, sortEvents, toWire, uuidv4 } from '../app/src/engine/events.js';
 import { buildQueue, interleave, isDue, newCardCandidates } from '../app/src/engine/queue.js';
 import {
   HASHED_FIELDS,
@@ -80,6 +80,35 @@ describe('events', () => {
     expect(toWire(event).synced).toBeUndefined();
     expect(() => createEvent({ cardId: 'a#REC', rating: 5 })).toThrow();
     expect(() => createEvent({ rating: 3 })).toThrow();
+  });
+
+  it('mints v4 ids without crypto.randomUUID (non-secure context)', () => {
+    // Served over plain HTTP from a LAN address, `crypto.randomUUID` does not exist.
+    // Node and localhost both have it, which is exactly why this needs forcing.
+    const original = Object.getOwnPropertyDescriptor(globalThis.crypto, 'randomUUID');
+    try {
+      Object.defineProperty(globalThis.crypto, 'randomUUID', { value: undefined, configurable: true });
+      expect(typeof crypto.randomUUID).not.toBe('function');
+
+      const ids = new Set();
+      for (let i = 0; i < 500; i++) {
+        const id = uuidv4();
+        // Canonical v4: version nibble 4, variant nibble 8/9/a/b.
+        expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+        ids.add(id);
+      }
+      expect(ids.size).toBe(500);
+
+      // And the event path itself works, which is what actually broke.
+      const event = createEvent({ cardId: 'a#REC', rating: 3, ts: T0 });
+      expect(event.id).toMatch(/^[0-9a-f-]{36}$/);
+    } finally {
+      if (original) Object.defineProperty(globalThis.crypto, 'randomUUID', original);
+    }
+  });
+
+  it('uses crypto.randomUUID when it is available', () => {
+    expect(uuidv4()).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   });
 
   it('orders by ts then id, and merges logs by id', () => {

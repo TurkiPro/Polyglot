@@ -6,6 +6,11 @@ device and a real network tab — mostly install, audio, touch and the service w
 
 Run `npm run dev` and open the URL Wrangler prints.
 
+> **Testing from a phone on your LAN?** `http://<lan-ip>:8787` is a *non-secure context*.
+> Service workers are unavailable there, so install and the offline checks below cannot
+> pass over plain HTTP — use `localhost` on the dev machine, or serve over HTTPS. The app
+> itself works either way.
+
 ## Install and offline
 
 - [ ] The app is installable (Chrome: address-bar install icon; iOS Safari: Share → Add to

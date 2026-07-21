@@ -9,6 +9,28 @@
 /** @typedef {{ id: string, cardId: string, rating: 1|2|3|4, ts: number, durMs?: number }} ReviewEvent */
 
 /**
+ * A v4 UUID (§5.5).
+ *
+ * `crypto.randomUUID` is only exposed in a secure context, so it is missing whenever the
+ * app is served over plain HTTP from anything other than localhost — testing on a phone
+ * against a dev machine's LAN address, for instance. `crypto.getRandomValues` carries no
+ * such restriction, so we build the v4 ourselves when the shortcut is unavailable.
+ */
+export function uuidv4() {
+  if (typeof crypto?.randomUUID === 'function') return crypto.randomUUID();
+  if (typeof crypto?.getRandomValues !== 'function') {
+    throw new Error('no secure random source available');
+  }
+
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant 10xx
+
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+/**
  * Build a review event. `synced` is storage bookkeeping, not part of the synced payload.
  * @returns {ReviewEvent & { synced: 0 }}
  */
@@ -17,7 +39,7 @@ export function createEvent({ cardId, rating, ts = Date.now(), durMs }) {
   if (!Number.isInteger(rating) || rating < 1 || rating > 4) {
     throw new Error(`event: rating must be 1-4, got ${rating}`);
   }
-  const event = { id: crypto.randomUUID(), cardId, rating, ts, synced: 0 };
+  const event = { id: uuidv4(), cardId, rating, ts, synced: 0 };
   if (durMs !== undefined) event.durMs = Math.max(0, Math.round(durMs));
   return event;
 }
