@@ -77,6 +77,8 @@ export async function writeReport(stats, warnings = []) {
     `sentences attached:         ${stats.sentences}`,
     `unique characters:          ${stats.chars}`,
     `stroke files copied:        ${stats.strokesCopied}`,
+    `serif subset characters:    ${stats.fonts.characters}`,
+    ...stats.fonts.files.map((f) => `  ${f.file}: ${(f.bytes / 1024).toFixed(0)} KB`),
     `words without a WRITE card: ${stats.noWrite}`,
     '',
     `warnings (${warnings.length}):`,

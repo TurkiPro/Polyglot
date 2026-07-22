@@ -4,6 +4,25 @@
    Tone colours --t1..--t5 are set at boot from config/app.config.js, so §0 stays the
    only place they are written. */
 
+/* Noto Serif SC, subset by the pipeline to this pack's characters and self-hosted —
+   no third-party request at runtime (§1.2). `swap` so text is never invisible while it
+   loads; characters outside the subset fall back down the --font-han stack. */
+@font-face {
+  font-family: "Noto Serif SC";
+  src: url("/assets/fonts/noto-serif-sc-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Noto Serif SC";
+  src: url("/assets/fonts/noto-serif-sc-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   color-scheme: light;
 
@@ -900,6 +919,21 @@ body {
   background: var(--accent);
   height: 100%;
   width: calc(var(--ratio, 0) * 100%);
+}
+
+/* ── Icons ──────────────────────────────────────────────── */
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon-size, 24px);
+  height: var(--icon-size, 24px);
+  flex: none;
+}
+
+.icon svg {
+  display: block;
 }
 
 /* ── Tone colours (values injected from config at boot) ─── */

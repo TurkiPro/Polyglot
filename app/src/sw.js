@@ -41,7 +41,13 @@ const PRECACHE = [
 ];
 
 /** Big, lazily needed assets: fetched on demand, then kept. */
-const RUNTIME_PATHS = [`/assets/packs/${LANG}/dict.`, `/assets/packs/${LANG}/strokes/`];
+const RUNTIME_PATHS = [
+  `/assets/packs/${LANG}/dict.`,
+  `/assets/packs/${LANG}/strokes/`,
+  // ~1.8 MB of subset serif. font-display: swap means the app is usable before it
+  // arrives, so it does not belong in the install-time precache.
+  '/assets/fonts/',
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

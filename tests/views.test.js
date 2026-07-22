@@ -346,18 +346,50 @@ describe('review session', () => {
 });
 
 describe('design system v2 (§C)', () => {
-  it('draws tab icons inline, with no icon library and no markup strings', async () => {
-    const { iconFor, ICONS } = await import('../app/src/ui/icons.js');
-    for (const name of ['home', 'review', 'browse', 'words', 'stats', 'settings']) {
-      const svg = iconFor(name);
-      expect(svg, name).not.toBeNull();
-      expect(svg.tagName.toLowerCase()).toBe('svg');
-      expect(svg.getAttribute('stroke')).toBe('currentColor');
-      expect(svg.getAttribute('aria-hidden')).toBe('true');
-      expect(svg.querySelectorAll('path').length).toBeGreaterThan(0);
-    }
-    expect(Object.keys(ICONS)).toHaveLength(6);
+  it('maps every route and card mode to a vendored icon', async () => {
+    const { ROUTE_ICONS, MODE_ICONS, iconFor, iconForMode } = await import('../app/src/ui/icons.js');
+    const { ICON_NAMES } = await import('../app/src/ui/components.js');
+
+    // Every mapping points at a file we actually vendored.
+    for (const name of Object.values(ROUTE_ICONS)) expect(ICON_NAMES).toContain(name);
+    for (const name of Object.values(MODE_ICONS)) expect(ICON_NAMES).toContain(name);
+
+    expect(Object.keys(ROUTE_ICONS)).toEqual(['home', 'review', 'browse', 'words', 'stats', 'settings']);
+    expect(Object.keys(MODE_ICONS)).toEqual(['REC', 'LIS', 'PROD', 'SENT', 'WRITE']);
+
+    // A host element comes back synchronously; the SVG fills in when it loads.
+    const host = iconFor('home');
+    expect(host.dataset.icon).toBe('home');
+    expect(host.getAttribute('aria-hidden')).toBe('true');
+    expect(iconForMode('LIS').dataset.icon).toBe('volume-2');
+
+    // Unknown names render nothing rather than throwing.
     expect(iconFor('nope')).toBeNull();
+    expect(iconForMode('NOPE')).toBeNull();
+  });
+
+  it('inlines a vendored SVG without innerHTML, and survives a missing one', async () => {
+    const { icon, resetIcons } = await import('../app/src/ui/components.js');
+    resetIcons();
+
+    globalThis.fetch = vi.fn(async (url) =>
+      String(url).includes('check.svg')
+        ? { ok: true, text: async () => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>' }
+        : { ok: false, status: 404 },
+    );
+
+    const good = icon('check', 16);
+    await vi.waitFor(() => expect(good.querySelector('svg')).not.toBeNull());
+    const svg = good.querySelector('svg');
+    expect(svg.getAttribute('width')).toBe('16');
+    expect(svg.getAttribute('aria-hidden')).toBe('true');
+    expect(svg.querySelector('path')).not.toBeNull();
+
+    // A 404 leaves an empty host instead of breaking the screen.
+    const missing = icon('nope');
+    await new Promise((r) => setTimeout(r, 10));
+    expect(missing.querySelector('svg')).toBeNull();
+    resetIcons();
   });
 
   it('shows an interval preview on every grade button, matching the schedule', async () => {

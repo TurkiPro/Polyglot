@@ -109,6 +109,13 @@ export const config = deepFreeze({
       'https://downloads.tatoeba.org/exports/per_language/cmn/cmn_sentences.tsv.bz2',
     tatoebaSentencesEng:
       'https://downloads.tatoeba.org/exports/per_language/eng/eng_sentences.tsv.bz2',
+    /**
+     * Noto Serif SC (variable, SIL Open Font License 1.1) from the Google Fonts
+     * repository. Subset at build time to the pack's characters; never fetched at
+     * runtime.
+     */
+    notoSerifScUrl:
+      'https://raw.githubusercontent.com/google/fonts/main/ofl/notoserifsc/NotoSerifSC%5Bwght%5D.ttf',
     hsk30Base:
       'https://raw.githubusercontent.com/krmanik/HSK-3.0/182692ce5a11bc30bdc771835d2f0f27491c25de/New%20HSK%20(2025)/HSK%20Words/',
     /** Band 7-9 collapses to band 7 per §5.1. */

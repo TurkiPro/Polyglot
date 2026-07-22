@@ -115,6 +115,74 @@ export function liveRegion() {
 }
 
 /**
+ * Icons (§3.2.4).
+ *
+ * Lucide's SVGs are vendored into `app/assets/icons/ui/` as static assets — not a
+ * dependency, so the allowlist is unchanged and nothing is fetched from a third party at
+ * runtime. Each file is fetched once and cached in-module.
+ */
+const ICON_BASE = '/assets/icons/ui';
+const iconCache = new Map();
+
+/** Names vendored for this app; anything else is a caller mistake, not a fetch. */
+export const ICON_NAMES = Object.freeze([
+  'volume-2', 'play', 'rotate-ccw', 'plus', 'check', 'x', 'chevron-right',
+  'home', 'book-open', 'search', 'list', 'bar-chart-3', 'settings',
+]);
+
+/**
+ * An icon element. Returns a placeholder immediately and fills it once the SVG arrives,
+ * so callers never have to await layout.
+ *
+ * @param {string} name one of ICON_NAMES
+ * @param {number} [size] pixels
+ * @returns {HTMLElement}
+ */
+export function icon(name, size = 24) {
+  const host = el('span', {
+    class: 'icon',
+    attrs: { 'aria-hidden': 'true', 'data-icon': name },
+  });
+  host.style.setProperty('--icon-size', `${size}px`);
+
+  loadIcon(name)
+    .then((svg) => {
+      if (!svg) return;
+      const node = svg.cloneNode(true);
+      node.setAttribute('width', String(size));
+      node.setAttribute('height', String(size));
+      host.replaceChildren(node);
+    })
+    .catch(() => {
+      // A missing glyph must never break a screen; the label beside it still reads.
+    });
+
+  return host;
+}
+
+/** Fetch and parse one icon, once. */
+function loadIcon(name) {
+  if (!iconCache.has(name)) {
+    const promise = fetch(`${ICON_BASE}/${name}.svg`)
+      .then((res) => (res.ok ? res.text() : Promise.reject(new Error(`icon ${name}: ${res.status}`))))
+      .then((text) => {
+        // Parsed as a document, not injected as markup — no innerHTML anywhere (§11).
+        const doc = new DOMParser().parseFromString(text, 'image/svg+xml');
+        const svg = doc.querySelector('svg');
+        if (!svg) throw new Error(`icon ${name}: not an svg`);
+        svg.setAttribute('focusable', 'false');
+        svg.setAttribute('aria-hidden', 'true');
+        return svg;
+      });
+    iconCache.set(name, promise);
+  }
+  return iconCache.get(name);
+}
+
+/** Drop cached icons — tests only. */
+export const resetIcons = () => iconCache.clear();
+
+/**
  * A scheduling delay as the shortest honest label: "10m", "4h", "3d", "2mo", "1y".
  * Used on the grade buttons, where four of these have to fit side by side.
  */

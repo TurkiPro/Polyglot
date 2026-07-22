@@ -5,7 +5,7 @@
 polyglot is built on freely licensed data and libraries. Each source below is
 used under the license named, and keeps its own copyright.
 
-Pack version `2026.07.21`, generated 2026-07-21T19:49:43.574Z.
+Pack version `2026.07.22`, generated 2026-07-22T19:52:56.965Z.
 
 ## CC-CEDICT
 
@@ -44,6 +44,21 @@ Per-character stroke outline and median data, derived from Make Me a Hanzi.
 
 - Home: <https://github.com/chanind/hanzi-writer-data>
 - License: [LGPL-3.0 (data derived from Make Me a Hanzi, ARPHIC Public License)](https://github.com/chanind/hanzi-writer-data/blob/master/LICENSE)
+
+## Noto Serif SC
+
+The serif face the hanzi are set in, subset at build time to the characters this pack uses and self-hosted.
+
+- Home: <https://fonts.google.com/noto/specimen/Noto+Serif+SC>
+- Source data: <https://raw.githubusercontent.com/google/fonts/main/ofl/notoserifsc/NotoSerifSC%5Bwght%5D.ttf>
+- License: [SIL Open Font License 1.1](https://openfontlicense.org/)
+
+## Lucide
+
+The UI icon set, vendored as static SVG files rather than a runtime dependency.
+
+- Home: <https://lucide.dev/>
+- License: [ISC](https://github.com/lucide-icons/lucide/blob/main/LICENSE)
 
 ---
 

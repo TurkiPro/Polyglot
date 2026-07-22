@@ -174,4 +174,20 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   so a token edit that breaks legibility fails the suite. It asserts the tone variables
   are never *declared* in CSS rather than that their values are unique — paper's t5
   deliberately equals --fg-dim.
+- Phase 3.2 §3: `subset-font` added as a **dev-only** dependency (§4.3 approval granted in
+  the phase brief) and Noto Serif SC is subset at build time to the 4,558 characters the
+  pack uses — deck words, their sentences, and any hanzi baked into `ui/strings.js`.
+  887 KB (400) + 915 KB (700) of woff2 from a 24 MB variable source. `variationAxes`
+  pins the weight axis, so each file is a static instance. OFL recorded in CREDITS by the
+  pipeline; the deck rebuild is byte-identical apart from its timestamp.
+- Phase 3.2 §3: the fonts are runtime-cached rather than precached. 1.8 MB at install
+  would double the first load, and `font-display: swap` means the app is fully usable
+  before they arrive.
+- Phase 3.2 §4: lucide icons are vendored as static SVG files under
+  `app/assets/icons/ui/`, inlined by `components.icon()` via DOMParser rather than
+  innerHTML. Upstream has renamed two of the requested glyphs — `home` is now `house`
+  and `bar-chart-3` is now `chart-column`; both are saved under the requested filenames
+  so the mapping in `ui/icons.js` reads as specified.
+- Phase 3.2 §4: `ui/icons.js` is now only a route/mode → filename mapping; the 3.1
+  hand-drawn paths are gone.
 

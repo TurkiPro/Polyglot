@@ -49,6 +49,22 @@ export function buildCredits(sources, { packVersion, generatedAt }) {
         license: 'LGPL-3.0 (data derived from Make Me a Hanzi, ARPHIC Public License)',
         licenseUrl: 'https://github.com/chanind/hanzi-writer-data/blob/master/LICENSE',
       },
+      {
+        name: 'Noto Serif SC',
+        description:
+          'The serif face the hanzi are set in, subset at build time to the characters this pack uses and self-hosted.',
+        url: 'https://fonts.google.com/noto/specimen/Noto+Serif+SC',
+        downloadUrl: sources.notoSerifScUrl,
+        license: 'SIL Open Font License 1.1',
+        licenseUrl: 'https://openfontlicense.org/',
+      },
+      {
+        name: 'Lucide',
+        description: 'The UI icon set, vendored as static SVG files rather than a runtime dependency.',
+        url: 'https://lucide.dev/',
+        license: 'ISC',
+        licenseUrl: 'https://github.com/lucide-icons/lucide/blob/main/LICENSE',
+      },
     ],
   };
 }

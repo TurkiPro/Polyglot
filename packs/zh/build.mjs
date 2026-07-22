@@ -12,7 +12,8 @@ import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { config } from '../../config/app.config.js';
 import { parseCedict, pickPrimary } from './lib/cedict.js';
 import { buildCredits, renderCreditsMarkdown } from './lib/credits.js';
-import { download, readSource, readSourceText } from './lib/download.js';
+import { DATA_DIR, download, readSource, readSourceText } from './lib/download.js';
+import { collectCharacters, subsetWeights } from './lib/fonts.js';
 import { parseHsk } from './lib/hsk.js';
 import { numToMarks } from './lib/pinyin.js';
 import { writeReport } from './lib/report.js';
@@ -30,6 +31,8 @@ const { pack, sources, identity } = config;
 const LANG = pack.langPackV1;
 
 const OUT_DIR = new URL(`../../app/assets/packs/${LANG}/`, import.meta.url);
+const FONT_DIR = new URL('../../app/assets/fonts/', import.meta.url);
+const UI_STRINGS = new URL('../../app/src/ui/strings.js', import.meta.url);
 const STROKES_DIR = new URL('strokes/', OUT_DIR);
 const STROKE_SRC = new URL('../../node_modules/hanzi-writer-data/', import.meta.url);
 const REPO_ROOT = new URL('../../', import.meta.url);
@@ -45,8 +48,9 @@ function packVersion(date) {
 }
 
 async function fetchSources() {
-  log('\n[1/7] sources');
+  log('\n[1/8] sources');
   await download(sources.cedictUrl, 'cedict.txt.gz', { log });
+  await download(sources.notoSerifScUrl, 'NotoSerifSC-VF.ttf', { log });
   await download(sources.tatoebaLinks, 'cmn-eng_links.tsv.bz2', { log });
   await download(sources.tatoebaSentencesCmn, 'cmn_sentences.tsv.bz2', { log });
   await download(sources.tatoebaSentencesEng, 'eng_sentences.tsv.bz2', { log });
@@ -75,7 +79,7 @@ async function loadOverrides() {
 
 /** Attach up to SENTENCES_PER_WORD examples to each word. */
 async function attachSentences(words, bySimp) {
-  log('\n[4/7] sentences');
+  log('\n[4/8] sentences');
 
   const maxWordLen = words.reduce((m, w) => Math.max(m, charLength(w.simp)), 1);
   const wordSet = new Set(words.map((w) => w.simp));
@@ -153,9 +157,30 @@ async function attachSentences(words, bySimp) {
   return { withSentences, total, skippedAmbiguous };
 }
 
+/**
+ * Subset the serif face to the characters this pack uses (§3.2.3).
+ * The full variable font is ~25 MB; each subset weight is a fraction of that.
+ */
+async function buildFonts(words) {
+  log('\n[6/8] fonts');
+  // Hanzi baked into the UI (the 学 watermark, the 语 mark) must be in the subset too.
+  const uiText = await readFile(UI_STRINGS, 'utf8');
+  const characters = collectCharacters(words, uiText);
+
+  const source = await readFile(new URL('NotoSerifSC-VF.ttf', DATA_DIR));
+  const written = await subsetWeights(source, characters, FONT_DIR);
+
+  const count = [...characters].length;
+  for (const { weight, file, bytes } of written) {
+    log(`  ${file} — ${(bytes / 1024).toFixed(0)} KB (weight ${weight})`);
+  }
+  log(`  ${count} characters subset from ${(source.length / 1048576).toFixed(1)} MB source`);
+  return { characters: count, files: written };
+}
+
 /** Copy stroke data for exactly the characters the deck uses. */
 async function copyStrokes(words) {
-  log('\n[5/7] strokes');
+  log('\n[5/8] strokes');
   const chars = new Set();
   for (const word of words) for (const ch of word.simp) if (/\p{Script=Han}/u.test(ch)) chars.add(ch);
 
@@ -193,7 +218,7 @@ function markWriteAvailability(words, missingChars) {
 }
 
 async function writeArtifacts({ words, cedict, version, generatedAt }) {
-  log('\n[6/7] artifacts');
+  log('\n[7/8] artifacts');
   await mkdir(OUT_DIR, { recursive: true });
 
   const deck = {
@@ -229,7 +254,7 @@ async function writeArtifacts({ words, cedict, version, generatedAt }) {
  * are worth a look; promote the real ones by hand in overrides.json.
  */
 function spotChecks(words) {
-  log('\n[7/7] spot checks');
+  log('\n[8/8] spot checks');
   const bySimp = new Map(words.map((w) => [w.simp, w]));
   for (const simp of ['好', '学习', '谢谢', '传统']) {
     const w = bySimp.get(simp);
@@ -251,12 +276,12 @@ async function main() {
   log(`building ${identity.projectName} ${LANG} pack ${version}`);
   await fetchSources();
 
-  log('\n[2/7] dictionary');
+  log('\n[2/8] dictionary');
   const cedict = parseCedict(await readSourceText('cedict.txt.gz'));
   log(`  ${cedict.entries.length} entries (${cedict.skipped} lines skipped)`);
   if (cedict.entries.length < 100000) throw new Error('CEDICT parse looks wrong: < 100,000 entries');
 
-  log('\n[3/7] HSK bands');
+  log('\n[3/8] HSK bands');
   const hsk = await loadHsk();
   log(`  ${hsk.listed} list entries`);
 
@@ -279,6 +304,7 @@ async function main() {
   const sentenceStats = await attachSentences(words, cedict.bySimp);
   const strokes = await copyStrokes(words);
   const noWrite = markWriteAvailability(words, strokes.missing);
+  const fonts = await buildFonts(words);
 
   await writeArtifacts({ words, cedict, version, generatedAt });
 
@@ -307,6 +333,7 @@ async function main() {
     sentences: sentenceStats.total,
     chars: strokes.chars,
     strokesCopied: strokes.copied,
+    fonts,
     noWrite,
   }, warnings);
 
