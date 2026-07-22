@@ -6,6 +6,7 @@ import { store } from '../store.js';
 import { button, div, el, empty, h, p, relativeDay, replace, span } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { colorMarkedPinyin, colorPinyin } from '../zh/tones.js';
+import { classifiers, humanDefs } from '../zh/defs.js';
 import * as tts from '../zh/tts.js';
 
 const s = strings.word;
@@ -29,8 +30,22 @@ export function renderWord(root, ctx, wordId) {
 
   const sections = [
     header,
-    section(s.definitions, el('ul', { class: 'defs' }, word.defs.map((d) => el('li', { text: d })))),
+    section(
+      s.definitions,
+      el('ul', { class: 'defs' }, humanDefs(word.defs).map((d) => el('li', { text: d }))),
+    ),
   ];
+
+  // Classifiers are rendered as language, not as the raw CL: field.
+  const measures = classifiers(word.defs);
+  if (measures.length) {
+    sections.push(
+      section(
+        s.measureWords,
+        p(measures.map((m) => m.form).join(' · '), 'measure-words'),
+      ),
+    );
+  }
 
   if (word.sentences?.length) {
     sections.push(section(s.examples, div({ class: 'sentences' }, word.sentences.map(sentenceBlock))));

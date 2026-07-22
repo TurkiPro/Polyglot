@@ -82,12 +82,14 @@ export const strings = Object.freeze({
     add: 'Add to my words',
     added: 'Added',
     addedGoTo: 'Added · up next →',
-    inDeck: 'Already in your deck',
+    hskBand: (n) => `HSK · band ${n}`,
+    inMyWords: 'In My Words',
   },
 
   words: {
     title: 'My words',
     empty: 'Search the dictionary to add your first word.',
+    explain: 'The HSK curriculum is always in your reviews — this page is for words you add yourself.',
     browse: 'Browse the dictionary',
     upNext: 'Up next',
     learning: 'Learning',
@@ -102,6 +104,7 @@ export const strings = Object.freeze({
   word: {
     back: 'Back',
     definitions: 'Definitions',
+    measureWords: 'Measure word',
     examples: 'Examples',
     otherReadings: 'Other readings',
     alsoTaught: 'Also taught separately',

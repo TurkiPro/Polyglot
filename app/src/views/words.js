@@ -6,7 +6,7 @@
  */
 import { cardId } from '../engine/deck.js';
 import { removeCustomWord, store } from '../store.js';
-import { button, div, el, empty, h, p, relativeDay, replace, span } from '../ui/components.js';
+import { button, div, el, emptyState, h, p, relativeDay, replace, span } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { colorPinyin } from '../zh/tones.js';
 
@@ -35,10 +35,12 @@ export function renderWords(root, ctx) {
     if (words.length === 0) {
       replace(
         list,
-        empty(s.empty),
-        div({ class: 'center' }, [
+        emptyState(
+          'grid',
+          s.empty,
           button(s.browse, () => ctx.navigate('#browse'), { variant: 'btn-primary' }),
-        ]),
+          { note: s.explain },
+        ),
       );
       return;
     }

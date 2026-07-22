@@ -8,9 +8,10 @@ import { config } from '../../../config/app.config.js';
 import * as db from '../engine/db.js';
 import { numToMarks } from '../zh/pinyin.js';
 import { addCustomWord, store } from '../store.js';
-import { button, checkStamp, div, el, empty, h, p, replace, span } from '../ui/components.js';
+import { button, checkStamp, div, el, empty, emptyState, h, p, replace, span } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { colorPinyin } from '../zh/tones.js';
+import { summarize } from '../zh/defs.js';
 import { prepareEntries, rankResults } from './search.js';
 
 const s = strings.browse;
@@ -70,7 +71,7 @@ export function renderBrowse(root) {
 
   async function search(query) {
     const trimmed = query.trim();
-    if (!trimmed) return replace(results, empty(s.startTyping));
+    if (!trimmed) return replace(results, emptyState('grid', s.startTyping));
 
     const all = await ensureLoaded();
     // Score the whole dictionary before cutting, or the cut decides relevance.
@@ -91,22 +92,37 @@ export function renderBrowse(root) {
   });
 
   replace(root, div({ class: 'browse' }, [h(1, s.title, 'title'), input, status, results]));
-  replace(results, empty(s.startTyping));
+  replace(results, emptyState('grid', s.startTyping));
   queueMicrotask(() => input.focus({ preventScroll: true }));
 
   return () => clearTimeout(timer);
 }
 
-/** One search result, with an "add" action. */
+/**
+ * One search result.
+ *
+ * A word already known to the app is one of two different things, and "Already in your
+ * deck" hid the difference: the HSK curriculum is always in your reviews, while My Words
+ * is what you added. The chip names which, and the band is more useful than either (§3.3.4).
+ */
+function knownChip(word) {
+  if (word.custom) {
+    const chip = span({ class: 'chip chip-mine' });
+    chip.append(checkStamp(s.inMyWords));
+    return chip;
+  }
+  return span({ class: 'chip', text: s.hskBand(word.band) });
+}
+
 function resultRow(entry) {
   const wordId = `${LANG}:${entry.simp}:${entry.pinyinNum.replace(/\s+/g, '_')}`;
-  const already = store.deck.has(wordId);
+  const known = store.deck.word(wordId);
 
   const pinyin = span({ class: 'pinyin' });
   pinyin.append(colorPinyin(entry.pinyinNum));
 
-  const action = already
-    ? span({ class: 'added', text: s.inDeck })
+  const action = known
+    ? knownChip(known)
     : button(s.add, async (event) => {
         await addCustomWord({
           id: wordId,
@@ -128,7 +144,8 @@ function resultRow(entry) {
     div({ class: 'result-main' }, [
       span({ class: 'result-hanzi', text: entry.simp }),
       pinyin,
-      p(entry.defs.slice(0, 3).join('; '), 'result-defs'),
+      // Classifier entries are data, not a gloss — the word page renders them properly.
+      p(summarize(entry.defs), 'result-defs'),
     ]),
     action,
   ]);

@@ -109,6 +109,27 @@ export function banner(title, body, dismissLabel, onDismiss) {
 /** Empty-state message. */
 export const empty = (text) => p(text, 'empty');
 
+/**
+ * A composed empty state (§3.3.6): a large quiet motif, one line of direction, one
+ * action. Centred in the content area rather than a caption floating in a field.
+ *
+ * One component so Words, Browse, Stats and the finished session cannot drift apart.
+ *
+ * @param {'grid'|'seal'|null} motif
+ * @param {string} text the single line of direction
+ * @param {Node|null} [action] the one button
+ * @param {{ note?: string }} [options] a second, quieter line
+ */
+export function emptyState(motif, text, action = null, { note } = {}) {
+  const art = motif === 'seal' ? sealMark(96) : motif === 'grid' ? tianzige([]) : null;
+  return div({ class: 'empty-state' }, [
+    art ? div({ class: `empty-motif empty-motif-${motif}` }, [art]) : null,
+    p(text, 'empty-text'),
+    note ? p(note, 'empty-note') : null,
+    action,
+  ].filter(Boolean));
+}
+
 /** Screen-reader-only live region announcement. */
 export function liveRegion() {
   return div({ class: 'sr-only', attrs: { 'aria-live': 'polite', role: 'status' } });

@@ -340,7 +340,8 @@ body {
 }
 
 .btn:hover:not(:disabled) {
-  border-color: var(--accent);
+  border-color: var(--fg-dim);
+  background: var(--surface-2);
 }
 
 .btn:active:not(:disabled) {
@@ -352,23 +353,50 @@ body {
   cursor: not-allowed;
 }
 
+/* Focus rings are ink, never seal red — an input is not a call to action (§3.3.5). */
 .btn:focus-visible,
 .tab:focus-visible,
 .icon-btn:focus-visible,
 .search:focus-visible,
 .answer:focus-visible,
 .nav-link:focus-visible,
-.row-main:focus-visible {
-  outline: 2px solid var(--accent);
+.row-main:focus-visible,
+.tianzige-audio:focus-visible {
+  outline: 2px solid var(--fg);
   outline-offset: 2px;
 }
 
+.search:focus,
+.answer:focus {
+  border-color: var(--fg-dim);
+  outline: 2px solid var(--fg);
+  outline-offset: 1px;
+}
+
+/* Primary buttons read as pressed seals rather than flat rectangles. */
 .btn-primary {
-  background: var(--accent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 92%, white) 0%,
+    var(--accent) 100%
+  );
   color: var(--accent-fg);
-  border-color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 80%, black);
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), var(--shadow-1);
   font-weight: 600;
-  box-shadow: var(--shadow-1);
+  letter-spacing: 0.01em;
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.btn-primary:hover:not(:disabled) {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), var(--shadow-2);
+  border-color: color-mix(in srgb, var(--accent) 80%, black);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.97);
+  box-shadow: inset 0 2px 6px rgb(0 0 0 / 0.25);
 }
 
 .btn-cta {
@@ -389,7 +417,7 @@ body {
 
 .btn-quiet.active {
   background: var(--surface-2);
-  border-color: var(--accent);
+  border-color: var(--fg);
 }
 
 .btn-danger {
@@ -529,7 +557,7 @@ body {
 
 .slider {
   width: 100%;
-  accent-color: var(--accent);
+  accent-color: var(--fg);
 }
 
 .slider-value {
@@ -722,11 +750,6 @@ body {
   border-radius: 2px;
 }
 
-.tianzige-audio:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
 .tianzige-write {
   width: min(60vw, 220px);
 }
@@ -909,7 +932,7 @@ body {
 }
 
 .suggested {
-  box-shadow: inset 0 0 0 2px var(--accent);
+  box-shadow: inset 0 0 0 2px var(--fg);
 }
 
 .review.done {
@@ -1053,7 +1076,7 @@ body {
   justify-content: space-between;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-left: 3px solid var(--accent);
+  border-left: 3px solid var(--fg-dim);
   border-radius: var(--radius-sm);
   padding: var(--space-3);
   margin-bottom: var(--space-3);
@@ -1168,8 +1191,12 @@ body {
 }
 
 .chip-next {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--fg-dim);
+  color: var(--fg);
+}
+
+.chip-mine {
+  border-color: var(--border);
 }
 
 .chip-learning {
@@ -1212,7 +1239,8 @@ body {
 }
 
 .links a {
-  color: var(--accent);
+  color: var(--fg);
+  text-decoration-color: var(--fg-dim);
 }
 
 /* ── Progress bars ──────────────────────────────────────── */
@@ -1238,9 +1266,62 @@ body {
 }
 
 .bar-fill {
-  background: var(--accent);
+  background: var(--fg);
   height: 100%;
   width: calc(var(--ratio, 0) * 100%);
+}
+
+/* ── Empty states: compositions, not captions (§3.3.6) ──── */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  text-align: center;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-3);
+  min-height: 50vh;
+}
+
+.empty-motif {
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+.empty-motif-grid .tianzige {
+  width: 160px;
+}
+
+.empty-motif-seal {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.empty-text {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  margin: 0;
+}
+
+.empty-note {
+  color: var(--fg-dim);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+.typed-answer {
+  color: var(--fg-dim);
+  font-size: var(--text-sm);
+  margin: var(--space-1) 0 0;
+}
+
+.measure-words {
+  font-family: var(--font-han);
+  font-size: var(--text-lg);
+  margin: 0;
 }
 
 /* ── Icons ──────────────────────────────────────────────── */

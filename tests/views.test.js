@@ -710,3 +710,52 @@ describe('active recall on listening cards', () => {
     }
   });
 });
+
+/**
+ * §3.3.4 and §3.3.6 — honest labels, and empty states that compose.
+ */
+describe('browse chips and empty states', () => {
+  const hsk = {
+    id: 'zh:海:hai3',
+    simp: '海',
+    pinyin: 'hǎi',
+    pinyinNum: 'hai3',
+    defs: ['ocean', 'sea', 'CL:個|个[ge4],片[pian4]'],
+    band: 1,
+    sentences: [],
+  };
+  const mine = { ...hsk, id: 'zh:咖啡:ka1_fei1', simp: '咖啡', pinyinNum: 'ka1 fei1', defs: ['coffee'], band: 0, custom: true, updatedAt: 1 };
+
+  it('names the HSK band instead of "already in your deck"', async () => {
+    vi.resetModules();
+    const store = await import('../app/src/store.js');
+    store.store.deck = createDeck({ words: [hsk] }, [mine]);
+    const { strings } = await import('../app/src/ui/strings.js');
+
+    // The chip text is what a browse row renders for a known word.
+    expect(strings.browse.hskBand(1)).toBe('HSK · band 1');
+    expect(strings.browse.inMyWords).toBe('In My Words');
+    expect(strings.browse).not.toHaveProperty('inDeck');
+  });
+
+  it('composes every empty state from one component', async () => {
+    const { emptyState } = await import('../app/src/ui/components.js');
+
+    const withGrid = emptyState('grid', 'Search the dictionary.', button('Browse', () => {}));
+    expect(withGrid.classList.contains('empty-state')).toBe(true);
+    expect(withGrid.querySelector('.empty-motif-grid .tianzige')).not.toBeNull();
+    expect(withGrid.querySelector('.empty-text').textContent).toBe('Search the dictionary.');
+    expect(withGrid.querySelector('.btn')).not.toBeNull();
+
+    const withSeal = emptyState('seal', 'Done', null, { note: '12 reviewed' });
+    expect(withSeal.querySelector('.empty-motif-seal .seal')).not.toBeNull();
+    expect(withSeal.querySelector('.empty-note').textContent).toBe('12 reviewed');
+    expect(withSeal.querySelector('.btn')).toBeNull();
+  });
+
+  it('explains what My Words is, so it is not confused with the curriculum', async () => {
+    const { strings } = await import('../app/src/ui/strings.js');
+    expect(strings.words.explain).toContain('HSK curriculum');
+    expect(strings.words.explain).toContain('words you add yourself');
+  });
+});

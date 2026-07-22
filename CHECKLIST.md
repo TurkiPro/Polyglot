@@ -91,3 +91,23 @@ Run on a real phone and a desktop browser, in both themes.
 - [ ] The reveal stamp-in and the LIS pulse each play once — and not at all with OS
       "reduce motion" enabled.
 - [ ] Phone: bottom tab bar present, grades in the thumb zone, sheet edge-to-edge.
+
+## Fix pack (§3.3) — maintainer sign-off
+
+- [ ] On a listening card, "Play again" replays and does **not** reveal the answer. Same
+      for the audio button on any card back.
+- [ ] Typing the right pinyin on a listening card preselects Good; a wrong one preselects
+      Again and the back shows what you typed. Leaving it empty still reveals, self-graded.
+- [ ] The reveal is one flip: the card turns, the sheet grows smoothly rather than
+      snapping, and the grade buttons arrive after it lands — not mid-turn.
+- [ ] With OS "reduce motion" on, the reveal is instant: no rotation, no height animation.
+- [ ] No input shows a red focus ring. Tab through search, the answer field and the
+      Danger Zone field: every ring is ink.
+- [ ] Search 海 — the row shows "ocean; sea" with no `CL:` text; its word page shows
+      "Measure word — 个 · 片".
+- [ ] A browse row for an HSK word reads "HSK · band N"; one you added reads "In My Words"
+      with the seal check.
+- [ ] My Words, Browse before searching, Stats with no reviews, and the finished session
+      are all centred compositions with a motif, one line, and one action — not a caption.
+- [ ] Primary buttons look pressed: gradient, inner highlight, and they depress on tap.
+

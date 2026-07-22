@@ -6,7 +6,7 @@
 import { parseCardId } from '../engine/deck.js';
 import { RATING, newCard, previewSchedules } from '../engine/srs.js';
 import { queue, recordReview, store, updateSettings } from '../store.js';
-import { banner, button, div, el, formatInterval, h, p, replace } from '../ui/components.js';
+import { banner, button, div, el, emptyState, formatInterval, h, p, replace } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { renderBack, renderFront } from './card.js';
 import * as tts from '../zh/tts.js';
@@ -82,11 +82,12 @@ export function renderReview(root, ctx) {
     cleanup();
     replace(
       root,
-      div({ class: 'review done' }, [
-        h(1, s.sessionDone),
-        p(s.reviewed(session.reviewed), 'muted'),
+      emptyState(
+        'seal',
+        s.sessionDone,
         button(s.backHome, () => ctx.navigate('#home'), { variant: 'btn-primary' }),
-      ]),
+        { note: s.reviewed(session.reviewed) },
+      ),
     );
   }
 
@@ -261,10 +262,14 @@ export function renderReview(root, ctx) {
   addEventListener('keydown', onKey);
 
   if (session.cards.length === 0) {
-    replace(root, div({ class: 'review done' }, [
-      h(1, strings.home.allDone),
-      button(s.backHome, () => ctx.navigate('#home'), { variant: 'btn-primary' }),
-    ]));
+    replace(
+      root,
+      emptyState(
+        'seal',
+        strings.home.allDone,
+        button(s.backHome, () => ctx.navigate('#home'), { variant: 'btn-primary' }),
+      ),
+    );
   } else {
     showFront();
   }

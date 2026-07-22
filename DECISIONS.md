@@ -222,4 +222,18 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
 - Phase 3.3 §3: making the reveal asynchronous broke six existing tests that pressed
   Space and immediately asserted the rating row. They now wait for the turn to finish,
   which is what a person does — the failures were the guard working, not a regression.
+- Phase 3.3 §4: "Already in your deck" is replaced by a chip that names which thing the
+  word is — "HSK · band N" for curriculum words, "In My Words" with the seal check for
+  your own. The model is unchanged; only the language was confusing.
+- Phase 3.3 §4: `app/src/zh/defs.js` separates CC-CEDICT glosses from classifier fields.
+  Rows show `humanDefs`, the word page renders `classifiers()` as "Measure word — 个 · 片".
+  Simplified wins where CC-CEDICT gives both forms; readings are kept in the data.
+- Phase 3.3 §5: the seal-red sweep found four violations beyond the search input — the
+  settings sliders' `accent-color`, the banner's left rule, credit/word links, and the
+  stats progress fill. All are ink now. Focus rings are `--fg` everywhere, including the
+  suggested-rating ring, which is a state rather than a call to action.
+- Phase 3.3 §6: one `emptyState(motif, text, action, { note })` component backs Words,
+  Browse before searching, Stats without reviews, and the finished session, so they
+  cannot drift. The 田字格 outline is the motif for the first three; the seal is the
+  reward mark for a finished session.
 
