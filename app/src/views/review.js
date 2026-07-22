@@ -4,9 +4,9 @@
  * Space or tap flips; 1-4 grade (§9). Every mode's front and back follow the §9 table.
  */
 import { parseCardId } from '../engine/deck.js';
-import { RATING } from '../engine/srs.js';
+import { RATING, newCard, previewSchedules } from '../engine/srs.js';
 import { queue, recordReview, store, updateSettings } from '../store.js';
-import { banner, button, div, el, h, p, replace } from '../ui/components.js';
+import { banner, button, div, el, formatInterval, h, p, replace } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { renderBack, renderFront } from './card.js';
 import * as tts from '../zh/tts.js';
@@ -41,7 +41,9 @@ export function renderReview(root, ctx) {
   const stage = div({ class: 'stage' });
   const controls = div({ class: 'controls' });
   const progress = div({ class: 'progress' });
-  const view = div({ class: 'review' }, [progress, stage, controls]);
+  const sessionFill = div({ class: 'session-bar-fill' });
+  const sessionBar = div({ class: 'session-bar' }, [sessionFill]);
+  const view = div({ class: 'review' }, [sessionBar, progress, stage, controls]);
 
   replace(root, view);
   maybeWarnNoAudio(root);
@@ -87,6 +89,11 @@ export function renderReview(root, ctx) {
       progress,
       div({ class: 'progress-text', text: s.remaining(session.cards.length - session.index) }),
     );
+    // Width comes through CSSOM, which CSP allows; an inline style attribute would not.
+    sessionFill.style.setProperty(
+      '--ratio',
+      String(session.cards.length ? session.index / session.cards.length : 0),
+    );
 
     const front = renderFront({
       mode,
@@ -116,16 +123,25 @@ export function renderReview(root, ctx) {
     replace(controls, ratingRow());
   }
 
+  /**
+   * The four grade buttons, each showing what it would actually schedule.
+   * Previews come from ts-fsrs's own four-way computation, so they are the same numbers
+   * grading will produce rather than an estimate of them.
+   */
   function ratingRow() {
     const row = div({ class: 'ratings' });
+    const now = Date.now();
+    // A card being introduced has no stored state yet — most of a beginner's session.
+    // Grading would create a fresh card and schedule from that, so preview the same way.
+    const state = store.states.get(currentCardId()) ?? newCard(new Date(now));
+    const preview = previewSchedules(state, now);
+
     for (const spec of RATING_BUTTONS) {
       const isSuggested = session.suggested === spec.rating;
-      const node = button(
-        spec.label,
-        () => grade(spec.rating),
-        { variant: `${spec.variant}${isSuggested ? ' suggested' : ''}` },
-      );
-      node.append(el('kbd', { text: spec.key }));
+      const node = button(spec.label, () => grade(spec.rating), {
+        variant: `${spec.variant}${isSuggested ? ' suggested' : ''}`,
+      });
+      node.append(el('span', { class: 'interval', text: formatInterval(preview[spec.rating].due, now) }));
       row.append(node);
     }
     return row;

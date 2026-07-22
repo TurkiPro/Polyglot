@@ -114,6 +114,26 @@ export function liveRegion() {
   return div({ class: 'sr-only', attrs: { 'aria-live': 'polite', role: 'status' } });
 }
 
+/**
+ * A scheduling delay as the shortest honest label: "10m", "4h", "3d", "2mo", "1y".
+ * Used on the grade buttons, where four of these have to fit side by side.
+ */
+export function formatInterval(due, from = Date.now()) {
+  const ms = new Date(due).getTime() - new Date(from).getTime();
+  const minutes = Math.round(ms / 60000);
+  if (minutes < 60) return `${Math.max(1, minutes)}m`;
+
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+
+  const days = Math.round(ms / 86400000);
+  if (days < 30) return `${days}d`;
+
+  const months = Math.round(days / 30);
+  if (months < 12) return `${months}mo`;
+  return `${Math.round(days / 365)}y`;
+}
+
 /** Format a due date relative to now, without pulling in a date library. */
 export function relativeDay(due, now = Date.now()) {
   const days = Math.round((new Date(due).getTime() - now) / 86400000);

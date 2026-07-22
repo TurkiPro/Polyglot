@@ -344,3 +344,60 @@ describe('review session', () => {
     expect(cards).toHaveLength(2);
   });
 });
+
+describe('design system v2 (§C)', () => {
+  it('draws tab icons inline, with no icon library and no markup strings', async () => {
+    const { iconFor, ICONS } = await import('../app/src/ui/icons.js');
+    for (const name of ['home', 'review', 'browse', 'words', 'stats', 'settings']) {
+      const svg = iconFor(name);
+      expect(svg, name).not.toBeNull();
+      expect(svg.tagName.toLowerCase()).toBe('svg');
+      expect(svg.getAttribute('stroke')).toBe('currentColor');
+      expect(svg.getAttribute('aria-hidden')).toBe('true');
+      expect(svg.querySelectorAll('path').length).toBeGreaterThan(0);
+    }
+    expect(Object.keys(ICONS)).toHaveLength(6);
+    expect(iconFor('nope')).toBeNull();
+  });
+
+  it('shows an interval preview on every grade button, matching the schedule', async () => {
+    vi.resetModules();
+    const { IDBFactory } = await import('fake-indexeddb');
+    globalThis.indexedDB = new IDBFactory();
+    const w = { id: 'w1', simp: '一', pinyin: 'yī', pinyinNum: 'yi1', defs: ['one'], band: 1, sentences: [] };
+    globalThis.fetch = vi.fn(async (url) =>
+      String(url).includes('deck.')
+        ? { ok: true, json: async () => ({ schemaVersion: 1, language: 'zh', packVersion: 't', words: [w] }) }
+        : { ok: false, status: 404, statusText: 'nope' },
+    );
+
+    const store = await import('../app/src/store.js');
+    const { renderReview } = await import('../app/src/views/review.js');
+    await store.init();
+
+    const host = document.createElement('div');
+    document.body.append(host);
+    const teardown = renderReview(host, { navigate: () => {} });
+
+    // A session progress bar sits under the app bar.
+    expect(host.querySelector('.session-bar-fill')).not.toBeNull();
+
+    document.dispatchEvent(new window.KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+
+    const buttons = [...host.querySelectorAll('.ratings .btn')];
+    expect(buttons).toHaveLength(4);
+
+    // A brand-new card still gets previews: it is what most of a first session is.
+    const previews = buttons.map((b) => b.querySelector('.interval')?.textContent);
+    expect(previews.every(Boolean), `previews: ${previews}`).toBe(true);
+    expect(previews[0]).not.toBe(previews[3]);
+
+    // And they are the real schedule, not decoration.
+    const { newCard, previewSchedules } = await import('../app/src/engine/srs.js');
+    const { formatInterval } = await import('../app/src/ui/components.js');
+    const at = Date.now();
+    const expected = previewSchedules(newCard(new Date(at)), at);
+    expect(previews[2]).toBe(formatInterval(expected[3].due, at));
+    teardown?.();
+  });
+});

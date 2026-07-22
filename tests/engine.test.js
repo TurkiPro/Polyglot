@@ -11,7 +11,17 @@ import {
   startOfLocalDay,
   stateHash,
 } from '../app/src/engine/replay.js';
-import { RATING, gradeCard, gradeProduction, gradeWriting, intervalDays, newCard, normalizePinyin } from '../app/src/engine/srs.js';
+import {
+  RATING,
+  gradeCard,
+  gradeProduction,
+  gradeWriting,
+  intervalDays,
+  newCard,
+  normalizePinyin,
+  previewSchedules,
+} from '../app/src/engine/srs.js';
+import { formatInterval } from '../app/src/ui/components.js';
 
 const { newCardsPerDay, maxReviewsPerDay, staggerUnlockDays } = config.study;
 
@@ -453,5 +463,64 @@ describe('local day', () => {
     expect(nextLocalMidnight(ts)).toBe(new Date(2026, 6, 22, 0, 0, 0, 0).getTime());
     // A session crossing midnight lands in the following day.
     expect(startOfLocalDay(nextLocalMidnight(ts) + 1000)).toBe(nextLocalMidnight(ts));
+  });
+});
+
+describe('interval previews (§C.3)', () => {
+  it('previews exactly what grading produces, for every rating', () => {
+    const deck = deckOf(word('a'));
+    const now = new Date(T0);
+
+    // A fresh card, and a matured one — the two shapes a learner actually sees.
+    const fresh = newCard(now);
+    const matured = (() => {
+      const log = [];
+      review(log, 'a#REC', RATING.GOOD, T0);
+      review(log, 'a#REC', RATING.GOOD, T0 + 3 * DAY);
+      return rebuildFromEvents(deck, log).states.get('a#REC');
+    })();
+
+    for (const card of [fresh, matured]) {
+      const at = new Date(new Date(card.due).getTime() + DAY);
+      const preview = previewSchedules(card, at);
+
+      for (const rating of [1, 2, 3, 4]) {
+        const actual = gradeCard(card, rating, at);
+        expect(new Date(preview[rating].due).getTime(), `rating ${rating} due`).toBe(
+          new Date(actual.due).getTime(),
+        );
+        expect(preview[rating].scheduled_days, `rating ${rating} interval`).toBe(
+          actual.scheduled_days,
+        );
+      }
+    }
+  });
+
+  it('previews get longer as the rating improves', () => {
+    const at = new Date(T0);
+    const preview = previewSchedules(newCard(at), at);
+    const due = [1, 2, 3, 4].map((r) => new Date(preview[r].due).getTime());
+    expect(due[0]).toBeLessThanOrEqual(due[1]);
+    expect(due[1]).toBeLessThanOrEqual(due[2]);
+    expect(due[2]).toBeLessThan(due[3]);
+  });
+
+  it('previewing does not mutate the card it is given', () => {
+    const at = new Date(T0);
+    const card = newCard(at);
+    const before = JSON.stringify(card);
+    previewSchedules(card, at);
+    expect(JSON.stringify(card)).toBe(before);
+  });
+
+  it('formats an interval as the shortest honest label', () => {
+    const now = Date.UTC(2026, 6, 21, 9);
+    expect(formatInterval(now + 10 * 60000, now)).toBe('10m');
+    expect(formatInterval(now + 4 * 3600000, now)).toBe('4h');
+    expect(formatInterval(now + 3 * DAY, now)).toBe('3d');
+    expect(formatInterval(now + 60 * DAY, now)).toBe('2mo');
+    expect(formatInterval(now + 400 * DAY, now)).toBe('1y');
+    // Never "0m": something always gets scheduled.
+    expect(formatInterval(now + 1000, now)).toBe('1m');
   });
 });

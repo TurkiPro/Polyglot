@@ -65,6 +65,20 @@ export function intervalDays(card) {
   return card?.scheduled_days ?? 0;
 }
 
+/**
+ * What each of the four ratings would schedule, without committing to any of them.
+ *
+ * ts-fsrs computes all four in one pass, so the previews on the grade buttons are the
+ * same numbers `gradeCard` will produce — not an estimate of them.
+ *
+ * @returns {{ 1: object, 2: object, 3: object, 4: object }} card per rating
+ */
+export function previewSchedules(card, now = new Date()) {
+  const at = now instanceof Date ? now : new Date(now);
+  const log = scheduler.repeat(toFsrsCard(card), at);
+  return { 1: log[1].card, 2: log[2].card, 3: log[3].card, 4: log[4].card };
+}
+
 // ── Grading adapters (pure; the UI calls these, then calls gradeCard) ──────────
 
 /**

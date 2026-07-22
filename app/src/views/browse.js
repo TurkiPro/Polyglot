@@ -79,8 +79,8 @@ export function renderBrowse(root) {
     if (found.length === 0) return replace(results, empty(s.noResults));
     replace(
       results,
+      p(found.length >= MAX_RESULTS ? s.resultCap(MAX_RESULTS) : s.resultCount(found.length), 'result-count'),
       ...found.map((entry) => resultRow(entry)),
-      found.length >= MAX_RESULTS ? p(s.resultCap(MAX_RESULTS), 'muted') : null,
     );
   }
 

@@ -5,7 +5,7 @@
  * fills it in. Until then the tiles simply do not appear.
  */
 import { queue, store } from '../store.js';
-import { button, div, h, p, replace, stat } from '../ui/components.js';
+import { button, div, el, h, p, replace, stat } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 
 const s = strings.home;
@@ -22,12 +22,23 @@ export function renderHome(root, ctx) {
   ].filter(Boolean));
 
   const total = cards.length;
-  const body = total > 0
-    ? button(s.start, () => ctx.navigate('#review'), { variant: 'btn-primary btn-wide' })
-    : p(store.events.length === 0 ? s.nothingYet : s.allDone, 'empty');
 
-  replace(
-    root,
-    div({ class: 'home' }, [h(1, strings.appName, 'title'), tiles, body]),
-  );
+  if (total > 0) {
+    // One primary action, above everything else.
+    const cta = div({ class: 'home-cta' }, [
+      button(s.startWith(total), () => ctx.navigate('#review'), {
+        variant: 'btn-primary btn-cta',
+      }),
+    ]);
+    replace(root, div({ class: 'home' }, [cta, tiles]));
+    return;
+  }
+
+  // Nothing to do: a large, quiet hanzi rather than another box.
+  const rest = el('div', {
+    class: 'watermark',
+    dataset: { han: '学' },
+  }, [p(store.events.length === 0 ? s.nothingYet : s.allDone, 'empty')]);
+
+  replace(root, div({ class: 'home' }, [tiles, rest]));
 }

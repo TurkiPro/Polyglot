@@ -72,3 +72,45 @@ look and feel right on a real screen.
 
 - [ ] With the Network tab open, use every screen: **no request leaves the origin**. No
       analytics, no fonts, no CDN, no stroke data from a third party.
+
+## Design system v2 (§C) — maintainer sign-off
+
+Run on a real phone and a desktop browser, in both themes.
+
+- [ ] **Bottom tab bar** appears at ≤640px with five tabs (Home, Review, Browse, Words,
+      Stats), each reachable, icons legible, labels readable. Desktop ≥641px keeps the
+      top bar instead.
+- [ ] Settings and Credits are reachable from the gear in the app bar.
+- [ ] The tab bar clears the home indicator on a notched phone (safe-area padding), and
+      nothing is hidden behind it at the bottom of a long page.
+- [ ] **Review**: the hanzi is vertically centred and dominates the screen; the grade bar
+      sits in the thumb zone; the tab bar is hidden during review.
+- [ ] **Interval previews** on the four grade buttons match what actually happens — grade
+      a card with Good, note the preview, then check `#word/<id>` shows that due date.
+      (Equality with the scheduler is asserted in tests; this checks the *displayed* one.)
+- [ ] Press states: buttons visibly depress. Focus rings are visible when tabbing.
+- [ ] With OS "reduce motion" on, transitions do not animate.
+- [ ] **Home**: one primary CTA reading "Start review · N due"; the empty state shows the
+      large 学 watermark rather than more boxes.
+- [ ] Both themes: text is comfortable, the vermilion reads as intentional, dividers are
+      visible but quiet.
+
+### Known contrast exception — needs a decision
+
+Token pairs all pass (4.5:1 body, 3:1 chrome), verified numerically. **The tone colours
+do not**, and they are frozen by §0:
+
+| tone | on dark | on light |
+|---|---|---|
+| t1 red | 4.38 | 3.85 |
+| t2 green | 5.60 | **3.00** |
+| t3 blue | 5.03 | **3.35** |
+| t4 purple | **2.63** | 6.40 |
+| t5 grey | 6.90 | **2.44** |
+
+t4 on dark and t5/t2/t3 on light are well below 4.5:1 for text. This predates v2 — the
+old palette failed similarly — and coloured pinyin is body text, so it matters.
+
+- [ ] Decide: accept as-is, or let the theme derive per-theme tints from the §0 values
+      (keeping config the source), or change the §0 values.
+

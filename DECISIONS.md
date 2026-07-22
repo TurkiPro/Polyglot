@@ -140,4 +140,23 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
 - Phase 3.1B: custom words are flagged `custom: true` at add time rather than inferred
   from `band === 0`; the queue rule and My Words both key off it, and inference would
   quietly capture any future band-0 pack word.
+- Phase 3.1C: design tokens replaced per the C spec. Two deviations, both authorised by
+  its own "shade within the same family if a pair fails" clause: `--accent` is #cc3b2f
+  rather than #e34234 (white-on-accent was 4.12:1, below 4.5 for button labels), and a
+  second `--accent-text` (#fa4939) carries accent-coloured *text*, because no single
+  vermilion clears 4.5:1 both against white and against the dark background. `--danger`
+  moved #d3453f → #cf443e for the same reason (4.47 → 4.62).
+- Phase 3.1C: **tone colours still fail contrast** on both themes (t4 2.63:1 on dark,
+  t5 2.44:1 on light) and are left unchanged — §0 owns them and the C spec freezes them.
+  Recorded in CHECKLIST.md as a decision the maintainer has to make; it predates v2.
+- Phase 3.1C: on mobile the tab bar is hidden during review (`data-route="review"`) so
+  the grade bar owns the thumb zone. Two fixed bars at the bottom would stack, pushing
+  grading out of reach.
+- Phase 3.1C: `ui/icons.js` draws six glyphs as inline SVG DOM — no icon library (the
+  allowlist holds) and no markup strings (§11's CSP).
+- Phase 3.1C: grade buttons preview intervals from ts-fsrs's `repeat()`, which computes
+  all four schedules in one pass, so the previews are the same values `gradeCard`
+  produces rather than an estimate. A card with no stored state previews from a fresh
+  card — which is exactly what grading it would create, and covers most of a first
+  session. A jsdom test caught that case rendering no previews at all.
 

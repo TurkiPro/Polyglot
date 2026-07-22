@@ -4,6 +4,7 @@
 import { config } from '../../config/app.config.js';
 import { init, store, subscribe } from './store.js';
 import { div, el, empty, p, replace } from './ui/components.js';
+import { iconFor } from './ui/icons.js';
 import { strings } from './ui/strings.js';
 import { renderBrowse } from './views/browse.js';
 import { renderCredits } from './views/credits.js';
@@ -52,29 +53,54 @@ export function applyToneColors(el = document.documentElement, colors = config.t
   }
 }
 
-/** The nav bar; the active route is marked for styling and for assistive tech. */
-function renderNav(container, active, navigate) {
-  replace(
-    container,
-    ...NAV.map((name) => {
-      const link = el('a', {
-        class: `nav-link${name === active ? ' active' : ''}`,
-        text: strings.nav[name],
-        href: `#${name}`,
-        attrs: name === active ? { 'aria-current': 'page' } : {},
-      });
-      link.addEventListener('click', (event) => {
-        event.preventDefault();
-        navigate(`#${name}`);
-      });
-      return link;
-    }),
-  );
+/** A navigation link that routes without a page load. */
+function navLink(name, active, navigate, { className, withIcon = false }) {
+  const link = el('a', {
+    class: `${className}${name === active ? ' active' : ''}`,
+    href: `#${name}`,
+    attrs: name === active ? { 'aria-current': 'page' } : {},
+  });
+  if (withIcon) {
+    const glyph = iconFor(name);
+    if (glyph) link.append(glyph);
+  }
+  link.append(el('span', { text: strings.nav[name] }));
+  link.addEventListener('click', (event) => {
+    event.preventDefault();
+    navigate(`#${name}`);
+  });
+  return link;
+}
+
+/** Top nav (desktop) and bottom tab bar (mobile) show the same five sections. */
+function renderNav(container, tabbar, actions, active, navigate) {
+  if (container) {
+    replace(container, ...NAV.map((name) => navLink(name, active, navigate, { className: 'nav-link' })));
+  }
+  if (tabbar) {
+    replace(
+      tabbar,
+      ...NAV.map((name) => navLink(name, active, navigate, { className: 'tab', withIcon: true })),
+    );
+  }
+  if (actions) {
+    // Settings and Credits live behind the gear, off the five-item nav.
+    const gear = el('button', {
+      class: `icon-btn${active === 'settings' || active === 'credits' ? ' active' : ''}`,
+      attrs: { type: 'button', 'aria-label': strings.nav.settings, title: strings.nav.settings },
+      on: { click: () => navigate('#settings') },
+    });
+    const glyph = iconFor('settings');
+    if (glyph) gear.append(glyph);
+    replace(actions, gear);
+  }
 }
 
 function boot() {
   const root = document.getElementById('app');
   const nav = document.getElementById('nav');
+  const tabbar = document.getElementById('tabbar');
+  const actions = document.getElementById('bar-actions');
   if (!root) return;
 
   applyToneColors();
@@ -90,7 +116,9 @@ function boot() {
     teardown?.();
     teardown = null;
 
-    if (nav) renderNav(nav, route.name, navigate);
+    renderNav(nav, tabbar, actions, route.name, navigate);
+    // Review hides the tab bar on mobile so the grade bar owns the thumb zone.
+    document.documentElement.dataset.route = route.name;
     document.title = `${strings.nav[route.name] ?? strings.appName} · ${strings.appName}`;
 
     const render = VIEWS[route.name] ?? renderHome;
