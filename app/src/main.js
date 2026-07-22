@@ -12,18 +12,21 @@ import { renderReview } from './views/review.js';
 import { renderSettings, applyTheme } from './views/settings.js';
 import { renderStats } from './views/stats.js';
 import { renderWord } from './views/word.js';
+import { renderWords } from './views/words.js';
 
 /** Routes are `#name` or `#name/:arg`. */
-const ROUTES = ['home', 'review', 'browse', 'word', 'stats', 'settings', 'credits'];
+const ROUTES = ['home', 'review', 'browse', 'words', 'word', 'stats', 'settings', 'credits'];
 const DEFAULT_ROUTE = 'home';
 
 /** Routes shown in the nav bar, in order. */
-const NAV = ['home', 'review', 'browse', 'stats', 'settings'];
+/** The five that live in the bottom tab bar on mobile; Settings sits behind the gear. */
+const NAV = ['home', 'review', 'browse', 'words', 'stats'];
 
 const VIEWS = {
   home: renderHome,
   review: renderReview,
   browse: renderBrowse,
+  words: renderWords,
   word: renderWord,
   stats: renderStats,
   settings: renderSettings,
@@ -109,7 +112,7 @@ function boot() {
       // Repaint on state changes so tile counts stay honest after a review.
       subscribe(() => {
         const route = parseHash(location.hash);
-        if (route.name === 'home' || route.name === 'stats') paint();
+        if (['home', 'stats', 'words'].includes(route.name)) paint();
       });
       paint();
       registerServiceWorker();

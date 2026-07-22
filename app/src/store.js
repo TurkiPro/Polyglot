@@ -123,12 +123,44 @@ const wordIdOf = (cardId) => cardId.slice(0, cardId.lastIndexOf('#'));
 
 /** Add a word of the user's own, from Browse. */
 export async function addCustomWord(word) {
-  const record = { ...word, band: 0, updatedAt: Date.now(), deleted: false };
+  const record = { ...word, band: 0, custom: true, updatedAt: Date.now(), deleted: false };
   await db.put(store.db, db.STORES.customWords, record);
-  const customWords = await db.getAll(store.db, db.STORES.customWords);
-  store.deck = createDeck(store.pack, customWords);
-  notify();
+  await refreshDeck();
   return record;
+}
+
+/**
+ * Remove a word of the user's own.
+ *
+ * The customWord becomes a tombstone rather than disappearing, so Phase 6 can propagate
+ * the removal to other devices. Its cards go, but its events stay: the log is immutable
+ * (§2), and `rebuildFromEvents` simply skips events whose word the deck no longer has.
+ */
+export async function removeCustomWord(wordId) {
+  const existing = await db.getOne(store.db, db.STORES.customWords, wordId);
+  if (!existing) return false;
+
+  const doomed = [...store.states.keys()].filter((id) => wordIdOf(id) === wordId);
+  await db.tx(store.db, [db.STORES.customWords, db.STORES.cards], 'readwrite', (t) => {
+    t.objectStore(db.STORES.customWords).put({
+      id: wordId,
+      deleted: 1,
+      updatedAt: Date.now(),
+    });
+    const cards = t.objectStore(db.STORES.cards);
+    for (const cardId of doomed) cards.delete(cardId);
+  });
+
+  for (const cardId of doomed) store.states.delete(cardId);
+  await refreshDeck();
+  return true;
+}
+
+/** Rebuild the deck from the pack plus whatever custom words storage now holds. */
+async function refreshDeck() {
+  store.deck = createDeck(store.pack, await db.getAll(store.db, db.STORES.customWords));
+  notify();
+  return store.deck;
 }
 
 /** Persist changed settings. */

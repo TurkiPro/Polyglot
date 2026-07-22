@@ -127,4 +127,17 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
 - Phase 3.1A: `deck.lookup(simp, pinyinNum)` is a prebuilt index on `createDeck`, and the
   scan skips it entirely for non-matching entries — building a key string 124k times per
   keystroke cost more than the rest of the scan. 19 ms per query against a 50 ms budget.
+- Phase 3.1B: `#words` ("My Words") makes adding a word visible. Adding already worked —
+  customWord and cards were created — but nothing listed them and the word queued behind
+  curriculum order, so the feature read as broken.
+- Phase 3.1B: custom words go to the **front** of the new-card queue, newest first
+  (CLAUDE.md §8 patched). Explicit user intent outranks curriculum order;
+  NEW_CARDS_PER_DAY still caps the total.
+- Phase 3.1B: removing a custom word writes a tombstone (`deleted: 1`) so Phase 6 sync can
+  propagate it, deletes its cards, and **leaves its events** — the log is immutable (§2)
+  and `rebuildFromEvents` skips events whose word the deck no longer has. Review totals
+  therefore survive a removal.
+- Phase 3.1B: custom words are flagged `custom: true` at add time rather than inferred
+  from `band === 0`; the queue rule and My Words both key off it, and inference would
+  quietly capture any future band-0 pack word.
 

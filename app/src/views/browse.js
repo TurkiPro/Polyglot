@@ -119,7 +119,10 @@ function resultRow(entry) {
           defs: entry.defs,
           sentences: [],
         });
-        event.target.replaceWith(span({ class: 'added', text: s.added }));
+        // Close the loop: the word is now first in the new-card queue, and My Words
+        // proves it. Without this the add looked like it did nothing.
+        const done = el('a', { class: 'added added-link', text: s.addedGoTo, href: '#words' });
+        event.target.replaceWith(done);
       }, { variant: 'btn-quiet' });
 
   return div({ class: 'result' }, [

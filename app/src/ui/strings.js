@@ -9,6 +9,7 @@ export const strings = Object.freeze({
     home: 'Home',
     review: 'Review',
     browse: 'Browse',
+    words: 'Words',
     stats: 'Stats',
     settings: 'Settings',
     credits: 'Credits',
@@ -64,7 +65,22 @@ export const strings = Object.freeze({
     resultCap: (n) => `Showing the first ${n} matches.`,
     add: 'Add to my words',
     added: 'Added',
+    addedGoTo: 'Added · up next →',
     inDeck: 'Already in your deck',
+  },
+
+  words: {
+    title: 'My words',
+    empty: 'No words of your own yet. Add some from Browse.',
+    browse: 'Browse the dictionary',
+    upNext: 'Up next',
+    learning: 'Learning',
+    due: (when) => `Due ${when}`,
+    remove: 'Remove',
+    removeConfirm: (word) => `Remove ${word}? Its cards go; your review history stays.`,
+    removed: 'Removed',
+    cancel: 'Cancel',
+    count: (n) => (n === 1 ? '1 word' : `${n} words`),
   },
 
   word: {

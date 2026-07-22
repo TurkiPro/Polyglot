@@ -21,17 +21,35 @@ export function isDue(state, now) {
 }
 
 /**
- * REC cards for words the learner has not met yet, in teaching order: band, then the
- * order the pack lists them in.
+ * REC cards for words the learner has not met yet.
+ *
+ * Words the user added themselves come first (§8): looking a word up and adding it is
+ * explicit intent, and it outranks curriculum order. Everything else follows in teaching
+ * order — band, then the order the pack lists them in. NEW_CARDS_PER_DAY still caps the
+ * total either way.
  */
 export function newCardCandidates(deck, states) {
   const candidates = [];
   for (const [index, word] of deck.words.entries()) {
     const id = makeCardId(word.id, 'REC');
     if (states.has(id)) continue;
-    candidates.push({ cardId: id, wordId: word.id, band: word.band ?? 0, index });
+    candidates.push({
+      cardId: id,
+      wordId: word.id,
+      band: word.band ?? 0,
+      custom: word.custom === true,
+      // Newest first among custom words, so the one just added leads.
+      addedAt: word.updatedAt ?? 0,
+      index,
+    });
   }
-  candidates.sort((a, b) => a.band - b.band || a.index - b.index);
+  candidates.sort(
+    (a, b) =>
+      Number(b.custom) - Number(a.custom) ||
+      (a.custom ? b.addedAt - a.addedAt : 0) ||
+      a.band - b.band ||
+      a.index - b.index,
+  );
   return candidates;
 }
 

@@ -53,8 +53,11 @@ look and feel right on a real screen.
 
 - [ ] First visit shows the one-time dictionary import with progress.
 - [ ] 咖啡 is found by `kafei`, by `coffee`, and by 咖啡.
-- [ ] "Add to my words" adds it; the word then appears in a review session and at
-      `#word/<id>`.
+- [ ] "Add to my words" turns into "Added · up next →"; following it lands on My Words.
+- [ ] The added word is listed in My Words, and is the **next new card** in a session —
+      ahead of curriculum order.
+- [ ] Removing it from My Words asks for confirmation, then it never appears in a session
+      again. Stats totals do not drop: the review history is kept.
 
 ## Settings and data
 

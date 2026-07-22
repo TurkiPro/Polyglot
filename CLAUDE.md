@@ -365,6 +365,9 @@ Build `app/src/engine/` with **zero UI imports** so everything runs under vitest
 - `queue.js`: today = (a) due, unlocked, unburied cards capped at MAX_REVIEWS_PER_DAY,
   ordered by due date; (b) up to NEW_CARDS_PER_DAY new REC cards ordered by band then
   deck order; interleave a new card roughly every 5 reviews.
+  **Custom words go to the front of the new-card queue** (newest first), ahead of
+  curriculum order: looking a word up and adding it is explicit user intent.
+  NEW_CARDS_PER_DAY still caps the total.
 - Grading adapters (pure functions; UI calls them):
   - **PROD**: normalize typed pinyin (lowercase, trim, collapse spaces, `v`→`ü`, accept
     with/without spaces), compare to `pinyinNum`; match → preselect Good, else Again;
@@ -385,8 +388,14 @@ Build `app/src/engine/` with **zero UI imports** so everything runs under vitest
 
 ## §9 Phase 3 — PWA UI
 
-Hash routes: `#home` (due count, streak, XP, start), `#review`, `#browse`, `#word/:id`,
-`#stats`, `#settings`, `#credits`. Space/tap flips; keys 1–4 grade.
+Hash routes: `#home` (due count, streak, XP, start), `#review`, `#browse`, `#words`,
+`#word/:id`, `#stats`, `#settings`, `#credits`. Space/tap flips; keys 1–4 grade.
+
+**`#words` ("My Words")**: the user's own words, newest first — hanzi, coloured pinyin,
+first definitions, and a status chip from live card state ("Up next", "Learning",
+"Due <relative date>"), plus a remove action behind a confirm. Removing tombstones the
+customWord (`deleted: 1`, so sync propagates it) and deletes its cards, but leaves its
+events: the log is immutable, and `rebuildFromEvents` skips events whose word is gone.
 
 | mode | front | back |
 |---|---|---|
