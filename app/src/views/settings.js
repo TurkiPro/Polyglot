@@ -5,6 +5,7 @@ import { config } from '../../../config/app.config.js';
 import { exportData, importData, store, updateSettings, wipeLocal } from '../store.js';
 import { button, div, el, h, p, panel, replace, slider } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
+import { applyTheme } from '../ui/theme.js';
 
 const s = strings.settings;
 
@@ -68,11 +69,6 @@ function appearancePanel() {
     el('span', { class: 'field-label', text: s.theme }),
     group,
   ])]);
-}
-
-/** Theme is a data attribute; all colours live in the stylesheet (§9). */
-export function applyTheme(theme) {
-  document.documentElement.dataset.theme = theme === 'light' ? 'light' : 'dark';
 }
 
 function dataPanel() {

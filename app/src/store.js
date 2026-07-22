@@ -20,7 +20,7 @@ const SETTINGS_KEY = 'settings';
 export const DEFAULT_SETTINGS = Object.freeze({
   newPerDay: config.study.newCardsPerDay,
   maxPerDay: config.study.maxReviewsPerDay,
-  theme: 'dark',
+  theme: 'light',
   audioBannerDismissed: false,
 });
 

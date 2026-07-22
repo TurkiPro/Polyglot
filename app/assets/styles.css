@@ -5,26 +5,30 @@
    only place they are written. */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  --bg: #141317;
-  --surface: #1d1c21;
-  --surface-2: #26242b;
-  --border: #322f38;
-  --fg: #ecebe8;
-  --fg-dim: #9b97a3;
+  /* paper — the default. Warm ground, ink text, seal red used sparingly. */
+  --bg: #f2ede3;
+  --surface: #faf7f0;
+  --surface-2: #ece5d6;
+  --border: #ddd4c3;
+  --fg: #232120;
+  --fg-dim: #6b655c;
 
-  /* Vermilion, split by role: white-on-accent and accent-on-background cannot both
-     clear 4.5:1 from one shade. --accent fills and draws chrome, --accent-text writes. */
-  --accent: #cc3b2f;
-  --accent-text: #fa4939;
+  /* Seal red: stamps, primary CTAs, active states. Never body text, never decoration. */
+  --accent: #b4372a;
   --accent-fg: #ffffff;
 
-  --danger: #cf443e;
-  --ok: #3f9e5a;
+  --ok: #2f7d3f;
+  /* Deliberately a shade off tone 1: the tones are config-owned, and a destructive
+     action should not read as a tone mark. */
+  --danger: #ad3429;
 
-  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.35);
-  --shadow-2: 0 8px 24px rgb(0 0 0 / 0.4);
+  --shadow-1: 0 1px 2px rgb(35 33 32 / 0.08);
+  --shadow-2: 0 10px 30px rgb(35 33 32 / 0.12);
+
+  /* 田字格 practice-grid lines. */
+  --grid: rgb(35 33 32 / 0.1);
 
   --space-1: 4px;
   --space-2: 8px;
@@ -46,28 +50,36 @@
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --dur: 160ms;
 
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
-    "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
-  --font-han: "Noto Serif SC", "Songti SC", "SimSun", var(--font);
+  /* Three roles: hanzi serif, latin display serif, UI sans. */
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Iowan Old Style", Charter, Georgia, "Times New Roman", serif;
+  --font-han: "Noto Serif SC", "Songti SC", SimSun, serif;
+
   --max-width: 720px;
+  --sheet-width: 600px;
   --tabbar-h: 60px;
 }
 
-:root[data-theme="light"] {
-  color-scheme: light;
-  --bg: #f6f4ef;
-  --surface: #fffdf9;
-  --surface-2: #efece5;
-  --border: #ddd8ce;
-  --fg: #1b1a1f;
-  --fg-dim: #5f5a64;
-  --accent: #c8391f;
-  --accent-text: #c8391f;
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* night ink — warm deep charcoal, never pure black. */
+  --bg: #1a1815;
+  --surface: #232019;
+  --surface-2: #2c2820;
+  --border: #3a352b;
+  --fg: #ece8df;
+  --fg-dim: #a29a8c;
+
+  --accent: #cd4231;
   --accent-fg: #ffffff;
-  --danger: #b3271f;
-  --ok: #2f7d47;
-  --shadow-1: 0 1px 2px rgb(60 50 40 / 0.1);
-  --shadow-2: 0 8px 24px rgb(60 50 40 / 0.14);
+
+  --ok: #4fae63;
+  --danger: #c54c41;
+
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-2: 0 10px 30px rgb(0 0 0 / 0.45);
+  --grid: rgb(236 232 223 / 0.1);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -211,7 +223,7 @@ body {
 }
 
 .tab.active {
-  color: var(--accent-text);
+  color: var(--accent);
 }
 
 @media (max-width: 640px) {
@@ -315,7 +327,7 @@ body {
 .answer:focus-visible,
 .nav-link:focus-visible,
 .row-main:focus-visible {
-  outline: 2px solid var(--accent-text);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -611,7 +623,7 @@ body {
 }
 
 .target {
-  color: var(--accent-text);
+  color: var(--accent);
   font-weight: 700;
 }
 
@@ -789,7 +801,7 @@ body {
 }
 
 .added-link {
-  color: var(--accent-text);
+  color: var(--accent);
   text-decoration: none;
   white-space: nowrap;
 }
@@ -816,7 +828,7 @@ body {
 
 .chip-next {
   border-color: var(--accent);
-  color: var(--accent-text);
+  color: var(--accent);
 }
 
 .chip-learning {
@@ -859,7 +871,7 @@ body {
 }
 
 .links a {
-  color: var(--accent-text);
+  color: var(--accent);
 }
 
 /* ── Progress bars ──────────────────────────────────────── */

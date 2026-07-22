@@ -159,4 +159,19 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   produces rather than an estimate. A card with no stored state previews from a fresh
   card — which is exactly what grading it would create, and covers most of a first
   session. A jsdom test caught that case rendering no previews at all.
+- Phase 3.2 §2: palettes replaced with paper (light, now the default) and night ink.
+  Three in-family tunings, per "tune within the hue family only": paper t2 #2f7d3f →
+  #2d783c (4.36:1 on paper, under 4.5), night --accent #d64533 → #cd4231 (white-on-accent
+  was 4.41), night --danger #e0564a → #c54c41 (white-on was 3.75). Paper --danger is
+  #ad3429 rather than #b3362b so a destructive control is not byte-identical to tone 1.
+- Phase 3.2 §2: night seal red reads 3.73:1 against the page — that is fine because §1
+  restricts it to stamps, CTAs and active states, all UI chrome at 3:1. It is never body
+  text, and `tests/contrast.test.js` asserts the chrome bar rather than the text bar.
+- Phase 3.2 §2: tone colours are per-theme pairs in config, applied by
+  `applyToneColors(theme)`. `ui/theme.js` owns theme switching so `main.js` and
+  `settings.js` do not import each other — wiring it through `main.js` created a cycle.
+- Phase 3.2 §2: `tests/contrast.test.js` parses the real stylesheet and the real config,
+  so a token edit that breaks legibility fails the suite. It asserts the tone variables
+  are never *declared* in CSS rather than that their values are unique — paper's t5
+  deliberately equals --fg-dim.
 

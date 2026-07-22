@@ -55,8 +55,15 @@ STREAK_MIN_REVIEWS    = 10         # reviews needed for a day to count
 LEVEL_XP_FORMULA      = ceil(100 * n^1.5)   # cumulative XP to reach level n
 BAND_CLEAR_RULE       = ≥95% of the band's REC cards have interval ≥ 21 days
 
-# ── Tone colors (CSS variables --t1..--t5) ────────────────
-T1 = #e53935    T2 = #43a047    T3 = #1e88e5    T4 = #8e24aa    T5 = #9e9e9e
+# ── Tone colors (CSS variables --t1..--t5), one pair per theme ────
+# Hue identity is the semantics; the shades differ only in lightness so each clears
+# 4.5:1 on its own ground. Applied by applyToneColors(theme); never literals in CSS.
+#          night ink (dark)   paper (light, default)
+T1     =   #ef5952            #b3362b
+T2     =   #58c26b            #2d783c
+T3     =   #64a8ff            #1a5fb4
+T4     =   #c792ea            #6a3d9a
+T5     =   #a29a8c            #6b655c
 
 # ── Data sources (verify URLs before first pipeline run) ──
 SRC_CEDICT_URL   = https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz

@@ -5,12 +5,13 @@ import { config } from '../../config/app.config.js';
 import { init, store, subscribe } from './store.js';
 import { div, el, empty, p, replace } from './ui/components.js';
 import { iconFor } from './ui/icons.js';
+import { applyTheme, applyToneColors } from './ui/theme.js';
 import { strings } from './ui/strings.js';
 import { renderBrowse } from './views/browse.js';
 import { renderCredits } from './views/credits.js';
 import { renderHome } from './views/home.js';
 import { renderReview } from './views/review.js';
-import { renderSettings, applyTheme } from './views/settings.js';
+import { renderSettings } from './views/settings.js';
 import { renderStats } from './views/stats.js';
 import { renderWord } from './views/word.js';
 import { renderWords } from './views/words.js';
@@ -40,17 +41,6 @@ export function parseHash(hash) {
   const [name, ...rest] = raw.split('/');
   if (!ROUTES.includes(name)) return { name: DEFAULT_ROUTE, arg: null };
   return { name, arg: rest.length ? decodeURIComponent(rest.join('/')) : null };
-}
-
-/**
- * Feed the §0 tone colours into CSS as --t1..--t5. Done via CSSOM rather than a literal
- * in styles.css so config stays the single source of truth; CSP allows this because it
- * is script-driven, not an inline `style=` attribute.
- */
-export function applyToneColors(el = document.documentElement, colors = config.toneColors) {
-  for (const [name, value] of Object.entries(colors)) {
-    el.style.setProperty(`--${name}`, value);
-  }
 }
 
 /** A navigation link that routes without a page load. */
@@ -103,8 +93,6 @@ function boot() {
   const actions = document.getElementById('bar-actions');
   if (!root) return;
 
-  applyToneColors();
-
   let teardown = null;
   const navigate = (hash) => {
     if (location.hash === hash) paint();
@@ -132,6 +120,8 @@ function boot() {
 
   addEventListener('hashchange', paint);
 
+  // Paint tones for the markup default before settings load, so the first frame is right.
+  applyToneColors(document.documentElement.dataset.theme);
   replace(root, div({ class: 'booting' }, [p(strings.common.loading, 'empty')]));
 
   init()
@@ -159,4 +149,5 @@ function registerServiceWorker() {
 
 if (typeof document !== 'undefined') boot();
 
+export { applyToneColors, applyTheme };
 export { empty };

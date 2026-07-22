@@ -73,13 +73,24 @@ export const config = deepFreeze({
     bandClear: { minRatio: 0.95, minIntervalDays: 21 },
   },
 
-  // ── Tone colors (CSS variables --t1..--t5) ────────────────
+  // ── Tone colors (CSS variables --t1..--t5), one pair per theme ────
+  // Hue identity is the semantics; the two shades differ only in lightness so each
+  // clears 4.5:1 on its own ground. `light` is "paper", `dark` is "night ink".
   toneColors: {
-    t1: '#e53935',
-    t2: '#43a047',
-    t3: '#1e88e5',
-    t4: '#8e24aa',
-    t5: '#9e9e9e',
+    light: {
+      t1: '#b3362b',
+      t2: '#2d783c',
+      t3: '#1a5fb4',
+      t4: '#6a3d9a',
+      t5: '#6b655c',
+    },
+    dark: {
+      t1: '#ef5952',
+      t2: '#58c26b',
+      t3: '#64a8ff',
+      t4: '#c792ea',
+      t5: '#a29a8c',
+    },
   },
 
   // ── Data sources (verify URLs before first pipeline run) ──
