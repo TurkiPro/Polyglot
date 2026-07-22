@@ -110,3 +110,21 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   10 MB dictionary and the 3,087 stroke files are runtime-cached on first use, cache-first
   thereafter. Precaching everything would make first load ~29 MB for every new user.
   Now written into §9 of CLAUDE.md.
+- Phase 3.1A: dictionary search scores every entry, then ranks, then truncates.
+  Match-then-truncate let the first 50 store-order substring hits decide relevance, so
+  "play" returned footballers ("...soccer player Cristiano Ronaldo") above 玩. Scoring
+  lives in `app/src/views/search.js`, tested against the real 124k-entry dictionary.
+- Phase 3.1A: the proper-noun penalty keys off a **capitalized reading**, not a
+  capitalized definition as specified. CC-CEDICT capitalizes the pinyin of proper nouns
+  (`C罗` [C Luo2], `加索尔` [Jia1 suo3 er3]) — 20,269 entries — which is exactly the
+  footballer signal. Capitalized *defs* (19,409 entries) instead catch classifier
+  annotations (`CL:場|场[chang3]`) and glosses like "Chinese opera", which demoted 表演
+  "play" and 戏 "drama; play" — the two best answers for the query that prompted the fix.
+  Same stated intent, accurate field.
+- Phase 3.1A: a typed tone is treated as deliberate — "hao3" scores 好 above 号, which
+  tie otherwise once tones are stripped. Not in the spec; without it "hao3" ranked 号
+  first on codepoint order alone.
+- Phase 3.1A: `deck.lookup(simp, pinyinNum)` is a prebuilt index on `createDeck`, and the
+  scan skips it entirely for non-matching entries — building a key string 124k times per
+  keystroke cost more than the rest of the scan. 19 ms per query against a 50 ms budget.
+

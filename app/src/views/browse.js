@@ -11,6 +11,7 @@ import { addCustomWord, store } from '../store.js';
 import { button, div, el, empty, h, p, replace, span } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { colorPinyin } from '../zh/tones.js';
+import { prepareEntries, rankResults } from './search.js';
 
 const s = strings.browse;
 const LANG = config.pack.langPackV1;
@@ -40,17 +41,6 @@ async function ensureDictionary(onProgress) {
   await db.setMeta(store.db, DICT_READY_KEY, true);
 }
 
-/** Match across simp, trad, numbered pinyin and definitions (§9). */
-export function matches(entry, query) {
-  const q = query.toLowerCase();
-  if (entry.simp.includes(query)) return true;
-  if (entry.trad && entry.trad.includes(query)) return true;
-  const pinyin = entry.pinyinNum.toLowerCase();
-  if (pinyin.includes(q)) return true;
-  // "kafei" should find "ka1 fei1": compare with tones and spaces stripped.
-  if (pinyin.replace(/[1-5\s]/g, '').includes(q.replace(/[1-5\s]/g, ''))) return true;
-  return entry.defs.some((d) => d.toLowerCase().includes(q));
-}
 
 export function renderBrowse(root) {
   const results = div({ class: 'results' });
@@ -73,7 +63,7 @@ export function renderBrowse(root) {
     await ensureDictionary(() => {
       replace(status, div({ class: 'loading' }, [p(s.loading), p(s.loadingHint, 'muted')]));
     });
-    entries = await db.getAll(store.db, db.STORES.dict);
+    entries = prepareEntries(await db.getAll(store.db, db.STORES.dict));
     replace(status);
     return entries;
   }
@@ -83,13 +73,8 @@ export function renderBrowse(root) {
     if (!trimmed) return replace(results);
 
     const all = await ensureLoaded();
-    const found = [];
-    for (const entry of all) {
-      if (matches(entry, trimmed)) {
-        found.push(entry);
-        if (found.length >= MAX_RESULTS) break;
-      }
-    }
+    // Score the whole dictionary before cutting, or the cut decides relevance.
+    const found = rankResults(all, trimmed, store.deck, MAX_RESULTS);
 
     if (found.length === 0) return replace(results, empty(s.noResults));
     replace(
