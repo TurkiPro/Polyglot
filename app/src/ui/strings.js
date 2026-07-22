@@ -53,6 +53,7 @@ export const strings = Object.freeze({
     play: 'Play audio',
     replay: 'Play again',
     tapToPlay: 'Tap to play again',
+    youTyped: 'You typed',
     reveal: 'Show me',
     clear: 'Clear',
     listenPrompt: 'Listen, then answer',

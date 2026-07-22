@@ -206,4 +206,20 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
 - Phase 3.2 §7: empty screens name an action rather than a lack ("Search the dictionary
   to add your first word"). The My Words test now asserts against `strings` rather than a
   literal, so a copy pass does not break tests that are not about copy.
+- Phase 3.3 §1: the flip handler ignores clicks whose target is inside a
+  `button, a, input, [data-no-flip]`. "Play again" was bubbling into it and revealing the
+  answer. Caught by a failing jsdom test written first; the back-audio case already
+  passed but is asserted so the §3 grading guard cannot regress it.
+- Phase 3.3 §2: LIS fronts reuse PROD's typed-pinyin control and judge verbatim — same
+  normalizer, same contract (§8). An empty answer still reveals and is self-graded, so
+  nothing forces typing. REC and SENT are unchanged: their answers are meanings, which no
+  normalizer can judge. CLAUDE.md §9's LIS row patched.
+- Phase 3.3 §3: the reveal is one flip rather than a stamp — the back no longer carries
+  `stamp-in`. Grading is blocked while `session.flipping` is true, so a fast "Space, 3"
+  cannot grade a card nobody has seen; that guard is tested directly. The stage height is
+  measured from an off-screen clone and transitioned, so the sheet grows rather than
+  snaps. `--dur` is read from the stylesheet so motion timing stays in one place.
+- Phase 3.3 §3: making the reveal asynchronous broke six existing tests that pressed
+  Space and immediately asserted the rating row. They now wait for the turn to finish,
+  which is what a person does — the failures were the guard working, not a regression.
 

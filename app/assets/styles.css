@@ -945,7 +945,64 @@ body {
   }
 }
 
-/* ── Motion: two moments, both once ─────────────────────── */
+/* ── Motion: the flip, and the stamp ────────────────────── */
+
+/* The reveal is one orchestrated turn (§3.3.3): the front rotates away, content swaps
+   at 90°, the back completes the turn, and the stage's height moves with it. */
+.flip-stage {
+  perspective: 1200px;
+  transition: height calc(var(--dur) * 2) var(--ease);
+}
+
+.flip-stage > .card-front,
+.flip-stage > .card-back {
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+.flip-out {
+  animation: flip-out var(--dur) var(--ease) forwards;
+}
+
+.flip-in {
+  animation: flip-in var(--dur) var(--ease) both;
+}
+
+@keyframes flip-out {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(-90deg);
+  }
+}
+
+@keyframes flip-in {
+  from {
+    transform: rotateY(90deg);
+  }
+  to {
+    transform: rotateY(0deg);
+  }
+}
+
+/* The grade bar arrives only once the card has finished turning. */
+.controls {
+  transition: opacity var(--dur) var(--ease);
+}
+
+.controls-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Measured off-screen to animate the height; never seen. */
+.measuring {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  inset-inline: 0;
+}
 
 @keyframes stamp-in {
   from {
@@ -956,10 +1013,6 @@ body {
     opacity: 1;
     transform: scale(1);
   }
-}
-
-.stamp-in {
-  animation: stamp-in var(--dur) var(--ease) both;
 }
 
 @keyframes pulse-once {
@@ -980,8 +1033,14 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .stamp-in,
-  .pulse {
+  .pulse,
+  .flip-out,
+  .flip-in {
     animation: none;
+  }
+
+  .flip-stage {
+    transition: none;
   }
 }
 

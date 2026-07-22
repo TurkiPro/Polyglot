@@ -293,6 +293,15 @@ describe('review session', () => {
   });
 
   const key = (k) => document.dispatchEvent(new window.KeyboardEvent('keydown', { key: k, bubbles: true }));
+  /** Reveal and wait for the flip to complete — grading is blocked until it does. */
+  const reveal = async (host) => {
+    key(' ');
+    await vi.waitFor(() => expect(host.querySelector('.ratings')).not.toBeNull());
+    // The grade bar stays hidden until the card has finished turning.
+    await vi.waitFor(() =>
+      expect(host.querySelector('.controls').classList.contains('controls-hidden')).toBe(false),
+    );
+  };
   /** Grading awaits an IndexedDB transaction, so wait for the effect, not a fixed tick. */
   const until = async (predicate, label) => {
     for (let i = 0; i < 200; i++) {
@@ -310,9 +319,7 @@ describe('review session', () => {
     expect(root.querySelector('.hanzi')).not.toBeNull();
     expect(root.querySelector('.ratings')).toBeNull();
 
-    key(' ');
-    // Back: the rating row appears.
-    expect(root.querySelector('.ratings')).not.toBeNull();
+    await reveal(root);
     expect(root.querySelectorAll('.ratings .btn')).toHaveLength(4);
 
     const before = store.store.events.length;
@@ -329,7 +336,7 @@ describe('review session', () => {
 
   it('records the review durably, so a reload replays to the same state', async () => {
     const teardown = renderReview(root, { navigate: () => {} });
-    key(' ');
+    await reveal(root);
     key('3');
     await until(() => store.store.events.length === 1, 'the review to be recorded');
     teardown?.();
@@ -349,7 +356,7 @@ describe('review session', () => {
 
   it('stops listening for shortcuts once the view is torn down', async () => {
     const teardown = renderReview(root, { navigate: () => {} });
-    key(' ');
+    await reveal(root);
     key('3');
     await until(() => store.store.events.length === 1, 'the review to be recorded');
     const after = store.store.events.length;
@@ -370,8 +377,7 @@ describe('review session', () => {
       Object.defineProperty(globalThis.crypto, 'randomUUID', { value: undefined, configurable: true });
 
       const teardown = renderReview(root, { navigate: () => {} });
-      key(' ');
-      expect(root.querySelector('.ratings')).not.toBeNull();
+      await reveal(root);
 
       key('3');
       await until(() => store.store.events.length === 1, 'the review to be recorded');
@@ -462,6 +468,7 @@ describe('design system v2 (§C)', () => {
     expect(host.querySelector('.session-bar-fill')).not.toBeNull();
 
     document.dispatchEvent(new window.KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+    await vi.waitFor(() => expect(host.querySelector('.ratings')).not.toBeNull());
 
     const buttons = [...host.querySelectorAll('.ratings .btn')];
     expect(buttons).toHaveLength(4);
@@ -478,5 +485,228 @@ describe('design system v2 (§C)', () => {
     const expected = previewSchedules(newCard(new Date(at)), at);
     expect(previews[2]).toBe(formatInterval(expected[3].due, at));
     teardown?.();
+  });
+});
+
+/**
+ * §3.3.1 — interactive elements inside a card must never reveal it.
+ */
+describe('flip guard', () => {
+  const w = {
+    id: 'w1',
+    simp: '爱',
+    pinyin: 'ài',
+    pinyinNum: 'ai4',
+    defs: ['to love'],
+    band: 1,
+    sentences: [{ zh: '我爱你。', pinyin: 'wǒ ài nǐ.', pinyinAuto: true, en: 'I love you.', src: 't#1' }],
+  };
+
+  /** A session whose first card is the given mode, by seeding card state directly. */
+  async function sessionOn(mode) {
+    vi.resetModules();
+    const { IDBFactory } = await import('fake-indexeddb');
+    globalThis.indexedDB = new IDBFactory();
+    globalThis.fetch = vi.fn(async (url) =>
+      String(url).includes('deck.')
+        ? { ok: true, json: async () => ({ schemaVersion: 1, language: 'zh', packVersion: 't', words: [w] }) }
+        : { ok: false, status: 404, statusText: 'no' },
+    );
+
+    const store = await import('../app/src/store.js');
+    const { renderReview } = await import('../app/src/views/review.js');
+    await store.init();
+
+    const past = new Date(Date.now() - 60000);
+    const card = (id, extra = {}) => ({
+      cardId: id,
+      wordId: 'w1',
+      mode: id.split('#')[1],
+      due: past,
+      stability: 4,
+      difficulty: 5,
+      elapsed_days: 1,
+      scheduled_days: 4,
+      learning_steps: 0,
+      reps: 3,
+      lapses: 0,
+      state: 2,
+      suspended: false,
+      buriedUntil: null,
+      ...extra,
+    });
+
+    // The wanted card is due; every sibling is parked in the future.
+    const states = new Map();
+    for (const m of ['REC', 'LIS', 'PROD', 'SENT', 'WRITE']) {
+      states.set(`w1#${m}`, card(`w1#${m}`, m === mode ? {} : { due: new Date(Date.now() + 864e5) }));
+    }
+    store.store.states = states;
+
+    const host = document.createElement('div');
+    document.body.append(host);
+    const teardown = renderReview(host, { navigate: () => {} });
+    return { store, host, teardown };
+  }
+
+  it('does not reveal when "Play again" is clicked on a listening front', async () => {
+    const { store, host, teardown } = await sessionOn('LIS');
+    const tts = await import('../app/src/zh/tts.js');
+
+    // The replay control appears once the voice resolves.
+    await vi.waitFor(() => expect(host.querySelector('.btn-replay')).not.toBeNull());
+    tts.speak.mockClear();
+
+    host.querySelector('.btn-replay').click();
+
+    // Still on the front: no rating row, and the audio actually played.
+    expect(host.querySelector('.ratings')).toBeNull();
+    expect(tts.speak).toHaveBeenCalled();
+    expect(store.store.events).toHaveLength(0);
+    teardown?.();
+  });
+
+  it('does not re-flip or advance when the audio button on a back is tapped', async () => {
+    const { store, host, teardown } = await sessionOn('REC');
+    const tts = await import('../app/src/zh/tts.js');
+
+    document.dispatchEvent(new window.KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+    await vi.waitFor(() => expect(host.querySelector('.ratings')).not.toBeNull());
+
+    tts.speak.mockClear();
+    const audio = host.querySelector('.btn-audio');
+    expect(audio).not.toBeNull();
+    audio.click();
+
+    // The back is still showing and nothing was graded.
+    expect(host.querySelector('.ratings')).not.toBeNull();
+    expect(tts.speak).toHaveBeenCalled();
+    expect(store.store.events).toHaveLength(0);
+    teardown?.();
+  });
+
+  it('still flips on a tap that is not on a control', async () => {
+    const { host, teardown } = await sessionOn('REC');
+    host.querySelector('.hanzi').click();
+    await vi.waitFor(() => expect(host.querySelector('.ratings')).not.toBeNull());
+    teardown?.();
+  });
+
+  it('blocks grading until the flip finishes, so Space then 3 cannot grade unseen', async () => {
+    const { store, host, teardown } = await sessionOn('REC');
+
+    // Immediately after the reveal keystroke the card is mid-turn.
+    document.dispatchEvent(new window.KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+    document.dispatchEvent(new window.KeyboardEvent('keydown', { key: '3', bubbles: true }));
+    await new Promise((r) => setTimeout(r, 5));
+    expect(store.store.events, 'graded mid-flip').toHaveLength(0);
+
+    // Once it has landed, the same key grades.
+    await vi.waitFor(() =>
+      expect(host.querySelector('.controls').classList.contains('controls-hidden')).toBe(false),
+    );
+    document.dispatchEvent(new window.KeyboardEvent('keydown', { key: '3', bubbles: true }));
+    await vi.waitFor(() => expect(store.store.events).toHaveLength(1));
+    teardown?.();
+  });
+});
+
+/**
+ * §3.3.2 — listening cards ask for a guess before they reveal.
+ */
+describe('active recall on listening cards', () => {
+  const w = () => ({
+    id: 'zh:爱:ai4',
+    simp: '爱',
+    pinyin: 'ài',
+    pinyinNum: 'ai4',
+    defs: ['to love'],
+    band: 1,
+    sentences: [{ zh: '我爱你。', pinyin: 'wǒ ài nǐ.', pinyinAuto: true, en: 'I love you.', src: 't#1' }],
+  });
+
+  async function lisFront(word) {
+    const store = await import('../app/src/store.js');
+    store.store.deck = createDeck({ words: [word] });
+    const { renderFront } = await import('../app/src/views/card.js');
+
+    const calls = { suggested: [], typed: [], flips: 0 };
+    const front = renderFront({
+      mode: 'LIS',
+      word,
+      onReady: () => {},
+      onSuggest: (rating, typed) => {
+        calls.suggested.push(rating);
+        calls.typed.push(typed);
+      },
+      onFlip: () => {
+        calls.flips += 1;
+      },
+    });
+    return { front, calls };
+  }
+
+  it('offers the same typed input and judge as PROD', async () => {
+    const { front, calls } = await lisFront(w());
+    const input = front.querySelector('input.answer');
+    expect(input).not.toBeNull();
+
+    input.value = 'AI4';
+    front.querySelector('.btn-primary').click();
+    expect(calls.suggested.at(-1)).toBe(RATING.GOOD);
+    expect(calls.flips).toBe(1);
+    expect(front.querySelector('.verdict').classList.contains('ok')).toBe(true);
+  });
+
+  it('preselects Again on a wrong answer', async () => {
+    const { front, calls } = await lisFront(w());
+    front.querySelector('input.answer').value = 'ai3';
+    front.querySelector('.btn-primary').click();
+    expect(calls.suggested.at(-1)).toBe(RATING.AGAIN);
+    expect(front.querySelector('.verdict').classList.contains('bad')).toBe(true);
+  });
+
+  it('falls back to a plain reveal when nothing was typed', async () => {
+    const { front, calls } = await lisFront(w());
+    front.querySelector('input.answer').value = '   ';
+    front.querySelector('.btn-primary').click();
+
+    // Revealed, but self-graded: no rating was preselected.
+    expect(calls.flips).toBe(1);
+    expect(calls.suggested).toHaveLength(0);
+    expect(front.querySelector('.verdict').textContent).toBe('');
+  });
+
+  it('shows the wrong answer on the back beside the true reading', async () => {
+    const word = w();
+    const store = await import('../app/src/store.js');
+    store.store.deck = createDeck({ words: [word] });
+    const { renderBack } = await import('../app/src/views/card.js');
+
+    const wrong = renderBack({ mode: 'LIS', word, typed: 'ai3' });
+    expect(wrong.querySelector('.typed-answer').textContent).toContain('ai3');
+    expect(wrong.querySelector('.pinyin-answer').textContent).toBe('ài');
+
+    // A correct answer needs no correction, and neither does an untyped one.
+    expect(renderBack({ mode: 'LIS', word, typed: 'ai4' }).querySelector('.typed-answer')).toBeNull();
+    expect(renderBack({ mode: 'LIS', word }).querySelector('.typed-answer')).toBeNull();
+  });
+
+  it('leaves REC and SENT self-graded — meanings are not machine-judgeable', async () => {
+    const word = w();
+    const store = await import('../app/src/store.js');
+    store.store.deck = createDeck({ words: [word] });
+    const { renderFront } = await import('../app/src/views/card.js');
+
+    for (const mode of ['REC', 'SENT']) {
+      const front = renderFront({
+        mode,
+        word,
+        onReady: () => {},
+        onSuggest: () => {},
+        onFlip: () => {},
+      });
+      expect(front.querySelector('input.answer'), mode).toBeNull();
+    }
   });
 });

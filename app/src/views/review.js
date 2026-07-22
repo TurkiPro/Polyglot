@@ -13,6 +13,18 @@ import * as tts from '../zh/tts.js';
 
 const s = strings.review;
 
+/** Honour the OS setting: no rotation, no height animation, just the answer. */
+const reducedMotion = () =>
+  typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** Half the flip: --dur from the stylesheet, so motion stays in one place. */
+function durationMs() {
+  if (typeof getComputedStyle !== 'function') return 160;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue('--dur').trim();
+  const ms = raw.endsWith('ms') ? Number.parseFloat(raw) : Number.parseFloat(raw) * 1000;
+  return Number.isFinite(ms) && ms > 0 ? ms : 160;
+}
+
 /** Rating buttons, in Anki's familiar order. */
 const RATING_BUTTONS = [
   { rating: RATING.AGAIN, label: s.again, variant: 'btn-again', key: '1' },
@@ -32,8 +44,12 @@ export function renderReview(root, ctx) {
     reviewed: 0,
     shownAt: Date.now(),
     flipped: false,
-    /** Set by PROD/WRITE fronts to preselect a rating. */
+    /** Set by PROD/LIS/WRITE fronts to preselect a rating. */
     suggested: null,
+    /** What the learner typed, shown on the back when it was wrong. */
+    typed: null,
+    /** True while the reveal animation is running; grading waits for it. */
+    flipping: false,
     /** Cleanup for whatever the current front mounted (writer, audio). */
     teardown: null,
   };
@@ -46,6 +62,8 @@ export function renderReview(root, ctx) {
   const sessionBar = div({ class: 'session-bar' }, [sessionFill]);
   const counter = div({ class: 'session-count' });
   const progress = div({ class: 'session-progress' }, [sessionBar, counter]);
+  // The card area is a perspective container so the reveal is a real flip (§3.3.3).
+  stage.classList.add('flip-stage');
   const sheet = div({ class: 'sheet' }, [stage, controls]);
   const view = div({ class: 'review' }, [progress, sheet]);
 
@@ -86,8 +104,12 @@ export function renderReview(root, ctx) {
     }
 
     session.flipped = false;
+    session.flipping = false;
     session.suggested = null;
+    session.typed = null;
     session.shownAt = Date.now();
+    stage.style.removeProperty('height');
+    controls.classList.remove('controls-hidden');
 
     // "7 of 30" reads as progress; "23 left" reads as a chore.
     counter.textContent = s.progress(session.index + 1, session.cards.length);
@@ -103,8 +125,9 @@ export function renderReview(root, ctx) {
       onReady: (teardown) => {
         session.teardown = teardown;
       },
-      onSuggest: (rating) => {
+      onSuggest: (rating, typed) => {
         session.suggested = rating;
+        if (typed !== undefined) session.typed = typed;
       },
       onFlip: () => flip(),
     });
@@ -113,16 +136,66 @@ export function renderReview(root, ctx) {
     replace(controls, button(s.show, () => flip(), { variant: 'btn-primary btn-wide' }));
   }
 
+  /**
+   * Reveal: one orchestrated motion (§3.3.3).
+   *
+   * The front rotates away, content swaps at the halfway point, the back completes the
+   * turn, and the sheet's height is animated in parallel so it grows rather than snaps.
+   * The grade bar fades in only once the flip finishes, so intervals are never readable
+   * mid-turn and a fast "Space, 3" cannot grade a card nobody has seen.
+   */
   function flip() {
-    if (session.flipped) return;
+    if (session.flipped || session.flipping) return;
     session.flipped = true;
 
     const cardId = currentCardId();
     const { mode } = parseCardId(cardId);
     const word = store.deck.wordOfCard(cardId);
+    const back = renderBack({ mode, word, typed: session.typed });
 
-    replace(stage, renderBack({ mode, word }));
-    replace(controls, ratingRow());
+    if (reducedMotion()) {
+      replace(stage, back);
+      replace(controls, ratingRow());
+      return;
+    }
+
+    session.flipping = true;
+    controls.classList.add('controls-hidden');
+
+    // Measure the back off-screen so the height can be transitioned to it.
+    const startHeight = stage.offsetHeight;
+    const endHeight = measure(back, stage);
+    stage.style.height = `${startHeight}px`;
+
+    const face = stage.firstElementChild;
+    face?.classList.add('flip-out');
+    requestAnimationFrame(() => {
+      stage.style.height = `${endHeight}px`;
+    });
+
+    const half = durationMs();
+    setTimeout(() => {
+      replace(stage, back);
+      back.classList.add('flip-in');
+      replace(controls, ratingRow());
+
+      setTimeout(() => {
+        session.flipping = false;
+        stage.style.removeProperty('height');
+        back.classList.remove('flip-in');
+        controls.classList.remove('controls-hidden');
+      }, half);
+    }, half);
+  }
+
+  /** Height of a node if it were rendered in this stage, without showing it. */
+  function measure(node, host) {
+    const ghost = node.cloneNode(true);
+    ghost.classList.add('measuring');
+    host.append(ghost);
+    const height = ghost.offsetHeight;
+    ghost.remove();
+    return height || host.offsetHeight;
   }
 
   /**
@@ -150,6 +223,8 @@ export function renderReview(root, ctx) {
   }
 
   async function grade(rating) {
+    // Never grade a card whose answer is still turning into view (§3.3.3).
+    if (session.flipping || !session.flipped) return;
     const cardId = currentCardId();
     if (!cardId) return;
     cleanup();
@@ -167,7 +242,7 @@ export function renderReview(root, ctx) {
       else if (session.suggested) grade(session.suggested);
       return;
     }
-    if (!session.flipped) return;
+    if (!session.flipped || session.flipping) return;
     const spec = RATING_BUTTONS.find((b) => b.key === event.key);
     if (spec) {
       event.preventDefault();
@@ -175,7 +250,12 @@ export function renderReview(root, ctx) {
     }
   }
 
-  stage.addEventListener('click', () => {
+  /**
+   * Tapping the card reveals it — but a control inside the card is not the card.
+   * Without this, "Play again" bubbled up and revealed the answer (§3.3.1).
+   */
+  stage.addEventListener('click', (event) => {
+    if (event.target.closest?.('button, a, input, [data-no-flip]')) return;
     if (!session.flipped) flip();
   });
   addEventListener('keydown', onKey);

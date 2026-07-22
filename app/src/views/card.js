@@ -65,7 +65,7 @@ export function renderFront({ mode, word, onReady, onSuggest, onFlip }) {
   const body = (() => {
     switch (mode) {
       case 'LIS':
-        return listenFront(word, onReady);
+        return listenFront(word, onReady, onSuggest, onFlip);
       case 'PROD':
         return produceFront(word, onSuggest, onFlip);
       case 'SENT':
@@ -84,7 +84,7 @@ export function renderFront({ mode, word, onReady, onSuggest, onFlip }) {
  * Render a card back. One structure for every mode, so the answer always reads the same
  * way: what it is, how it sounds, what it means, then the details.
  */
-export function renderBack({ mode, word }) {
+export function renderBack({ mode, word, typed }) {
   const sentence = firstSentence(word);
   const parts = [];
 
@@ -96,12 +96,21 @@ export function renderBack({ mode, word }) {
   parts.push(
     div({ class: 'hanzi hanzi-back', text: word.simp }),
     pinyinLine(word, 'pinyin pinyin-answer'),
+    typedMismatch(word, typed),
     el('hr', { class: 'rule' }),
     defsList(word),
     metaRow(word),
   );
 
-  return div({ class: 'card-back stamp-in' }, [eyebrow(mode), ...parts.filter(Boolean)]);
+  return div({ class: 'card-back' }, [eyebrow(mode), ...parts.filter(Boolean)]);
+}
+
+/** What the learner typed, when it was not the reading (§3.3.2). */
+function typedMismatch(word, typed) {
+  if (!typed) return null;
+  const { correct } = gradeProduction(typed, word.pinyinNum);
+  if (correct) return null;
+  return p(`${s.youTyped}: ${typed}`, 'typed-answer');
 }
 
 /** Traditional form, alternate readings and audio — the details, quietly. */
@@ -139,7 +148,7 @@ function recognizeFront(word) {
  * LIS: the grid with a speaker where the character would be — the grid says a character
  * belongs here, and deliberately withholds it. Falls back to text with no voice (§9).
  */
-function listenFront(word, onReady) {
+function listenFront(word, onReady, onSuggest, onFlip) {
   const sentence = firstSentence(word);
   const text = sentence ? sentence.zh : word.simp;
 
@@ -168,7 +177,9 @@ function listenFront(word, onReady) {
     }
   });
 
-  const body = div({ class: 'front-body' }, [square, p(s.listenPrompt, 'prompt')]);
+  // Answer before you see it (§3.3.2): the same input and judge PROD uses.
+  const answer = typedAnswer(word, onSuggest, onFlip, { autoFocus: false });
+  const body = div({ class: 'front-body' }, [square, p(s.listenPrompt, 'prompt'), ...answer.nodes]);
 
   tts.ready().then((voice) => {
     if (voice) {
@@ -191,8 +202,15 @@ function replayButton(onClick) {
   return node;
 }
 
-/** PROD: the English is the prompt, so it is the hero. */
-function produceFront(word, onSuggest, onFlip) {
+/**
+ * The typed-pinyin control, shared by PROD and LIS (§3.3.2).
+ *
+ * Committing to a guess before revealing is the point of active recall. Typing is never
+ * required: an empty answer checks out as a plain reveal, self-graded as before.
+ *
+ * @returns {{ nodes: Node[], focus: () => void }}
+ */
+function typedAnswer(word, onSuggest, onFlip, { autoFocus = true } = {}) {
   const input = el('input', {
     class: 'answer',
     attrs: {
@@ -208,10 +226,14 @@ function produceFront(word, onSuggest, onFlip) {
   const verdict = p('', 'verdict');
 
   const check = () => {
-    const { correct, suggested } = gradeProduction(input.value, word.pinyinNum);
-    onSuggest(suggested);
-    verdict.textContent = correct ? s.correct : s.incorrect;
-    verdict.className = `verdict ${correct ? 'ok' : 'bad'}`;
+    const typed = input.value.trim();
+    if (typed) {
+      const { correct, suggested } = gradeProduction(typed, word.pinyinNum);
+      onSuggest(suggested, typed);
+      verdict.textContent = correct ? s.correct : s.incorrect;
+      verdict.className = `verdict ${correct ? 'ok' : 'bad'}`;
+    }
+    // Empty: reveal and let the learner grade themselves. Nothing forces typing.
     onFlip();
   };
 
@@ -222,14 +244,18 @@ function produceFront(word, onSuggest, onFlip) {
     }
   });
 
-  queueMicrotask(() => input.focus({ preventScroll: true }));
+  if (autoFocus) queueMicrotask(() => input.focus({ preventScroll: true }));
 
-  return div({ class: 'front-body' }, [
-    defsList(word, 'defs prompt-defs'),
-    input,
-    button(s.check, check, { variant: 'btn-primary' }),
-    verdict,
-  ]);
+  return {
+    nodes: [input, button(s.check, check, { variant: 'btn-primary' }), verdict],
+    focus: () => input.focus({ preventScroll: true }),
+  };
+}
+
+/** PROD: the English is the prompt, so it is the hero. */
+function produceFront(word, onSuggest, onFlip) {
+  const answer = typedAnswer(word, onSuggest, onFlip);
+  return div({ class: 'front-body' }, [defsList(word, 'defs prompt-defs'), ...answer.nodes]);
 }
 
 /** SENT: the sentence, with the target word underlined in grid ink rather than accent. */

@@ -407,7 +407,7 @@ events: the log is immutable, and `rebuildFromEvents` skips events whose word is
 | mode | front | back |
 |---|---|---|
 | REC | large simp | colored pinyin, defs, trad if differs, audio button |
-| LIS | ▶ auto-plays sentence audio (fallback: word audio); nothing else visible | sentence + colored pinyin + en + defs |
+| LIS | ▶ auto-plays sentence audio (fallback: word audio) + typed-pinyin input judged per §8; empty input reveals self-graded | sentence + colored pinyin + en + defs, plus what you typed when it differs |
 | PROD | defs (EN) | typed input judged per §8, then full card |
 | SENT | sentence in hanzi, target word highlighted | colored pinyin + en |
 | WRITE | defs + pinyin + drawing canvas per char (hanzi-writer quiz; outline off after first char) | full card |
@@ -431,6 +431,10 @@ generated icons using the character 语); `sw.js` precaches only the app shell a
 `deck.zh.json` (cache keyed on DECK_SCHEMA_VERSION + packVersion). The dictionary and
 stroke files are runtime-cached on first use, cache-first thereafter; `/api/*` is
 network-only.
+
+**Reveal**: one orchestrated flip — front rotates out, content swaps at 90°, back
+completes the turn, sheet height animates in parallel, grade bar fades in after. Grading
+is blocked until the flip completes. `prefers-reduced-motion: reduce` → instant swap.
 
 **Design**: dark default + light toggle. Every color/spacing/type size is a CSS variable
 in one `:root` block (tone colors from §0). System font stack; hanzi large on card
