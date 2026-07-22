@@ -190,4 +190,20 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   so the mapping in `ui/icons.js` reads as specified.
 - Phase 3.2 §4: `ui/icons.js` is now only a route/mode → filename mapping; the 3.1
   hand-drawn paths are gone.
+- Phase 3.2 §5: the review screen is a sheet — surface, radius, shadow, hairline border —
+  with the grade bar as its footer on desktop and fixed in the thumb zone on mobile. The
+  tab bar stays visible during review, reversing the 3.1 rule that hid it: §5 puts the
+  grade bar "above the tab bar", and 3.2 wins where it contradicts 3.1.
+- Phase 3.2 §5: the 田字格 is four dashed rules plus a border — no images, no gradients.
+  The diagonals are a full-width rule rotated 45° about the centre at 141.42% width, the
+  square's diagonal length.
+- Phase 3.2 §5: "23 left" became "7 of 30". The same number framed as progress rather
+  than as a backlog.
+- Phase 3.2 §5: the SENT target word is underlined in `--grid`, not the accent — seal red
+  is reserved for marks, CTAs and active states (§1).
+- Phase 3.2 §6: the app-bar active link underlines in ink (`--fg`) while the active tab
+  uses seal red, exactly as §6 and §8 specify — the bar is chrome, the tab is a state.
+- Phase 3.2 §7: empty screens name an action rather than a lack ("Search the dictionary
+  to add your first word"). The My Words test now asserts against `strings` rather than a
+  literal, so a copy pass does not break tests that are not about copy.
 

@@ -143,11 +143,21 @@ body {
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   color: var(--fg);
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: var(--text-lg);
   text-decoration: none;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
+}
+
+/* The seal takes the accent from the theme; nothing else in the bar is red. */
+.seal {
+  color: var(--accent);
+  flex: none;
 }
 
 .bar-right {
@@ -176,7 +186,8 @@ body {
 
 .nav-link.active {
   color: var(--fg);
-  border-bottom-color: var(--accent);
+  /* Ink, not seal red: the accent is reserved (§3.2.6). */
+  border-bottom-color: var(--fg);
 }
 
 /* The gear: Settings and Credits live behind it, off the main nav. */
@@ -267,6 +278,8 @@ body {
 /* ── Type ───────────────────────────────────────────────── */
 
 .title {
+  font-family: var(--font-display);
+  font-weight: 400;
   font-size: var(--text-xl);
   margin: 0 0 var(--space-4);
   letter-spacing: -0.02em;
@@ -417,6 +430,7 @@ body {
 }
 
 .stat-value {
+  font-family: var(--font-display);
   font-size: var(--display);
   font-weight: 700;
   line-height: 1.05;
@@ -428,6 +442,37 @@ body {
   color: var(--fg-dim);
   font-size: var(--text-sm);
   margin-top: var(--space-1);
+}
+
+/* Home ── the greeting and the completion stamp. */
+
+.greeting {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 400;
+  margin: 0 0 var(--space-3);
+  letter-spacing: -0.01em;
+}
+
+.done-stamp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: center;
+  padding: var(--space-5) var(--space-3);
+}
+
+.done-stamp .seal {
+  color: var(--accent);
+  margin-bottom: var(--space-2);
+}
+
+.done-title {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 400;
+  margin: 0;
 }
 
 /* A large, quiet hanzi instead of another box. */
@@ -512,63 +557,205 @@ body {
   margin-bottom: var(--space-2);
 }
 
-/* ── Review ─────────────────────────────────────────────── */
+/* ── Review: the sheet ──────────────────────────────────── */
 
 .review {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 140px);
+  gap: var(--space-3);
 }
 
-/* Session progress, directly under the app bar. */
+/* Progress is the only thing outside the sheet. */
+.session-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: var(--sheet-width);
+  width: 100%;
+  margin: 0 auto;
+}
+
 .session-bar {
-  height: 3px;
-  background: var(--surface-2);
-  border-radius: 999px;
+  flex: 1;
+  height: 2px;
+  background: var(--border);
   overflow: hidden;
-  margin-bottom: var(--space-3);
 }
 
 .session-bar-fill {
   height: 100%;
   width: calc(var(--ratio, 0) * 100%);
-  background: var(--accent);
+  background: var(--fg);
   transition: width var(--dur) var(--ease);
 }
 
-.progress-text {
+.session-count {
+  font-size: var(--text-xs);
   color: var(--fg-dim);
-  font-size: var(--text-sm);
-  text-align: center;
-  margin-bottom: var(--space-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: var(--sheet-width);
+  margin: 0 auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-2);
+  overflow: hidden;
+}
+
+/* Desktop: the sheet is centred in the space under the app bar, not floating in a void. */
+@media (min-width: 641px) {
+  .review {
+    min-height: calc(100vh - 160px);
+    justify-content: center;
+  }
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-dim);
+  margin-bottom: var(--space-4);
 }
 
 .stage {
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
+  padding: var(--space-4) var(--space-3);
   cursor: pointer;
-  padding: var(--space-4) 0;
+  min-height: 320px;
 }
 
 .card-front,
 .card-back {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   width: 100%;
 }
+
+.front-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+
+.card-back {
+  text-align: center;
+}
+
+/* ── 田字格 ─────────────────────────────────────────────── */
+
+.tianzige {
+  position: relative;
+  width: min(72vw, 260px);
+  aspect-ratio: 1;
+  border: 1px solid var(--grid);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.tianzige-content {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.grid-line {
+  position: absolute;
+  pointer-events: none;
+}
+
+.grid-v {
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  border-left: 1px dashed var(--grid);
+}
+
+.grid-h {
+  top: 50%;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed var(--grid);
+}
+
+/* Corner to corner: a full-width rule rotated about the centre. */
+.grid-d1,
+.grid-d2 {
+  top: 50%;
+  left: -20.71%;
+  width: 141.42%;
+  border-top: 1px dashed var(--grid);
+  transform-origin: 50% 50%;
+}
+
+.grid-d1 {
+  transform: rotate(45deg);
+}
+
+.grid-d2 {
+  transform: rotate(-45deg);
+}
+
+.tianzige-audio {
+  color: var(--fg-dim);
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.tianzige-audio:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.tianzige-write {
+  width: min(60vw, 220px);
+}
+
+.write-target {
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.write-row {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ── Card type ──────────────────────────────────────────── */
 
 .hanzi {
   font-family: var(--font-han);
   font-size: var(--hanzi-size);
-  line-height: 1.1;
-  letter-spacing: 0.04em;
-  font-weight: 500;
+  line-height: 1;
+  font-weight: 400;
 }
 
 .hanzi-back {
   font-size: var(--hanzi-back-size);
+  margin-bottom: var(--space-2);
 }
 
 .pinyin {
@@ -576,26 +763,65 @@ body {
   margin: var(--space-2) 0;
 }
 
+.pinyin-answer {
+  font-size: var(--text-xl);
+}
+
 .pinyin.large {
   font-size: var(--text-xl);
 }
 
-.trad {
+.prompt {
+  font-size: var(--text-lg);
   color: var(--fg-dim);
-  font-family: var(--font-han);
+  margin: 0;
+}
+
+/* PROD: the English prompt is the hero. */
+.prompt-defs {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  line-height: 1.3;
+  gap: var(--space-2);
+}
+
+.prompt-sentence {
+  font-size: var(--text-xl);
+}
+
+.rule {
+  border: 0;
+  border-top: 1px solid var(--border);
+  width: 100%;
+  margin: var(--space-3) 0;
 }
 
 .defs {
   list-style: none;
   padding: 0;
-  margin: var(--space-3) 0;
+  margin: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
 }
 
-.hints {
+.meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
   margin-top: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--fg-dim);
+}
+
+.trad {
+  font-family: var(--font-han);
+}
+
+.hints {
+  margin-top: var(--space-2);
 }
 
 .hint {
@@ -627,10 +853,6 @@ body {
   line-height: 1.9;
 }
 
-.sentence-zh.large {
-  font-size: clamp(28px, 8vw, 44px);
-}
-
 .sentence-pinyin {
   color: var(--fg-dim);
   margin: var(--space-1) 0;
@@ -641,51 +863,18 @@ body {
   font-size: var(--text-sm);
 }
 
+/* The target word is marked in grid ink, not accent — seal red is reserved. */
 .target {
-  color: var(--accent);
-  font-weight: 700;
+  border-bottom: 2px solid var(--grid);
+  padding-bottom: 2px;
 }
 
-.alt-readings {
-  margin-top: var(--space-4);
-  border-top: 1px solid var(--border);
-  padding-top: var(--space-3);
-}
+/* ── Grade bar: the sheet's footer ──────────────────────── */
 
-.alt-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  color: var(--fg-dim);
-  font-size: var(--text-sm);
-}
-
-.alt-pinyin {
-  color: var(--fg);
-}
-
-.write-row {
-  display: flex;
-  gap: var(--space-3);
-  justify-content: center;
-  flex-wrap: wrap;
-  margin: var(--space-3) 0;
-}
-
-.write-cell {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  touch-action: none;
-}
-
-/* Grade bar: the thumb zone. */
 .controls {
-  position: sticky;
-  bottom: 0;
-  background: var(--bg);
-  padding: var(--space-3) 0;
-  padding-bottom: max(var(--space-3), env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  padding: var(--space-3);
+  background: var(--surface);
 }
 
 .ratings {
@@ -711,22 +900,12 @@ body {
 }
 
 .btn-again {
-  border-color: color-mix(in srgb, var(--danger) 50%, var(--border));
-  background: color-mix(in srgb, var(--danger) 10%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
 }
 
-.btn-hard {
-  background: var(--surface-2);
-}
-
-.btn-good {
-  border-color: color-mix(in srgb, var(--ok) 40%, var(--border));
-  background: color-mix(in srgb, var(--ok) 8%, var(--surface-2));
-}
-
+.btn-good,
 .btn-easy {
-  border-color: color-mix(in srgb, var(--ok) 55%, var(--border));
-  background: color-mix(in srgb, var(--ok) 16%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--border));
 }
 
 .suggested {
@@ -737,6 +916,73 @@ body {
   align-items: center;
   text-align: center;
   gap: var(--space-3);
+}
+
+/* Mobile: the sheet fills the content area; the grade bar sits in the thumb zone,
+   above the tab bar. */
+@media (max-width: 640px) {
+  .sheet {
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    box-shadow: none;
+    margin-left: calc(var(--space-3) * -1);
+    margin-right: calc(var(--space-3) * -1);
+    width: auto;
+  }
+
+  .controls {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: var(--tabbar-h);
+    z-index: 15;
+    padding-bottom: var(--space-2);
+  }
+
+  .stage {
+    padding-bottom: 120px;
+  }
+}
+
+/* ── Motion: two moments, both once ─────────────────────── */
+
+@keyframes stamp-in {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.stamp-in {
+  animation: stamp-in var(--dur) var(--ease) both;
+}
+
+@keyframes pulse-once {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.pulse {
+  animation: pulse-once var(--dur) var(--ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp-in,
+  .pulse {
+    animation: none;
+  }
 }
 
 /* ── Banner ─────────────────────────────────────────────── */
@@ -823,6 +1069,23 @@ body {
   color: var(--accent);
   text-decoration: none;
   white-space: nowrap;
+}
+
+/* The small seal-red stamp that marks something done. */
+.stamp-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--accent);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  animation: stamp-in var(--dur) var(--ease) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp-check {
+    animation: none;
+  }
 }
 
 .result-count {

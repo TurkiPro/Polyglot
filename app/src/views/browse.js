@@ -8,7 +8,7 @@ import { config } from '../../../config/app.config.js';
 import * as db from '../engine/db.js';
 import { numToMarks } from '../zh/pinyin.js';
 import { addCustomWord, store } from '../store.js';
-import { button, div, el, empty, h, p, replace, span } from '../ui/components.js';
+import { button, checkStamp, div, el, empty, h, p, replace, span } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { colorPinyin } from '../zh/tones.js';
 import { prepareEntries, rankResults } from './search.js';
@@ -70,7 +70,7 @@ export function renderBrowse(root) {
 
   async function search(query) {
     const trimmed = query.trim();
-    if (!trimmed) return replace(results);
+    if (!trimmed) return replace(results, empty(s.startTyping));
 
     const all = await ensureLoaded();
     // Score the whole dictionary before cutting, or the cut decides relevance.
@@ -90,10 +90,8 @@ export function renderBrowse(root) {
     timer = setTimeout(() => search(input.value), 150);
   });
 
-  replace(
-    root,
-    div({ class: 'browse' }, [h(1, s.title, 'title'), input, status, results]),
-  );
+  replace(root, div({ class: 'browse' }, [h(1, s.title, 'title'), input, status, results]));
+  replace(results, empty(s.startTyping));
   queueMicrotask(() => input.focus({ preventScroll: true }));
 
   return () => clearTimeout(timer);
@@ -121,7 +119,8 @@ function resultRow(entry) {
         });
         // Close the loop: the word is now first in the new-card queue, and My Words
         // proves it. Without this the add looked like it did nothing.
-        const done = el('a', { class: 'added added-link', text: s.addedGoTo, href: '#words' });
+        const done = el('a', { class: 'added-link', href: '#words' });
+        done.append(checkStamp(s.addedGoTo));
         event.target.replaceWith(done);
       }, { variant: 'btn-quiet' });
 

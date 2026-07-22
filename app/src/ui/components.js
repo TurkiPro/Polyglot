@@ -115,6 +115,81 @@ export function liveRegion() {
 }
 
 /**
+ * The seal (印章) — 语 stamped in seal red (§3.2.1).
+ *
+ * The app mark, and the mark of completion: session done, word added, badge earned.
+ * Inline SVG so it inherits the theme's accent and needs no image request.
+ *
+ * @param {number} size pixels
+ * @param {{ title?: string }} [options] an accessible name, when it is not decorative
+ */
+export function sealMark(size = 28, { title } = {}) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 100 100');
+  svg.setAttribute('width', String(size));
+  svg.setAttribute('height', String(size));
+  svg.setAttribute('class', 'seal');
+  svg.setAttribute('role', title ? 'img' : 'presentation');
+  if (title) {
+    const node = document.createElementNS(NS, 'title');
+    node.textContent = title;
+    svg.append(node);
+  } else {
+    svg.setAttribute('aria-hidden', 'true');
+  }
+
+  const rect = document.createElementNS(NS, 'rect');
+  rect.setAttribute('width', '100');
+  rect.setAttribute('height', '100');
+  rect.setAttribute('rx', '18');
+  rect.setAttribute('fill', 'currentColor');
+  svg.append(rect);
+
+  const text = document.createElementNS(NS, 'text');
+  text.setAttribute('x', '50');
+  text.setAttribute('y', '54');
+  text.setAttribute('text-anchor', 'middle');
+  text.setAttribute('dominant-baseline', 'central');
+  text.setAttribute('font-size', '62');
+  text.setAttribute('font-weight', '700');
+  text.setAttribute('fill', 'var(--accent-fg)');
+  text.setAttribute('font-family', 'var(--font-han)');
+  text.textContent = '语';
+  svg.append(text);
+
+  return svg;
+}
+
+/** The small stamp that marks something done — an added word, a finished action. */
+export function checkStamp(label) {
+  const node = span({ class: 'stamp-check' });
+  node.append(icon('check', 16));
+  if (label) node.append(span({ text: label }));
+  return node;
+}
+
+/**
+ * 田字格 — the practice grid every learner writes characters into (§3.2.1).
+ *
+ * A square with a dashed cross and dashed diagonals, drawn with borders only. It sits
+ * behind the hero glyph on REC and WRITE fronts, and behind the speaker on LIS fronts,
+ * where it says "a character belongs here" while withholding which one.
+ *
+ * @param {Array<Node|string>} children what sits inside the square
+ * @param {{ className?: string }} [options]
+ */
+export function tianzige(children = [], { className = '' } = {}) {
+  return div({ class: `tianzige ${className}`.trim() }, [
+    div({ class: 'grid-line grid-v' }),
+    div({ class: 'grid-line grid-h' }),
+    div({ class: 'grid-line grid-d1' }),
+    div({ class: 'grid-line grid-d2' }),
+    div({ class: 'tianzige-content' }, children),
+  ]);
+}
+
+/**
  * Icons (§3.2.4).
  *
  * Lucide's SVGs are vendored into `app/assets/icons/ui/` as static assets — not a

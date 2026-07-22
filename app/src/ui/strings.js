@@ -16,6 +16,7 @@ export const strings = Object.freeze({
   },
 
   home: {
+    greeting: 'Study',
     due: 'Due today',
     newWords: 'New words',
     streak: 'Streak',
@@ -23,12 +24,23 @@ export const strings = Object.freeze({
     xp: 'XP',
     start: 'Start review',
     startWith: (n) => `Start review · ${n} due`,
-    allDone: 'Nothing due. Come back tomorrow.',
-    nothingYet: 'Your deck is ready. Start with your first words.',
+    doneToday: 'Done for today',
+    allDone: 'Nothing is due. Add a word or come back tomorrow.',
+    nothingYet: 'Your deck is ready. Start your first review.',
     days: (n) => (n === 1 ? '1 day' : `${n} days`),
+    streakDays: (n) => (n === 1 ? '1 day streak' : `${n} day streak`),
   },
 
   review: {
+    /** Mode eyebrow — what this card is asking (§3.2.5). */
+    modes: {
+      REC: 'Recall',
+      LIS: 'Listening',
+      PROD: 'Type the pinyin',
+      SENT: 'Sentence',
+      WRITE: 'Write',
+    },
+    progress: (done, total) => `${done} of ${total}`,
     show: 'Show answer',
     again: 'Again',
     hard: 'Hard',
@@ -40,13 +52,13 @@ export const strings = Object.freeze({
     incorrect: 'Not quite',
     play: 'Play audio',
     replay: 'Play again',
+    tapToPlay: 'Tap to play again',
     reveal: 'Show me',
     clear: 'Clear',
     listenPrompt: 'Listen, then answer',
     writePrompt: 'Write the characters',
     sessionDone: 'Session complete',
     reviewed: (n) => `${n} reviewed`,
-    remaining: (n) => `${n} left`,
     backHome: 'Back to home',
     alsoRead: (pinyin) => `also ${pinyin}`,
     notSibling: (pinyin) => `not ${pinyin}`,
@@ -62,7 +74,8 @@ export const strings = Object.freeze({
     placeholder: 'Search characters, pinyin, or English',
     loading: 'Preparing the dictionary…',
     loadingHint: 'One-time setup. It runs entirely on your device.',
-    noResults: 'No matches.',
+    noResults: 'No matches. Try the pinyin without tones, or an English word.',
+    startTyping: 'Search the dictionary to add your first word.',
     resultCap: (n) => `Best ${n} matches`,
     resultCount: (n) => (n === 1 ? '1 match' : `${n} matches`),
     add: 'Add to my words',
@@ -73,7 +86,7 @@ export const strings = Object.freeze({
 
   words: {
     title: 'My words',
-    empty: 'No words of your own yet. Add some from Browse.',
+    empty: 'Search the dictionary to add your first word.',
     browse: 'Browse the dictionary',
     upNext: 'Up next',
     learning: 'Learning',
@@ -102,11 +115,13 @@ export const strings = Object.freeze({
 
   stats: {
     title: 'Statistics',
+    soon: 'Charts arrive with Phase 4.',
     totalReviews: 'Total reviews',
     wordsStarted: 'Words started',
     passRate: 'Pass rate (30 days)',
     perBand: 'Progress by band',
     comingSoon: 'Streaks, XP and the activity heatmap arrive with gamification.',
+    noReviews: 'Review a few words and your progress shows up here.',
   },
 
   settings: {
@@ -124,7 +139,7 @@ export const strings = Object.freeze({
     import: 'Import JSON',
     importing: 'Importing…',
     imported: (n) => `Imported ${n} reviews.`,
-    importFailed: 'That file could not be read as a polyglot export.',
+    importFailed: 'That file is not a polyglot export. Pick the JSON you exported.',
     account: 'Account',
     accountBody: 'Sync across devices is coming. polyglot works fully without an account.',
     danger: 'Danger zone',

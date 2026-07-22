@@ -38,12 +38,16 @@ export function renderReview(root, ctx) {
     teardown: null,
   };
 
+  // The sheet: everything the card is lives inside it, including the grade bar on
+  // desktop. Only the progress line sits outside (§3.2.5).
   const stage = div({ class: 'stage' });
   const controls = div({ class: 'controls' });
-  const progress = div({ class: 'progress' });
   const sessionFill = div({ class: 'session-bar-fill' });
   const sessionBar = div({ class: 'session-bar' }, [sessionFill]);
-  const view = div({ class: 'review' }, [sessionBar, progress, stage, controls]);
+  const counter = div({ class: 'session-count' });
+  const progress = div({ class: 'session-progress' }, [sessionBar, counter]);
+  const sheet = div({ class: 'sheet' }, [stage, controls]);
+  const view = div({ class: 'review' }, [progress, sheet]);
 
   replace(root, view);
   maybeWarnNoAudio(root);
@@ -85,10 +89,8 @@ export function renderReview(root, ctx) {
     session.suggested = null;
     session.shownAt = Date.now();
 
-    replace(
-      progress,
-      div({ class: 'progress-text', text: s.remaining(session.cards.length - session.index) }),
-    );
+    // "7 of 30" reads as progress; "23 left" reads as a chore.
+    counter.textContent = s.progress(session.index + 1, session.cards.length);
     // Width comes through CSSOM, which CSP allows; an inline style attribute would not.
     sessionFill.style.setProperty(
       '--ratio',

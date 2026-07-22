@@ -147,8 +147,12 @@ describe('the view', () => {
     const navigate = vi.fn();
     renderWords(root, { navigate });
 
+    const { strings } = await import('../app/src/ui/strings.js');
     expect(root.querySelector('.list-row')).toBeNull();
-    expect(root.textContent).toContain('No words of your own yet');
+    // Empty screens are an invitation to act, not a bare "nothing here" (§3.2.7).
+    expect(root.textContent).toContain(strings.words.empty);
+    expect(strings.words.empty).toMatch(/^[A-Z]/);
+    expect(strings.words.empty).not.toMatch(/sorry|oops|nothing here/i);
     root.querySelector('.btn-primary').click();
     expect(navigate).toHaveBeenCalledWith('#browse');
   });

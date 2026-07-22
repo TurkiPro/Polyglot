@@ -199,12 +199,59 @@ describe('card fronts and backs (§9 table)', () => {
     expect(renderBack({ mode: 'REC', word: secondary }).querySelector('.btn-audio')).toBeNull();
   });
 
-  it('shows alternate readings on the back as display-only text', async () => {
+  it('shows alternate readings in the back meta row as display-only text', async () => {
     const w = word({ altReadings: [{ pinyin: 'hào', pinyinNum: 'hao4', gloss: 'to be fond of' }] });
     const { renderBack } = await withDeck([w]);
-    const back = renderBack({ mode: 'REC', word: w });
-    expect(back.querySelector('.alt-readings').textContent).toContain('hào');
-    expect(back.querySelector('.alt-readings').textContent).toContain('to be fond of');
+    const meta = renderBack({ mode: 'REC', word: w }).querySelector('.meta-row');
+    expect(meta.textContent).toContain('hào');
+    expect(meta.textContent).toContain('to be fond of');
+    // Traditional form lives there too, when it differs.
+    expect(meta.querySelector('.trad').textContent).toBe('傳統');
+  });
+
+  it('names its mode in an eyebrow, on every front and every back (§3.2.5)', async () => {
+    const w = word();
+    const { renderFront, renderBack } = await withDeck([w]);
+    const labels = {
+      REC: 'Recall',
+      LIS: 'Listening',
+      PROD: 'Type the pinyin',
+      SENT: 'Sentence',
+      WRITE: 'Write',
+    };
+
+    for (const [mode, label] of Object.entries(labels)) {
+      const front = renderFront({ mode, word: w, onReady: () => {}, onSuggest: () => {}, onFlip: () => {} });
+      expect(front.querySelector('.eyebrow')?.textContent, `${mode} front`).toContain(label);
+
+      const back = renderBack({ mode, word: w });
+      expect(back.querySelector('.eyebrow')?.textContent, `${mode} back`).toContain(label);
+    }
+  });
+
+  it('puts a 田字格 behind the glyph on REC, the speaker on LIS, and the canvas on WRITE', async () => {
+    const w = word();
+    const { renderFront, renderBack } = await withDeck([w]);
+    const front = (mode) =>
+      renderFront({ mode, word: w, onReady: () => {}, onSuggest: () => {}, onFlip: () => {} });
+
+    // Square, dashed cross, two dashed diagonals — four ruled lines, borders only.
+    const rec = front('REC');
+    expect(rec.querySelectorAll('.tianzige')).toHaveLength(1);
+    expect(rec.querySelectorAll('.grid-line')).toHaveLength(4);
+    expect(rec.querySelector('.tianzige .hanzi').textContent).toBe('传统');
+
+    const lis = front('LIS');
+    const square = lis.querySelector('.tianzige-audio');
+    expect(square).not.toBeNull();
+    expect(square.getAttribute('role')).toBe('button');
+    // The grid says a character belongs here; the character itself is withheld.
+    expect(lis.textContent).not.toContain('传统');
+
+    expect(front('WRITE').querySelectorAll('.tianzige-write').length).toBe(2);
+
+    // Backs omit the grid.
+    expect(renderBack({ mode: 'REC', word: w }).querySelector('.tianzige')).toBeNull();
   });
 });
 

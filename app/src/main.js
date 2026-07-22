@@ -3,7 +3,7 @@
  */
 import { config } from '../../config/app.config.js';
 import { init, store, subscribe } from './store.js';
-import { div, el, empty, p, replace } from './ui/components.js';
+import { div, el, empty, p, replace, sealMark } from './ui/components.js';
 import { iconFor } from './ui/icons.js';
 import { applyTheme, applyToneColors } from './ui/theme.js';
 import { strings } from './ui/strings.js';
@@ -86,12 +86,20 @@ function renderNav(container, tabbar, actions, active, navigate) {
   }
 }
 
+/** The app mark: the seal, then the wordmark. */
+function renderBrand(link) {
+  if (!link || link.dataset.marked === '1') return;
+  link.dataset.marked = '1';
+  link.prepend(sealMark(26, { title: strings.appName }));
+}
+
 function boot() {
   const root = document.getElementById('app');
   const nav = document.getElementById('nav');
   const tabbar = document.getElementById('tabbar');
   const actions = document.getElementById('bar-actions');
   if (!root) return;
+  renderBrand(document.querySelector('.brand'));
 
   let teardown = null;
   const navigate = (hash) => {

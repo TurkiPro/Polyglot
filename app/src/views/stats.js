@@ -5,7 +5,7 @@
  * arrive with gamification (§10), which derives them from the same log.
  */
 import { store } from '../store.js';
-import { div, h, p, progressBar, replace, stat } from '../ui/components.js';
+import { div, h, p, panel, progressBar, replace, stat } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 
 const s = strings.stats;
@@ -37,6 +37,10 @@ export function bandProgress(deck, states) {
 
 export function renderStats(root) {
   const { events, deck, states } = store;
+  if (events.length === 0) {
+    replace(root, div({ class: 'stats' }, [h(1, s.title, 'title'), p(s.noReviews, 'empty')]));
+    return;
+  }
   const rate = passRate(events);
   const wordsStarted = [...states.keys()].filter((id) => id.endsWith('#REC')).length;
 
@@ -55,7 +59,7 @@ export function renderStats(root) {
       ]),
       h(2, s.perBand, 'panel-title'),
       div({ class: 'bars' }, bands),
-      p(s.comingSoon, 'muted'),
+      panel(null, [p(s.comingSoon, 'muted')]),
     ]),
   );
 }

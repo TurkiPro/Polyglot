@@ -5,7 +5,7 @@
  * fills it in. Until then the tiles simply do not appear.
  */
 import { queue, store } from '../store.js';
-import { button, div, el, h, p, replace, stat } from '../ui/components.js';
+import { button, div, h, p, replace, sealMark, stat } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 
 const s = strings.home;
@@ -30,15 +30,19 @@ export function renderHome(root, ctx) {
         variant: 'btn-primary btn-cta',
       }),
     ]);
-    replace(root, div({ class: 'home' }, [cta, tiles]));
+    replace(root, div({ class: 'home' }, [h(1, s.greeting, 'greeting'), cta, tiles]));
     return;
   }
 
-  // Nothing to do: a large, quiet hanzi rather than another box.
-  const rest = el('div', {
-    class: 'watermark',
-    dataset: { han: '学' },
-  }, [p(store.events.length === 0 ? s.nothingYet : s.allDone, 'empty')]);
+  // Nothing due: the stamp is the reward, not another box.
+  const started = store.events.length > 0;
+  const done = div({ class: 'done-stamp' }, [
+    sealMark(96, { title: strings.appName }),
+    h(2, started ? s.doneToday : s.nothingYet, 'done-title'),
+    gamify?.streak ? p(s.streakDays(gamify.streak), 'muted') : null,
+    started ? p(s.allDone, 'muted') : null,
+    button(strings.browse.title, () => ctx.navigate('#browse'), { variant: 'btn-quiet' }),
+  ].filter(Boolean));
 
-  replace(root, div({ class: 'home' }, [tiles, rest]));
+  replace(root, div({ class: 'home' }, [tiles, done]));
 }
