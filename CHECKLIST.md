@@ -111,3 +111,15 @@ Run on a real phone and a desktop browser, in both themes.
       are all centred compositions with a motif, one line, and one action — not a caption.
 - [ ] Primary buttons look pressed: gradient, inner highlight, and they depress on tap.
 
+## Gamification (§10) — maintainer sign-off
+
+- [ ] Home shows streak and level tiles once you have reviewed something.
+- [ ] `#stats` shows the level with progress to the next, a 12-week heatmap whose cells
+      darken with the day's volume, per-band bars, badges, and an XP breakdown whose rows
+      add up to the total.
+- [ ] Hovering a heatmap cell names the date and the count.
+- [ ] Do 10 reviews in a day and the streak tile reads 1; check tomorrow that it still
+      reads 1 before you review, and 2 after another 10.
+- [ ] Export, wipe, re-import: XP, level and streak come back identical — they are
+      derived, not stored.
+

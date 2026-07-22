@@ -236,4 +236,25 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   Browse before searching, Stats without reviews, and the finished session, so they
   cannot drift. The 田字格 outline is the motif for the first three; the seal is the
   reward mark for a finished session.
+- Phase 4: `engine/gamify.js` derives XP, level, streak, bands and badges from the deck,
+  the log and replayed states. Nothing accumulates — the `meta` row is a cache that
+  `refreshGamify()` overwrites, which is what makes import and sync unable to desync XP.
+- Phase 4: level 0 is a real state. §10 defines the level as the highest n whose threshold
+  the total meets, and LEVEL_XP_FORMULA(1) is 100, so a learner is level 0 until their
+  first 100 XP. Implemented as specified; the screen shows progress to level 1 so it reads
+  as a start rather than a deficit.
+- Phase 4: a streak stays alive while its last counting day is today **or yesterday** —
+  otherwise it would read as broken every morning before the first review. It breaks on a
+  missed day and on a day that fell short of STREAK_MIN_REVIEWS.
+- Phase 4: `longestStreakOf` is kept alongside the current streak so a lapsed milestone
+  badge is not taken away. Earning 30 days once means having earned it.
+- Phase 4: band clear counts untouched words against the band — BAND_CLEAR_RULE is about
+  the band's REC cards, and a word never introduced has an interval of 0. Band 0 (custom
+  words) is not a curriculum band and cannot block the all-bands badge.
+- Phase 4: the heatmap encodes intensity as ink density rather than a colour ramp; the
+  palette already carries meaning and a green ramp would fight the tone colours.
+- Phase 4: earned badge marks use seal red. §3.2.1 lists "badge earned" as a stamp moment,
+  so this is inside the sweep rule even though §3.2.8's shorthand list did not enumerate it.
+- Phase 4: `passRate` and per-band progress moved from `views/stats.js` into
+  `engine/gamify.js`; the view now holds only presentation.
 

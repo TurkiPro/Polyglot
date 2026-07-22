@@ -19,15 +19,15 @@ A local-first PWA with an FSRS spaced-repetition engine. v1 ships a Mandarin Chi
 
 ## Status
 
-Phases 0-3 complete: scaffold, the Chinese pack pipeline, the headless study engine,
-and the PWA. See CHECKLIST.md for the manual browser checks Phase 3 needs.
+Phases 0-4 complete: scaffold, the Chinese pack pipeline, the headless study engine,
+the PWA, and gamification. See CHECKLIST.md for the manual browser checks Phase 3 needs.
 See `CLAUDE.md` for the full build plan and `DECISIONS.md` for choices made along the way.
 
 - [x] Phase 0 — scaffold
 - [x] Phase 1 — zh pack pipeline
 - [x] Phase 2 — study engine
 - [x] Phase 3 — PWA UI
-- [ ] Phase 4 — gamification
+- [x] Phase 4 — gamification
 - [ ] Phase 5 — Worker API
 - [ ] Phase 6 — sync client, deploy, docs
 

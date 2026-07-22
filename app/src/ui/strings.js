@@ -119,13 +119,34 @@ export const strings = Object.freeze({
 
   stats: {
     title: 'Statistics',
-    soon: 'Charts arrive with Phase 4.',
     totalReviews: 'Total reviews',
     wordsStarted: 'Words started',
     passRate: 'Pass rate (30 days)',
+    streak: 'Day streak',
+    level: 'Level',
     perBand: 'Progress by band',
-    comingSoon: 'Streaks, XP and the activity heatmap arrive with gamification.',
+    activity: 'Last 12 weeks',
+    activityLegend: (n) => (n === 1 ? '1 review' : `${n} reviews`),
+    noActivity: 'No reviews',
+    badges: 'Badges',
+    xpBreakdown: 'Where your XP came from',
+    xpShowUp: 'Showing up',
+    xpReviews: 'Reviews',
+    xpNewWords: 'New words',
+    xpBands: 'Bands cleared',
+    xpTotal: 'Total XP',
+    toNextLevel: (n, level) => `${n} XP to level ${level}`,
+    bandCleared: 'cleared',
     noReviews: 'Review a few words and your progress shows up here.',
+    longest: (n) => `Longest: ${n === 1 ? '1 day' : `${n} days`}`,
+  },
+
+  badges: {
+    band: (n) => `Band ${n} cleared`,
+    streak: (n) => `${n}-day streak`,
+    reviews: (n) => `${n.toLocaleString()} reviews`,
+    allBands: 'Every band cleared',
+    locked: 'Not yet',
   },
 
   settings: {

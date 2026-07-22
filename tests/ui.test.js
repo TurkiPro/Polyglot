@@ -6,7 +6,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { bandProgress, passRate } from '../app/src/views/stats.js';
+import { bandStatus, passRate } from '../app/src/engine/gamify.js';
 import { createDeck } from '../app/src/engine/deck.js';
 import { relativeDay } from '../app/src/ui/components.js';
 import { parseHash } from '../app/src/main.js';
@@ -40,10 +40,10 @@ describe('stats', () => {
         { id: 'c', band: 2, defs: [], sentences: [] },
       ],
     });
-    const states = new Map([['a#REC', {}]]);
-    expect(bandProgress(deck, states)).toEqual([
-      { band: 1, total: 2, started: 1 },
-      { band: 2, total: 1, started: 0 },
+    const states = new Map([['a#REC', { reps: 1, scheduled_days: 0 }]]);
+    expect(bandStatus(deck, states).map((b) => [b.band, b.total, b.started])).toEqual([
+      [1, 2, 1],
+      [2, 1, 0],
     ]);
   });
 });

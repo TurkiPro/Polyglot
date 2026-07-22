@@ -1,65 +1,153 @@
 /**
- * Statistics.
+ * Statistics (§10): what the event log says about the work so far.
  *
- * Phase 3 shows what the event log alone can answer. The heatmap, XP, level and streak
- * arrive with gamification (§10), which derives them from the same log.
+ * Everything shown comes from `store.gamify`, which `engine/gamify.js` derives from the
+ * log. Nothing here keeps its own totals.
  */
+import { heatmap } from '../engine/gamify.js';
 import { store } from '../store.js';
-import { div, emptyState, h, p, panel, progressBar, replace, stat } from '../ui/components.js';
+import { div, el, emptyState, h, p, progressBar, replace, span, stat } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 
 const s = strings.stats;
-const DAY = 86400000;
+const b = strings.badges;
 
-/** Pass rate over the last `days` days; a pass is rating ≥ 2 (§10). */
-export function passRate(events, now = Date.now(), days = 30) {
-  const since = now - days * DAY;
-  const recent = events.filter((e) => e.ts >= since);
-  if (recent.length === 0) return null;
-  return recent.filter((e) => e.rating >= 2).length / recent.length;
+/** Intensity buckets for the heatmap, so a quiet day still reads as activity. */
+export function intensity(count, busiest) {
+  if (count <= 0) return 0;
+  if (busiest <= 1) return 4;
+  const ratio = count / busiest;
+  if (ratio > 0.66) return 4;
+  if (ratio > 0.33) return 3;
+  if (ratio > 0.1) return 2;
+  return 1;
 }
 
-/** How many words of each band have been started. */
-export function bandProgress(deck, states) {
-  const totals = new Map();
-  const started = new Map();
-
-  for (const word of deck.words) {
-    const band = word.band ?? 0;
-    totals.set(band, (totals.get(band) ?? 0) + 1);
-    if (states.has(`${word.id}#REC`)) started.set(band, (started.get(band) ?? 0) + 1);
-  }
-
-  return [...totals.entries()]
-    .sort((a, b) => a[0] - b[0])
-    .map(([band, total]) => ({ band, total, started: started.get(band) ?? 0 }));
+/** A badge's label, from its kind and value. */
+export function badgeLabel(badge) {
+  const label = b[badge.kind];
+  return typeof label === 'function' ? label(badge.value) : label;
 }
 
 export function renderStats(root) {
-  const { events, deck, states } = store;
-  if (events.length === 0) {
+  const { events, gamify } = store;
+
+  if (!gamify || events.length === 0) {
     replace(root, div({ class: 'stats' }, [h(1, s.title, 'title'), emptyState('grid', s.noReviews)]));
     return;
   }
-  const rate = passRate(events);
-  const wordsStarted = [...states.keys()].filter((id) => id.endsWith('#REC')).length;
-
-  const bands = bandProgress(deck, states).map(({ band, total, started }) =>
-    progressBar(total === 0 ? 0 : started / total, `${band === 0 ? strings.word.custom : strings.word.band(band)} — ${started}/${total}`),
-  );
 
   replace(
     root,
     div({ class: 'stats' }, [
       h(1, s.title, 'title'),
-      div({ class: 'tiles' }, [
-        stat(events.length, s.totalReviews),
-        stat(wordsStarted, s.wordsStarted),
-        stat(rate === null ? '—' : `${Math.round(rate * 100)}%`, s.passRate),
-      ]),
-      h(2, s.perBand, 'panel-title'),
-      div({ class: 'bars' }, bands),
-      panel(null, [p(s.comingSoon, 'muted')]),
+      tiles(gamify),
+      levelPanel(gamify),
+      activityPanel(events),
+      bandsPanel(gamify),
+      badgesPanel(gamify),
+      xpPanel(gamify),
     ]),
   );
+}
+
+function tiles(g) {
+  return div({ class: 'tiles' }, [
+    stat(g.totals.reviews, s.totalReviews),
+    stat(g.totals.wordsStarted, s.wordsStarted),
+    stat(g.passRate === null ? '—' : `${Math.round(g.passRate * 100)}%`, s.passRate),
+    stat(g.streak, s.streak),
+  ]);
+}
+
+/** Level, and how far into it the learner is. */
+function levelPanel(g) {
+  return el('section', { class: 'panel level-panel' }, [
+    div({ class: 'level-head' }, [
+      span({ class: 'level-number', text: String(g.level) }),
+      div({ class: 'level-text' }, [
+        p(`${s.level} ${g.level}`, 'level-label'),
+        p(s.toNextLevel(g.xpForNext, g.level + 1), 'muted'),
+      ]),
+    ]),
+    progressBar(g.progress),
+  ]);
+}
+
+/** Twelve weeks of daily counts, oldest first. */
+function activityPanel(events) {
+  const cells = heatmap(events);
+  const busiest = cells.reduce((max, cell) => Math.max(max, cell.count), 0);
+
+  const grid = div({ class: 'heatmap', attrs: { role: 'img', 'aria-label': s.activity } });
+  for (const cell of cells) {
+    const day = new Date(cell.day);
+    grid.append(
+      div({
+        class: `heat heat-${intensity(cell.count, busiest)}`,
+        attrs: {
+          title: `${day.toLocaleDateString()} — ${cell.count ? s.activityLegend(cell.count) : s.noActivity}`,
+        },
+      }),
+    );
+  }
+
+  return el('section', { class: 'panel' }, [h(2, s.activity, 'panel-title'), grid]);
+}
+
+function bandsPanel(g) {
+  const bars = g.bands.map((band) =>
+    progressBar(
+      band.ratio,
+      `${band.band === 0 ? strings.word.custom : strings.word.band(band.band)} — ` +
+        `${band.matured}/${band.total}${band.cleared ? ` · ${s.bandCleared}` : ''}`,
+    ),
+  );
+  return el('section', { class: 'panel' }, [
+    h(2, s.perBand, 'panel-title'),
+    div({ class: 'bars' }, bars),
+  ]);
+}
+
+/** Earned badges first; the rest show what is still ahead. */
+function badgesPanel(g) {
+  const sorted = [...g.badges].sort((x, y) => Number(y.earned) - Number(x.earned));
+  const items = sorted.map((badge) =>
+    div({ class: `badge${badge.earned ? ' badge-earned' : ''}` }, [
+      div({ class: 'badge-mark', text: badge.earned ? '✓' : '' }),
+      div({ class: 'badge-text' }, [
+        p(badgeLabel(badge), 'badge-label'),
+        badge.earned ? null : p(`${Math.round(badge.progress * 100)}%`, 'muted'),
+      ].filter(Boolean)),
+    ]),
+  );
+
+  return el('section', { class: 'panel' }, [
+    h(2, s.badges, 'panel-title'),
+    div({ class: 'badges' }, items),
+  ]);
+}
+
+/** XP is worth explaining, or the number is just a number. */
+function xpPanel(g) {
+  const rows = [
+    [s.xpShowUp, g.xp.showUp],
+    [s.xpReviews, g.xp.reviews],
+    [s.xpNewWords, g.xp.newWords],
+    [s.xpBands, g.xp.bandBadges],
+  ].map(([label, value]) =>
+    el('li', {}, [span({ text: label }), span({ class: 'xp-value', text: String(value) })]),
+  );
+
+  rows.push(
+    el('li', { class: 'xp-total' }, [
+      span({ text: s.xpTotal }),
+      span({ class: 'xp-value', text: String(g.xp.total) }),
+    ]),
+  );
+
+  return el('section', { class: 'panel' }, [
+    h(2, s.xpBreakdown, 'panel-title'),
+    el('ul', { class: 'xp-list' }, rows),
+  ]);
 }

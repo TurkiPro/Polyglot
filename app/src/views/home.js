@@ -12,13 +12,13 @@ const s = strings.home;
 
 export function renderHome(root, ctx) {
   const { cards, dueCount, newCount } = queue();
-  const gamify = store.settings.gamifyCache ?? null;
+  const gamify = store.gamify;
 
   const tiles = div({ class: 'tiles' }, [
     stat(dueCount, s.due),
     stat(newCount, s.newWords),
-    gamify ? stat(s.days(gamify.streak ?? 0), s.streak) : null,
-    gamify ? stat(gamify.level ?? 1, s.level) : null,
+    gamify ? stat(gamify.streak, s.streak) : null,
+    gamify ? stat(gamify.level, s.level) : null,
   ].filter(Boolean));
 
   const total = cards.length;

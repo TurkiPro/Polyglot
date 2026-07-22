@@ -10,11 +10,13 @@ import { config } from '../../config/app.config.js';
 import * as db from './engine/db.js';
 import { createDeck, loadPack } from './engine/deck.js';
 import { createEvent, mergeEvents, toWire } from './engine/events.js';
+import { computeGamify } from './engine/gamify.js';
 import { buildQueue } from './engine/queue.js';
 import { applyEvent, localDayKey, rebuildFromEvents, stateHash } from './engine/replay.js';
 
 const LANG = config.pack.langPackV1;
 const SETTINGS_KEY = 'settings';
+const GAMIFY_KEY = 'gamifyCache';
 
 /** Settings a user can change; defaults come from config (§0). */
 export const DEFAULT_SETTINGS = Object.freeze({
@@ -33,6 +35,8 @@ export const store = {
   /** @type {object[]} */
   events: [],
   settings: { ...DEFAULT_SETTINGS },
+  /** Derived from the log by engine/gamify.js; the meta row is only a cache (§10). */
+  gamify: null,
   listeners: new Set(),
 };
 
@@ -61,9 +65,24 @@ export async function init() {
   store.deck = createDeck(pack, customWords);
   store.events = events;
   store.states = rebuildFromEvents(store.deck, events).states;
+  await refreshGamify();
 
   notify();
   return store;
+}
+
+/**
+ * Recompute XP, level, streak and badges from the log, and cache the result.
+ *
+ * The cache exists so Home can paint without a full pass on every render; it is never the
+ * source. Anything that changes the log or the deck calls this, which is why importing a
+ * file or syncing a device cannot leave XP disagreeing with history (§10).
+ */
+export async function refreshGamify(now = Date.now()) {
+  if (!store.deck) return null;
+  store.gamify = computeGamify(store.deck, store.events, store.states, now);
+  if (store.db) await db.setMeta(store.db, GAMIFY_KEY, store.gamify);
+  return store.gamify;
 }
 
 /** Today's queue, honouring the user's own daily limits. */
@@ -115,6 +134,7 @@ export async function recordReview({ cardId, rating, durMs, now = Date.now() }) 
     for (const state of touched) cards.put(state);
   });
 
+  await refreshGamify(now);
   notify();
   return event;
 }
@@ -159,6 +179,8 @@ export async function removeCustomWord(wordId) {
 /** Rebuild the deck from the pack plus whatever custom words storage now holds. */
 async function refreshDeck() {
   store.deck = createDeck(store.pack, await db.getAll(store.db, db.STORES.customWords));
+  // Band totals move when the deck does, so the derived numbers move with it.
+  await refreshGamify();
   notify();
   return store.deck;
 }
@@ -210,6 +232,7 @@ export async function importData(payload) {
   store.deck = createDeck(store.pack, await db.getAll(store.db, db.STORES.customWords));
   store.states = rebuildFromEvents(store.deck, merged).states;
   await persistAllCards();
+  await refreshGamify();
 
   notify();
   return { imported: merged.length - before, total: merged.length };
@@ -232,6 +255,8 @@ export async function wipeLocal() {
   store.states = new Map();
   store.settings = { ...DEFAULT_SETTINGS };
   store.deck = createDeck(store.pack, []);
+  store.gamify = null;
+  await refreshGamify();
   notify();
 }
 

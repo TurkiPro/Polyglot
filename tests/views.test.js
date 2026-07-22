@@ -759,3 +759,119 @@ describe('browse chips and empty states', () => {
     expect(strings.words.explain).toContain('words you add yourself');
   });
 });
+
+/**
+ * §10 — the stats screen reads from derived state, never its own totals.
+ */
+describe('stats screen', () => {
+  const words = Array.from({ length: 4 }, (_, i) => ({
+    id: `w${i}`,
+    simp: '一',
+    pinyin: 'yī',
+    pinyinNum: 'yi1',
+    defs: ['one'],
+    band: i < 2 ? 1 : 2,
+    sentences: [],
+  }));
+
+  async function statsWith(events, states = new Map()) {
+    vi.resetModules();
+    const store = await import('../app/src/store.js');
+    const { computeGamify } = await import('../app/src/engine/gamify.js');
+    const { renderStats } = await import('../app/src/views/stats.js');
+
+    store.store.deck = createDeck({ words });
+    store.store.events = events;
+    store.store.states = states;
+    store.store.gamify = computeGamify(store.store.deck, events, states, Date.now());
+
+    const host = document.createElement('div');
+    document.body.append(host);
+    renderStats(host);
+    return { host, gamify: store.store.gamify };
+  }
+
+  it('shows the composed empty state before any reviews', async () => {
+    const { host } = await statsWith([]);
+    expect(host.querySelector('.empty-state')).not.toBeNull();
+    expect(host.querySelector('.heatmap')).toBeNull();
+  });
+
+  it('renders 12 weeks of heatmap cells, level, bands, badges and the XP breakdown', async () => {
+    const now = Date.now();
+    const events = Array.from({ length: 12 }, (_, i) => ({
+      id: `e${i}`,
+      cardId: `w${i % 4}#REC`,
+      rating: 3,
+      ts: now - i * 60000,
+    }));
+    const { host, gamify } = await statsWith(events);
+
+    expect(host.querySelectorAll('.heat')).toHaveLength(84);
+    expect(host.querySelector('.level-number').textContent).toBe(String(gamify.level));
+    // Two bands in this deck, each with a bar.
+    expect(host.querySelectorAll('.bars .bar')).toHaveLength(2);
+    expect(host.querySelectorAll('.badge').length).toBeGreaterThan(0);
+
+    // The XP rows add up to the stated total, so the screen cannot drift from the engine.
+    const values = [...host.querySelectorAll('.xp-list li:not(.xp-total) .xp-value')].map((n) =>
+      Number(n.textContent),
+    );
+    const total = Number(host.querySelector('.xp-total .xp-value').textContent);
+    expect(values.reduce((a, b) => a + b, 0)).toBe(total);
+    expect(total).toBe(gamify.xp.total);
+  });
+
+  it('buckets heatmap intensity and never colours an empty day', async () => {
+    const { intensity } = await import('../app/src/views/stats.js');
+    expect(intensity(0, 10)).toBe(0);
+    expect(intensity(1, 10)).toBe(1);
+    expect(intensity(5, 10)).toBe(3);
+    expect(intensity(10, 10)).toBe(4);
+    // A single review on the only active day still reads as full.
+    expect(intensity(1, 1)).toBe(4);
+  });
+
+  it('labels badges from their kind and value', async () => {
+    const { badgeLabel } = await import('../app/src/views/stats.js');
+    expect(badgeLabel({ kind: 'band', value: 3 })).toBe('Band 3 cleared');
+    expect(badgeLabel({ kind: 'streak', value: 7 })).toBe('7-day streak');
+    expect(badgeLabel({ kind: 'reviews', value: 1000 })).toContain('1,000');
+    expect(badgeLabel({ kind: 'allBands' })).toBe('Every band cleared');
+  });
+});
+
+/**
+ * §10 — recorded reviews move the derived numbers, and a reload agrees.
+ */
+describe('gamification through the store', () => {
+  it('updates XP and streak as reviews land, and survives a restart', async () => {
+    vi.resetModules();
+    const { IDBFactory } = await import('fake-indexeddb');
+    globalThis.indexedDB = new IDBFactory();
+    const w = { id: 'w1', simp: '一', pinyin: 'yī', pinyinNum: 'yi1', defs: ['one'], band: 1, sentences: [] };
+    globalThis.fetch = vi.fn(async (url) =>
+      String(url).includes('deck.')
+        ? { ok: true, json: async () => ({ schemaVersion: 1, language: 'zh', packVersion: 't', words: [w] }) }
+        : { ok: false, status: 404, statusText: 'no' },
+    );
+
+    const store = await import('../app/src/store.js');
+    const { config } = await import('../config/app.config.js');
+    await store.init();
+
+    expect(store.store.gamify.xp.total).toBe(0);
+
+    await store.recordReview({ cardId: 'w1#REC', rating: 3 });
+    const { xpShowup, xpPerReview, xpPerNewWord } = config.gamify;
+    expect(store.store.gamify.xp.total).toBe(xpShowup + xpPerReview + xpPerNewWord);
+    expect(store.store.gamify.totals.reviews).toBe(1);
+
+    // A cold start recomputes the same numbers from the stored log.
+    const before = store.store.gamify.xp.total;
+    vi.resetModules();
+    const fresh = await import('../app/src/store.js');
+    await fresh.init();
+    expect(fresh.store.gamify.xp.total).toBe(before);
+  });
+});
