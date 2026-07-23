@@ -28,6 +28,7 @@ PROD_URL              = https://polyglot.<subdomain>.workers.dev   # custom doma
 # ── Auth / API ────────────────────────────────────────────
 OAUTH_PROVIDERS       = github, google
 SESSION_TTL_DAYS      = 30
+MAX_SESSIONS_PER_USER = 10         # oldest sessions beyond this are dropped at login
 SYNC_BATCH_MAX        = 500        # review events per request
 RATE_LIMIT_AUTH       = 10 req / 10 min / IP
 RATE_LIMIT_API        = 120 req / hour / user
@@ -174,7 +175,9 @@ polyglot/
 │  ├─ lib/                        # cedict.js hsk.js tatoeba.js pinyin.js ids.js credits.js
 │  └─ data/                       # downloaded sources (gitignored)
 ├─ config/app.config.js
-├─ scripts/                       # dev.sh api-tests.sh
+├─ scripts/                       # Node (.mjs) only — dev.mjs api-tests.mjs build.mjs.
+│                                 # Everything in package.json scripts must run identically
+│                                 # in PowerShell, cmd, and POSIX shells; bash is banned.
 ├─ .github/workflows/deploy.yml
 ├─ LICENSE  README.md  SELF_HOSTING.md  DECISIONS.md  CREDITS.md (generated)
 └─ package.json  package-lock.json
@@ -295,7 +298,7 @@ characters appearing in deck words** (~3–4k files). Client points hanzi-writer
    grouped and commented as §0.
 5. `package.json` scripts:
    `build` → `esbuild app/src/main.js --bundle --format=esm --outfile=app/assets/bundle.js`
-   `dev` → `bash scripts/dev.sh` (build, then `wrangler dev` serving app/ + API together)
+   `dev` → `node scripts/dev.mjs` (build, then `wrangler dev` serving app/ + API together)
    `test` → `vitest run` · `deck` → `node packs/zh/build.mjs`
 6. `worker/wrangler.toml`: name = WORKER_NAME, static assets dir → `../app`, D1 binding
    `DB` → D1_DB_NAME, today's `compatibility_date`.
@@ -557,7 +560,7 @@ a Turnstile token first; server verifies it before returning the provider redire
 `POST /api/auth/dev` creates user `dev@local` + session. The router must hard-return
 404 for this route whenever DEV_MODE is unset.
 
-**`scripts/api-tests.sh`** (curl vs `npm run dev`, exits non-zero on any failure):
+**`scripts/api-tests.mjs`** (Node fetch vs `npm run dev`, exits non-zero on any failure):
 health → dev login (capture cookie) → push 3 events → push the same 3 again (count
 stays 3) → pull since 0 (3 events + cursor) → pull since cursor (empty) → words upsert
 + LWW check → export non-empty → `DELETE /api/me` → `/api/me` now 401.
@@ -565,7 +568,7 @@ stays 3) → pull since 0 (3 events + cursor) → pull since cursor (empty) → 
 **Acceptance**
 - [ ] `wrangler d1 execute <D1_DB_NAME> --local --file worker/schema.sql` applies clean
       twice.
-- [ ] `scripts/api-tests.sh` fully green.
+- [ ] `node scripts/api-tests.mjs` fully green.
 - [ ] With DEV_MODE unset, `/api/auth/dev` → 404.
 - [ ] Security headers present on `/`; no inline script/style anywhere in `app/`.
 
@@ -625,8 +628,9 @@ sources.
 - [ ] A guest can install the PWA and learn fully offline: all five modes, gamification,
       export/import — no account, no network.
 - [ ] Sign-in via GitHub or Google works; sync across two devices proven identical.
-- [ ] Zero third-party requests at runtime except OAuth redirects (verify in the
+- [ ] Zero third-party requests at runtime except OAuth redirects and, when a site key
+      is configured, the Turnstile widget at sign-in (verify in the
       Network tab).
-- [ ] `npm test` and `api-tests.sh` green; CREDITS complete; README + SELF_HOSTING
+- [ ] `npm test` and `api-tests.mjs` green; CREDITS complete; README + SELF_HOSTING
       accurate.
 - [ ] AGPL LICENSE present; no secrets anywhere in git history.

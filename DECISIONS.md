@@ -308,3 +308,16 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   make the next account on that device skip everything the previous one had already
   pulled.
 
+- Hardening (patch series authored by the reviewing model, applied by the maintainer):
+  scripts are Node-only — `dev.mjs` and `api-tests.mjs` replace the bash pair, because
+  the maintainer's shell is PowerShell and CI is not the only place code must run.
+- Hardening: `validEvent` gained size and sanity bounds (id ≤ 64, cardId ≤ 120, ts within
+  a week of server time, durMs ≤ 1h). Invariants, not tunables, so they live beside the
+  validator rather than in §0.
+- Hardening: the rate limiter keys on `cf-connecting-ip` alone. `x-forwarded-for` is
+  client-writable, and a spoofable limiter key is a limiter bypass.
+- Hardening: login deletes the user's expired sessions and caps live ones at
+  MAX_SESSIONS_PER_USER (§0), newest kept — the table stays bounded with no cron.
+- Hardening: deploy gates on a Windows test job and the live API suite, not unit tests
+  alone; the workflow may use bash internally because runners are pinned environments,
+  unlike contributor machines.
