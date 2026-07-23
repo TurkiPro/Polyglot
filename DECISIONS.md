@@ -257,4 +257,31 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   so this is inside the sweep rule even though §3.2.8's shorthand list did not enumerate it.
 - Phase 4: `passRate` and per-band progress moved from `views/stats.js` into
   `engine/gamify.js`; the view now holds only presentation.
+- Phase 5: `run_worker_first` changed from `["/api/*"]` to `true`. With the narrow form,
+  asset requests were served by the asset server and never reached the Worker, so
+  `mw/security.js` never ran and `/` shipped with **no CSP at all** — §11's acceptance
+  check caught it. §3 describes the router as "`/api/*` → handlers, else static assets",
+  which is the same reading.
+- Phase 5: `.dev.vars` lives in `worker/`, beside `wrangler.toml`, not at the repo root —
+  wrangler resolves it relative to the config file, and at the root it was silently
+  ignored, which showed up as `/api/auth/dev` returning 404 with DEV_MODE apparently set.
+- Phase 5: `scripts/api-tests.sh` clears the local `rate_limits` table before running. The
+  suite deliberately trips the auth limiter, so without a reset it passes once and then
+  429s on every later run.
+- Phase 5: `DELETE /api/me` removes child rows explicitly rather than relying on
+  `ON DELETE CASCADE`. D1 does not enforce foreign keys unless they are switched on, so
+  the cascade in the schema is documentation, not behaviour — and §1.5 promises deletion
+  actually deletes.
+- Phase 5: `received_at` is `max(now, previousMax + 1)` plus the row's index, so it is
+  strictly increasing per user even for two batches inside one millisecond. A cursor that
+  could repeat a value would silently hide events from a device that had already read it.
+- Phase 5: provider access tokens are used once — to read an id — and discarded. Nothing
+  from the provider is stored beyond the id and display name, and there is no refresh
+  token to leak.
+- Phase 5: Turnstile fails **closed** when no secret is configured; `DEV_MODE=1` is the
+  only bypass, because a local machine has no widget to solve. A misconfigured production
+  deploy therefore refuses logins rather than quietly accepting unverified ones.
+- Phase 5: added `GET /api/auth/providers`, which is not in §11's table. The login page
+  has to know which buttons to render, and asking the server beats hardcoding a list that
+  can disagree with which secrets are actually set. Phase 6 consumes it.
 

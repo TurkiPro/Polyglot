@@ -11,8 +11,10 @@ compatibility_date = "2026-07-21"
 directory = "../app"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
-# The API must win over asset routing for /api/*.
-run_worker_first = ["/api/*"]
+# The Worker sees every request, not just /api/* — §11's security headers (CSP on HTML,
+# nosniff, referrer-policy) are applied in mw/security.js, and assets served straight off
+# the asset server would bypass it entirely.
+run_worker_first = true
 
 [[d1_databases]]
 binding = "DB"

@@ -9,7 +9,9 @@
     "build": "node scripts/build.mjs",
     "dev": "bash scripts/dev.sh",
     "test": "vitest run",
-    "deck": "node packs/zh/build.mjs"
+    "deck": "node packs/zh/build.mjs",
+    "api-test": "bash scripts/api-tests.sh",
+    "db:local": "wrangler d1 execute polyglot-db --local --file worker/schema.sql --config worker/wrangler.toml"
   },
   "dependencies": {
     "hanzi-writer": "3.7.3",

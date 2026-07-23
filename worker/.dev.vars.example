@@ -1,0 +1,14 @@
+# Local secrets. Copy to .dev.vars (gitignored) and fill in what you need.
+# Production uses `wrangler secret put` for each of these instead.
+
+# Enables POST /api/auth/dev, which the API tests use. Never set in production.
+DEV_MODE = "1"
+
+# OAuth apps (§13.3). Callback: <origin>/api/auth/<provider>/callback
+# GITHUB_CLIENT_ID = ""
+# GITHUB_CLIENT_SECRET = ""
+# GOOGLE_CLIENT_ID = ""
+# GOOGLE_CLIENT_SECRET = ""
+
+# Turnstile (§13.4). The site key is public and lives in config/app.config.js.
+# TURNSTILE_SECRET = ""

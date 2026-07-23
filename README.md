@@ -19,8 +19,8 @@ A local-first PWA with an FSRS spaced-repetition engine. v1 ships a Mandarin Chi
 
 ## Status
 
-Phases 0-4 complete: scaffold, the Chinese pack pipeline, the headless study engine,
-the PWA, and gamification. See CHECKLIST.md for the manual browser checks Phase 3 needs.
+Phases 0-5 complete: scaffold, the Chinese pack pipeline, the headless study engine,
+the PWA, gamification, and the Worker API. See CHECKLIST.md for the manual browser checks Phase 3 needs.
 See `CLAUDE.md` for the full build plan and `DECISIONS.md` for choices made along the way.
 
 - [x] Phase 0 — scaffold
@@ -28,7 +28,7 @@ See `CLAUDE.md` for the full build plan and `DECISIONS.md` for choices made alon
 - [x] Phase 2 — study engine
 - [x] Phase 3 — PWA UI
 - [x] Phase 4 — gamification
-- [ ] Phase 5 — Worker API
+- [x] Phase 5 — Worker API
 - [ ] Phase 6 — sync client, deploy, docs
 
 ## Features
@@ -60,6 +60,8 @@ Scripts:
 | `npm run dev` | build, then serve app + API together via `wrangler dev` |
 | `npm test` | run the vitest suite |
 | `npm run deck` | rebuild the Chinese pack from upstream sources |
+| `npm run db:local` | apply the D1 schema to the local database |
+| `npm run api-test` | end-to-end API checks against a running `npm run dev` |
 
 ## Architecture
 

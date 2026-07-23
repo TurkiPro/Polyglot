@@ -123,3 +123,21 @@ Run on a real phone and a desktop browser, in both themes.
 - [ ] Export, wipe, re-import: XP, level and streak come back identical — they are
       derived, not stored.
 
+## Worker API (§11) — automated
+
+These run themselves; listed so the sequence is on record.
+
+```sh
+npm run db:local      # apply worker/schema.sql to the local D1
+npm run dev           # in one terminal
+npm run api-test      # in another
+```
+
+- [x] `worker/schema.sql` applies cleanly twice (idempotent).
+- [x] `scripts/api-tests.sh` fully green, and re-runnable.
+- [x] With `DEV_MODE` unset, `POST /api/auth/dev` is 404.
+- [x] `/` carries CSP, `X-Content-Type-Options` and `Referrer-Policy`.
+- [ ] Human: register the OAuth apps (§13.3) and a Turnstile widget (§13.4), then sign in
+      with GitHub and with Google against a deployed origin — the callback URLs cannot be
+      exercised locally.
+
