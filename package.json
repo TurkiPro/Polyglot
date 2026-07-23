@@ -7,10 +7,10 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "dev": "bash scripts/dev.sh",
+    "dev": "node scripts/dev.mjs",
     "test": "vitest run",
     "deck": "node packs/zh/build.mjs",
-    "api-test": "bash scripts/api-tests.sh",
+    "api-test": "node scripts/api-tests.mjs",
     "db:local": "wrangler d1 execute polyglot-db --local --file worker/schema.sql --config worker/wrangler.toml"
   },
   "dependencies": {
