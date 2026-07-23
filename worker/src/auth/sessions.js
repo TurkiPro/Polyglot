@@ -69,11 +69,26 @@ export const isLocal = (request) => new URL(request.url).hostname === 'localhost
 export async function createSession(env, userId, now = Date.now()) {
   const token = newToken();
   const expiresAt = now + TTL_MS;
+
+  // Login is the hygiene moment: drop this user's expired rows, insert the new session,
+  // then enforce the cap so the table stays bounded without a scheduled job. D1 does not
+  // enforce foreign keys, so nothing else is cleaning up behind us.
+  await env.DB.prepare('DELETE FROM sessions WHERE user_id = ? AND expires_at <= ?')
+    .bind(userId, now)
+    .run();
   await env.DB.prepare(
     'INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)',
   )
     .bind(await hashToken(token), userId, now, expiresAt)
     .run();
+  await env.DB.prepare(
+    `DELETE FROM sessions WHERE user_id = ? AND token_hash NOT IN (
+       SELECT token_hash FROM sessions WHERE user_id = ?
+        ORDER BY created_at DESC, token_hash DESC LIMIT ?)`,
+  )
+    .bind(userId, userId, config.auth.maxSessionsPerUser)
+    .run();
+
   return { token, expiresAt };
 }
 

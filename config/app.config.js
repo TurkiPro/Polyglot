@@ -33,6 +33,7 @@ export const config = deepFreeze({
   auth: {
     oauthProviders: ['github', 'google'],
     sessionTtlDays: 30,
+    maxSessionsPerUser: 10, // oldest sessions beyond this are dropped at login
     syncBatchMax: 500, // review events per request
     rateLimitAuth: { requests: 10, windowMinutes: 10, per: 'ip' },
     rateLimitApi: { requests: 120, windowMinutes: 60, per: 'user' },

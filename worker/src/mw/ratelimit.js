@@ -15,9 +15,12 @@ export const LIMITS = Object.freeze({
   api: { requests: rateLimitApi.requests, windowMs: rateLimitApi.windowMinutes * 60000 },
 });
 
-/** The caller's IP, as Cloudflare reports it. */
-export const clientIp = (request) =>
-  request.headers.get('cf-connecting-ip') ?? request.headers.get('x-forwarded-for') ?? 'unknown';
+/**
+ * The caller's IP. On Cloudflare, `cf-connecting-ip` is set by the edge and cannot be
+ * forged by the client; `x-forwarded-for` can be, so it is deliberately not consulted —
+ * a spoofable limiter key is a limiter bypass. Absent header means local dev.
+ */
+export const clientIp = (request) => request.headers.get('cf-connecting-ip') ?? 'local';
 
 /**
  * Count one request against a scope.

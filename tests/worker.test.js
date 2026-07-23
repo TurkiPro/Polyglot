@@ -132,11 +132,11 @@ describe('rate limits', () => {
     });
   });
 
-  it('identifies a caller by Cloudflare\'s header first', () => {
+  it('identifies a caller by Cloudflare\'s header only \u2014 x-forwarded-for is spoofable', () => {
     const request = (headers) => new Request('https://x/', { headers });
     expect(clientIp(request({ 'cf-connecting-ip': '1.2.3.4' }))).toBe('1.2.3.4');
-    expect(clientIp(request({ 'x-forwarded-for': '5.6.7.8' }))).toBe('5.6.7.8');
-    expect(clientIp(request({}))).toBe('unknown');
+    expect(clientIp(request({ 'x-forwarded-for': '5.6.7.8' }))).toBe('local');
+    expect(clientIp(request({}))).toBe('local');
   });
 });
 

@@ -26,18 +26,31 @@ async function nextReceivedAt(env, userId, now) {
   return Math.max(now, previous + 1);
 }
 
-/** A review event the client is allowed to store. */
-function validEvent(event) {
-  return (
+// Validation invariants, not tunables: a uuid is 36 chars and the longest legitimate
+// card id (word id + '#WRITE') is well under 120. Anything larger is storage abuse.
+const MAX_ID_LENGTH = 64;
+const MAX_CARD_ID_LENGTH = 120;
+const MAX_DUR_MS = 3_600_000; // one hour of staring at one card
+const MAX_CLOCK_SKEW_MS = 7 * 86_400_000; // a week of client clock error
+
+/** A review event the client is allowed to store. Exported for the unit suite. */
+export function validEvent(event, now = Date.now()) {
+  return Boolean(
     event &&
     typeof event.id === 'string' &&
     event.id.length > 0 &&
+    event.id.length <= MAX_ID_LENGTH &&
     typeof event.cardId === 'string' &&
     event.cardId.length > 0 &&
+    event.cardId.length <= MAX_CARD_ID_LENGTH &&
     Number.isInteger(event.rating) &&
     event.rating >= 1 &&
     event.rating <= 4 &&
-    Number.isFinite(event.ts)
+    Number.isFinite(event.ts) &&
+    event.ts > 0 &&
+    event.ts <= now + MAX_CLOCK_SKEW_MS &&
+    (event.durMs === undefined || event.durMs === null ||
+      (Number.isInteger(event.durMs) && event.durMs >= 0 && event.durMs <= MAX_DUR_MS))
   );
 }
 
@@ -49,7 +62,7 @@ export async function pushEvents(env, userId, events, now = Date.now()) {
   if (!Array.isArray(events)) throw new HttpError(400, 'events must be an array');
   if (events.length > BATCH_MAX) throw new HttpError(413, `batch exceeds ${BATCH_MAX}`);
 
-  const valid = events.filter(validEvent);
+  const valid = events.filter((event) => validEvent(event, now));
   const rejected = events.length - valid.length;
   if (valid.length === 0) {
     const row = await env.DB.prepare(
