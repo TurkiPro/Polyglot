@@ -6,6 +6,7 @@ import { exportData, importData, store, updateSettings, wipeLocal } from '../sto
 import { button, div, el, h, p, panel, replace, slider } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { applyTheme } from '../ui/theme.js';
+import { accountPanel } from '../sync/account.js';
 
 const s = strings.settings;
 
@@ -15,7 +16,7 @@ export function renderSettings(root, ctx) {
     studyPanel(),
     appearancePanel(),
     dataPanel(),
-    accountPanel(),
+    accountPanel(ctx),
     dangerPanel(ctx),
   ]);
   replace(root, view);
@@ -114,11 +115,6 @@ function dataPanel() {
     picker,
     status,
   ]);
-}
-
-/** Sign-in arrives in Phase 6; the section exists so the shape is visible. */
-function accountPanel() {
-  return panel(s.account, [p(s.accountBody, 'muted')]);
 }
 
 function dangerPanel(ctx) {

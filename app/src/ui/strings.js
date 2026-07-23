@@ -176,6 +176,36 @@ export const strings = Object.freeze({
     cancel: 'Cancel',
   },
 
+  account: {
+    title: 'Account',
+    checking: 'Checking…',
+    guestBody:
+      'polyglot works fully without an account. Signing in does one thing: keeps the same progress on your other devices.',
+    signedOutBody: 'Signed out. Your progress is still on this device.',
+    signInWith: (provider) => `Sign in with ${provider}`,
+    noProviders: 'No sign-in providers are configured on this server.',
+    redirecting: 'Opening sign-in…',
+    verifying: 'Verifying…',
+    turnstileFailed: 'The verification widget could not load. Check your connection and try again.',
+    signInFailed: 'Sign-in could not start. Try again.',
+    signedInAs: (name) => `Signed in as ${name}`,
+    syncNow: 'Sync now',
+    syncing: 'Syncing…',
+    syncFailed: 'Sync failed. Your progress is safe on this device; try again.',
+    syncedCounts: (pushed, pulled) => `Synced — sent ${pushed}, received ${pulled}`,
+    lastSync: (when) => `Last synced ${when}`,
+    never: 'never',
+    justNow: 'just now',
+    minutesAgo: (n) => (n === 1 ? '1 minute ago' : `${n} minutes ago`),
+    hoursAgo: (n) => (n === 1 ? '1 hour ago' : `${n} hours ago`),
+    signOut: 'Sign out',
+    deleteAccount: 'Delete account',
+    deleteBody:
+      'Deletes your account and everything on the server, then erases this device. It cannot be undone.',
+    deleteConfirm: (word) => `Type ${word} to confirm`,
+    deleteWord: 'DELETE',
+  },
+
   credits: {
     title: 'Credits',
     body: 'polyglot is built on freely licensed data and libraries.',

@@ -141,3 +141,22 @@ npm run api-test      # in another
       with GitHub and with Google against a deployed origin — the callback URLs cannot be
       exercised locally.
 
+## Sync and deploy (§12) — maintainer sign-off
+
+Automated: `npm test` covers the client's orchestration, two devices converging on one
+state hash, and guest → account migration. `scripts/api-tests.sh` covers the server.
+These need a real deployment:
+
+- [ ] Register the OAuth apps and a Turnstile widget (SELF_HOSTING steps 4-5), deploy,
+      then sign in with GitHub and with Google. The callback URLs cannot be tested locally.
+- [ ] **Two profiles**: sign in on browser profile A and B as the same account. Review on
+      A, press Sync now on A, then on B. B shows A's progress; Stats totals match.
+- [ ] Guest migration: study as a guest, then sign in. Everything you did offline appears
+      on the second device after a sync.
+- [ ] Sign out leaves local progress untouched, and the app still works.
+- [ ] Delete account: the server copy and this device are both erased, and signing in
+      again starts clean.
+- [ ] With Turnstile configured, the Network tab shows `challenges.cloudflare.com` **only**
+      after pressing a sign-in button — never while reviewing, browsing or offline.
+- [ ] Push to main and watch the deploy workflow run tests before deploying.
+

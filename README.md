@@ -19,8 +19,8 @@ A local-first PWA with an FSRS spaced-repetition engine. v1 ships a Mandarin Chi
 
 ## Status
 
-Phases 0-5 complete: scaffold, the Chinese pack pipeline, the headless study engine,
-the PWA, gamification, and the Worker API. See CHECKLIST.md for the manual browser checks Phase 3 needs.
+All six build phases are complete. What remains is the human setup in SELF_HOSTING.md
+(D1, OAuth apps, Turnstile) and the device checks in CHECKLIST.md. See CHECKLIST.md for the manual browser checks Phase 3 needs.
 See `CLAUDE.md` for the full build plan and `DECISIONS.md` for choices made along the way.
 
 - [x] Phase 0 — scaffold
@@ -29,11 +29,9 @@ See `CLAUDE.md` for the full build plan and `DECISIONS.md` for choices made alon
 - [x] Phase 3 — PWA UI
 - [x] Phase 4 — gamification
 - [x] Phase 5 — Worker API
-- [ ] Phase 6 — sync client, deploy, docs
+- [x] Phase 6 — sync client, deploy, docs
 
 ## Features
-
-_Placeholder — filled in as phases land._
 
 - Five review modes: recognition, listening, production, sentence, handwriting
 - FSRS scheduling, entirely client-side
@@ -86,7 +84,8 @@ conflicts cannot exist.
 
 ## Self-hosting
 
-See `SELF_HOSTING.md` _(added in Phase 6)_.
+See [SELF_HOSTING.md](SELF_HOSTING.md) — one Worker, one D1 database, and a deploy is
+`wrangler deploy`. Contributions: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

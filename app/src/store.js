@@ -17,6 +17,9 @@ import { applyEvent, localDayKey, rebuildFromEvents, stateHash } from './engine/
 const LANG = config.pack.langPackV1;
 const SETTINGS_KEY = 'settings';
 const GAMIFY_KEY = 'gamifyCache';
+const CURSOR_KEY = 'syncCursor';
+const WORD_CURSOR_KEY = 'syncWordCursor';
+const LAST_SYNC_KEY = 'lastSyncAt';
 
 /** Settings a user can change; defaults come from config (§0). */
 export const DEFAULT_SETTINGS = Object.freeze({
@@ -37,6 +40,9 @@ export const store = {
   settings: { ...DEFAULT_SETTINGS },
   /** Derived from the log by engine/gamify.js; the meta row is only a cache (§10). */
   gamify: null,
+  /** Set once /api/me answers; null means guest (§1.3). */
+  account: null,
+  lastSyncAt: null,
   listeners: new Set(),
 };
 
@@ -65,6 +71,7 @@ export async function init() {
   store.deck = createDeck(pack, customWords);
   store.events = events;
   store.states = rebuildFromEvents(store.deck, events).states;
+  store.lastSyncAt = await db.getMeta(store.db, LAST_SYNC_KEY, null);
   await refreshGamify();
 
   notify();
@@ -257,6 +264,85 @@ export async function wipeLocal() {
   store.deck = createDeck(store.pack, []);
   store.gamify = null;
   await refreshGamify();
+  notify();
+}
+
+/**
+ * The storage half of sync (§12).
+ *
+ * Everything the sync client needs from this device, and nothing about the network. Kept
+ * here rather than in `sync/client.js` so the client stays free of IndexedDB.
+ */
+export function syncPort() {
+  return {
+    unsyncedEvents: async () => {
+      const rows = await db.getAllByIndex(store.db, db.STORES.events, 'synced', 0);
+      return rows.map(toWire);
+    },
+
+    markSynced: async (ids) => {
+      const known = new Set(ids);
+      const rows = store.events.filter((event) => known.has(event.id));
+      for (const row of rows) row.synced = 1;
+      await db.putAll(store.db, db.STORES.events, rows);
+    },
+
+    /** Merge remote events in; returns how many were genuinely new. */
+    addRemoteEvents: async (incoming) => {
+      const known = new Set(store.events.map((event) => event.id));
+      const fresh = incoming.filter((event) => !known.has(event.id));
+      if (fresh.length === 0) return 0;
+
+      // Anything that came back from the server is by definition already synced.
+      const rows = fresh.map((event) => ({ ...event, synced: 1 }));
+      await db.putAll(store.db, db.STORES.events, rows);
+      store.events = mergeEvents(store.events, rows);
+      return fresh.length;
+    },
+
+    cursor: () => db.getMeta(store.db, CURSOR_KEY, 0),
+    setCursor: (value) => db.setMeta(store.db, CURSOR_KEY, value),
+    wordCursor: () => db.getMeta(store.db, WORD_CURSOR_KEY, 0),
+    setWordCursor: (value) => db.setMeta(store.db, WORD_CURSOR_KEY, value),
+
+    localWords: () => db.getAll(store.db, db.STORES.customWords),
+
+    /** Last write wins on updatedAt; a tombstone is just another write. */
+    mergeWords: async (incoming) => {
+      const mine = new Map(
+        (await db.getAll(store.db, db.STORES.customWords)).map((word) => [word.id, word]),
+      );
+      const winners = incoming.filter(
+        (word) => (word.updatedAt ?? 0) > (mine.get(word.id)?.updatedAt ?? -1),
+      );
+      if (winners.length === 0) return 0;
+      await db.putAll(store.db, db.STORES.customWords, winners);
+      return winners.length;
+    },
+
+    rebuild: async () => {
+      store.deck = createDeck(store.pack, await db.getAll(store.db, db.STORES.customWords));
+      store.states = rebuildFromEvents(store.deck, store.events).states;
+      await persistAllCards();
+      await refreshGamify();
+      notify();
+    },
+  };
+}
+
+/** Record when a sync last completed, for the settings screen. */
+export async function noteSync(at, account) {
+  store.lastSyncAt = at;
+  store.account = account ?? store.account;
+  await db.setMeta(store.db, LAST_SYNC_KEY, at);
+  notify();
+}
+
+/** Forget the signed-in account without touching local data (§12 sign out). */
+export async function forgetAccount() {
+  store.account = null;
+  await db.setMeta(store.db, CURSOR_KEY, 0);
+  await db.setMeta(store.db, WORD_CURSOR_KEY, 0);
   notify();
 }
 

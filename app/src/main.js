@@ -2,7 +2,8 @@
  * polyglot — boot, hash router, and the nav shell.
  */
 import { config } from '../../config/app.config.js';
-import { init, store, subscribe } from './store.js';
+import { init, noteSync, store, subscribe, syncPort } from './store.js';
+import { httpApi, syncNow } from './sync/client.js';
 import { div, el, empty, p, replace, sealMark } from './ui/components.js';
 import { iconFor } from './ui/icons.js';
 import { applyTheme, applyToneColors } from './ui/theme.js';
@@ -142,11 +143,29 @@ function boot() {
       });
       paint();
       registerServiceWorker();
+      backgroundSync();
     })
     .catch((err) => {
       console.error(err);
       replace(root, div({ class: 'error' }, [p(strings.common.error, 'empty')]));
     });
+}
+
+/**
+ * Sync on start, when online and signed in (§12).
+ *
+ * Silent by design: a guest has no account, an offline device has no network, and neither
+ * is an error worth interrupting anyone over. The Settings screen is where sync becomes
+ * visible and manual.
+ */
+async function backgroundSync() {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+  try {
+    const result = await syncNow(syncPort(), httpApi());
+    if (result.ok) await noteSync(result.at, store.account);
+  } catch {
+    // Offline, signed out, or the server is down — all of them are fine.
+  }
 }
 
 /** Register the service worker so the app works offline (§9). */

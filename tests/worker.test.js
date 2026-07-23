@@ -202,3 +202,41 @@ describe('turnstile', () => {
     expect(await verifyTurnstile({ DEV_MODE: '1' }, undefined)).toEqual({ ok: true, reason: 'dev' });
   });
 });
+
+/**
+ * §12 — the CSP widens for Turnstile only when an operator configured it.
+ */
+describe('CSP and the one third party', () => {
+  it('names no third party by default', async () => {
+    const { directives, TURNSTILE_ORIGIN } = await import('../worker/src/mw/security.js');
+    const strict = directives();
+    expect(strict).toContain("script-src 'self'");
+    expect(strict).not.toContain(TURNSTILE_ORIGIN);
+    expect(strict).not.toContain('frame-src');
+    expect(directives({})).toBe(strict);
+    expect(directives({ DEV_MODE: '1' })).toBe(strict);
+  });
+
+  it('allows challenges.cloudflare.com once a Turnstile secret exists', async () => {
+    const { directives, TURNSTILE_ORIGIN } = await import('../worker/src/mw/security.js');
+    const widened = directives({ TURNSTILE_SECRET: 'x' });
+
+    expect(widened).toContain(`script-src 'self' ${TURNSTILE_ORIGIN}`);
+    expect(widened).toContain(`frame-src ${TURNSTILE_ORIGIN}`);
+    expect(widened).toContain(`connect-src 'self' ${TURNSTILE_ORIGIN}`);
+    // Widened for exactly one origin, and no further.
+    expect(widened).toContain("style-src 'self'");
+    expect(widened).toContain("img-src 'self' data:");
+    expect(widened).not.toContain('unsafe-inline');
+  });
+
+  it('carries the widened policy through to the response', async () => {
+    const { directives, secure } = await import('../worker/src/mw/security.js');
+    const html = () => new Response('<!doctype html>', { headers: { 'content-type': 'text/html' } });
+
+    expect(secure(html(), {}).headers.get('content-security-policy')).toBe(directives());
+    expect(secure(html(), { TURNSTILE_SECRET: 'x' }).headers.get('content-security-policy')).toBe(
+      directives({ TURNSTILE_SECRET: 'x' }),
+    );
+  });
+});

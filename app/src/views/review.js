@@ -5,7 +5,8 @@
  */
 import { parseCardId } from '../engine/deck.js';
 import { RATING, newCard, previewSchedules } from '../engine/srs.js';
-import { queue, recordReview, store, updateSettings } from '../store.js';
+import { noteSync, queue, recordReview, store, syncPort, updateSettings } from '../store.js';
+import { httpApi, syncNow } from '../sync/client.js';
 import { banner, button, div, el, emptyState, formatInterval, h, p, replace } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { renderBack, renderFront } from './card.js';
@@ -80,6 +81,10 @@ export function renderReview(root, ctx) {
 
   function finish() {
     cleanup();
+    // End of a session is the other automatic trigger (§12). Best effort, never blocking.
+    syncNow(syncPort(), httpApi())
+      .then((result) => (result.ok ? noteSync(result.at, store.account) : null))
+      .catch(() => {});
     replace(
       root,
       emptyState(

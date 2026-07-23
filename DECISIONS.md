@@ -284,4 +284,27 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
 - Phase 5: added `GET /api/auth/providers`, which is not in §11's table. The login page
   has to know which buttons to render, and asking the server beats hardcoding a list that
   can disagree with which secrets are actually set. Phase 6 consumes it.
+- Phase 6: `sync/client.js` takes both collaborators as ports — `local` for storage,
+  `api` for the network — so the whole orchestration is testable without IndexedDB or a
+  server, including two devices converging on one state hash.
+- Phase 6: sync pushes before it pulls. A device returning from offline should contribute
+  before it consumes, so a second device syncing straight afterwards sees everything in
+  one pass rather than two.
+- Phase 6: guest → account migration needed no code. A guest's log is a log with nothing
+  marked synced, so the first sign-in pushes all of it down the ordinary path; the test
+  asserts that path rather than a special case, because there is not one.
+- Phase 6: **Turnstile is the one place §1.2 could not hold as written.** §11 mandates the
+  widget, and it is a script served by Cloudflare, which `script-src 'self'` forbids. The
+  resolution is to bound it: the client loads it only when a site key is configured *and*
+  only when someone presses sign-in on Settings, and the Worker widens its CSP to
+  `challenges.cloudflare.com` only when `TURNSTILE_SECRET` is set. A guest, a review, an
+  offline session and a Turnstile-less deploy all stay exactly as third-party-free as
+  before. §14's "zero third-party requests except OAuth redirects" needs amending to say
+  "except OAuth redirects and, when configured, Turnstile".
+- Phase 6: `secure(response, env)` now takes env, because whether the policy widens is a
+  deployment fact rather than a constant. The strict policy is still the default and is
+  what an unconfigured deploy serves.
+- Phase 6: signing out clears the sync cursors as well as the account. Leaving them would
+  make the next account on that device skip everything the previous one had already
+  pulled.
 

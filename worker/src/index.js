@@ -202,14 +202,14 @@ export default {
 
     if (pathname === '/api' || pathname.startsWith('/api/')) {
       try {
-        return secure(await handleApi(request, env, pathname));
+        return secure(await handleApi(request, env, pathname), env);
       } catch (err) {
-        if (err instanceof HttpError) return secure(json({ error: err.message }, err.status));
+        if (err instanceof HttpError) return secure(json({ error: err.message }, err.status), env);
         console.error(err);
-        return secure(json({ error: 'internal_error' }, 500));
+        return secure(json({ error: 'internal_error' }, 500), env);
       }
     }
 
-    return secure(await env.ASSETS.fetch(request));
+    return secure(await env.ASSETS.fetch(request), env);
   },
 };
