@@ -1,0 +1,805 @@
+From dc98b31fddd2cbbf82cc39646e6b042c51cf78d9 Mon Sep 17 00:00:00 2001
+From: "Claude (reviewing model)" <claude@review.local>
+Date: Thu, 23 Jul 2026 20:21:43 +0000
+Subject: [PATCH 1/4] =?UTF-8?q?hardening=20docs:=20Node-only=20scripts=20r?=
+ =?UTF-8?q?ule,=20session=20cap=20in=20=C2=A70,=20Turnstile=20amendment=20?=
+ =?UTF-8?q?to=20=C2=A714?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ CLAUDE.md    | 16 ++++++++++------
+ DECISIONS.md | 13 +++++++++++++
+ 2 files changed, 23 insertions(+), 6 deletions(-)
+
+diff --git a/CLAUDE.md b/CLAUDE.md
+index 692d3c1..18ff7b1 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -28,6 +28,7 @@ PROD_URL              = https://polyglot.<subdomain>.workers.dev   # custom doma
+ # ── Auth / API ────────────────────────────────────────────
+ OAUTH_PROVIDERS       = github, google
+ SESSION_TTL_DAYS      = 30
++MAX_SESSIONS_PER_USER = 10         # oldest sessions beyond this are dropped at login
+ SYNC_BATCH_MAX        = 500        # review events per request
+ RATE_LIMIT_AUTH       = 10 req / 10 min / IP
+ RATE_LIMIT_API        = 120 req / hour / user
+@@ -174,7 +175,9 @@ polyglot/
+ │  ├─ lib/                        # cedict.js hsk.js tatoeba.js pinyin.js ids.js credits.js
+ │  └─ data/                       # downloaded sources (gitignored)
+ ├─ config/app.config.js
+-├─ scripts/                       # dev.sh api-tests.sh
++├─ scripts/                       # Node (.mjs) only — dev.mjs api-tests.mjs build.mjs.
++│                                 # Everything in package.json scripts must run identically
++│                                 # in PowerShell, cmd, and POSIX shells; bash is banned.
+ ├─ .github/workflows/deploy.yml
+ ├─ LICENSE  README.md  SELF_HOSTING.md  DECISIONS.md  CREDITS.md (generated)
+ └─ package.json  package-lock.json
+@@ -295,7 +298,7 @@ characters appearing in deck words** (~3–4k files). Client points hanzi-writer
+    grouped and commented as §0.
+ 5. `package.json` scripts:
+    `build` → `esbuild app/src/main.js --bundle --format=esm --outfile=app/assets/bundle.js`
+-   `dev` → `bash scripts/dev.sh` (build, then `wrangler dev` serving app/ + API together)
++   `dev` → `node scripts/dev.mjs` (build, then `wrangler dev` serving app/ + API together)
+    `test` → `vitest run` · `deck` → `node packs/zh/build.mjs`
+ 6. `worker/wrangler.toml`: name = WORKER_NAME, static assets dir → `../app`, D1 binding
+    `DB` → D1_DB_NAME, today's `compatibility_date`.
+@@ -557,7 +560,7 @@ a Turnstile token first; server verifies it before returning the provider redire
+ `POST /api/auth/dev` creates user `dev@local` + session. The router must hard-return
+ 404 for this route whenever DEV_MODE is unset.
+ 
+-**`scripts/api-tests.sh`** (curl vs `npm run dev`, exits non-zero on any failure):
++**`scripts/api-tests.mjs`** (Node fetch vs `npm run dev`, exits non-zero on any failure):
+ health → dev login (capture cookie) → push 3 events → push the same 3 again (count
+ stays 3) → pull since 0 (3 events + cursor) → pull since cursor (empty) → words upsert
+ + LWW check → export non-empty → `DELETE /api/me` → `/api/me` now 401.
+@@ -565,7 +568,7 @@ stays 3) → pull since 0 (3 events + cursor) → pull since cursor (empty) →
+ **Acceptance**
+ - [ ] `wrangler d1 execute <D1_DB_NAME> --local --file worker/schema.sql` applies clean
+       twice.
+-- [ ] `scripts/api-tests.sh` fully green.
++- [ ] `node scripts/api-tests.mjs` fully green.
+ - [ ] With DEV_MODE unset, `/api/auth/dev` → 404.
+ - [ ] Security headers present on `/`; no inline script/style anywhere in `app/`.
+ 
+@@ -625,8 +628,9 @@ sources.
+ - [ ] A guest can install the PWA and learn fully offline: all five modes, gamification,
+       export/import — no account, no network.
+ - [ ] Sign-in via GitHub or Google works; sync across two devices proven identical.
+-- [ ] Zero third-party requests at runtime except OAuth redirects (verify in the
++- [ ] Zero third-party requests at runtime except OAuth redirects and, when a site key
++      is configured, the Turnstile widget at sign-in (verify in the
+       Network tab).
+-- [ ] `npm test` and `api-tests.sh` green; CREDITS complete; README + SELF_HOSTING
++- [ ] `npm test` and `api-tests.mjs` green; CREDITS complete; README + SELF_HOSTING
+       accurate.
+ - [ ] AGPL LICENSE present; no secrets anywhere in git history.
+\ No newline at end of file
+diff --git a/DECISIONS.md b/DECISIONS.md
+index dad9a3d..68dad89 100644
+--- a/DECISIONS.md
++++ b/DECISIONS.md
+@@ -308,3 +308,16 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
+   make the next account on that device skip everything the previous one had already
+   pulled.
+ 
++- Hardening (patch series authored by the reviewing model, applied by the maintainer):
++  scripts are Node-only — `dev.mjs` and `api-tests.mjs` replace the bash pair, because
++  the maintainer's shell is PowerShell and CI is not the only place code must run.
++- Hardening: `validEvent` gained size and sanity bounds (id ≤ 64, cardId ≤ 120, ts within
++  a week of server time, durMs ≤ 1h). Invariants, not tunables, so they live beside the
++  validator rather than in §0.
++- Hardening: the rate limiter keys on `cf-connecting-ip` alone. `x-forwarded-for` is
++  client-writable, and a spoofable limiter key is a limiter bypass.
++- Hardening: login deletes the user's expired sessions and caps live ones at
++  MAX_SESSIONS_PER_USER (§0), newest kept — the table stays bounded with no cron.
++- Hardening: deploy gates on a Windows test job and the live API suite, not unit tests
++  alone; the workflow may use bash internally because runners are pinned environments,
++  unlike contributor machines.
+-- 
+2.43.0
+
+
+From b4e3660ad0254b090419f80f83948cc4348ef270 Mon Sep 17 00:00:00 2001
+From: "Claude (reviewing model)" <claude@review.local>
+Date: Thu, 23 Jul 2026 20:21:43 +0000
+Subject: [PATCH 2/4] =?UTF-8?q?hardening:=20port=20dev=20and=20API-test=20?=
+ =?UTF-8?q?scripts=20to=20Node=20=E2=80=94=20one=20behavior=20in=20every?=
+ =?UTF-8?q?=20shell?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ package.json          |   4 +-
+ scripts/api-tests.mjs | 163 ++++++++++++++++++++++++++++++++++++++++++
+ scripts/api-tests.sh  | 112 -----------------------------
+ scripts/dev.mjs       |  34 +++++++++
+ scripts/dev.sh        |   8 ---
+ 5 files changed, 199 insertions(+), 122 deletions(-)
+ create mode 100644 scripts/api-tests.mjs
+ delete mode 100644 scripts/api-tests.sh
+ create mode 100644 scripts/dev.mjs
+ delete mode 100644 scripts/dev.sh
+
+diff --git a/package.json b/package.json
+index 9b6362e..0e542d8 100644
+--- a/package.json
++++ b/package.json
+@@ -7,10 +7,10 @@
+   "type": "module",
+   "scripts": {
+     "build": "node scripts/build.mjs",
+-    "dev": "bash scripts/dev.sh",
++    "dev": "node scripts/dev.mjs",
+     "test": "vitest run",
+     "deck": "node packs/zh/build.mjs",
+-    "api-test": "bash scripts/api-tests.sh",
++    "api-test": "node scripts/api-tests.mjs",
+     "db:local": "wrangler d1 execute polyglot-db --local --file worker/schema.sql --config worker/wrangler.toml"
+   },
+   "dependencies": {
+diff --git a/scripts/api-tests.mjs b/scripts/api-tests.mjs
+new file mode 100644
+index 0000000..ab8bc39
+--- /dev/null
++++ b/scripts/api-tests.mjs
+@@ -0,0 +1,163 @@
++#!/usr/bin/env node
++/**
++ * End-to-end API checks (§11), run against a live `npm run dev`.
++ *
++ *   npm run dev                    # in one terminal
++ *   node scripts/api-tests.mjs    # in another
++ *
++ * Node port of the retired bash suite — same checks, same order, plus the session-cap
++ * check — so it runs identically in PowerShell, cmd, and POSIX shells. Exits non-zero
++ * if any check fails. Needs DEV_MODE="1" in worker/.dev.vars and the schema applied
++ * (`npm run db:local`).
++ */
++import { spawnSync } from 'node:child_process';
++
++const BASE = process.env.BASE ?? 'http://127.0.0.1:8787';
++let failures = 0;
++const jar = new Map(); // cookie name → value
++
++const pass = (msg) => console.log(`  ok   ${msg}`);
++const fail = (msg) => { console.log(`  FAIL ${msg}`); failures += 1; };
++const check = (msg, got, want) =>
++  String(got) === String(want) ? pass(msg) : fail(`${msg} (expected ${want}, got ${got})`);
++
++/** Fetch with a cookie jar; returns { status, body } with body JSON-parsed when possible. */
++async function req(method, path, data) {
++  const headers = {};
++  if (data !== undefined) headers['content-type'] = 'application/json';
++  if (jar.size) headers.cookie = [...jar].map(([k, v]) => `${k}=${v}`).join('; ');
++
++  const res = await fetch(BASE + path, {
++    method,
++    headers,
++    body: data !== undefined ? JSON.stringify(data) : undefined,
++    redirect: 'manual',
++  });
++
++  for (const cookie of res.headers.getSetCookie()) {
++    const [pair] = cookie.split(';');
++    const eq = pair.indexOf('=');
++    const name = pair.slice(0, eq).trim();
++    const value = pair.slice(eq + 1);
++    if (value === '') jar.delete(name);
++    else jar.set(name, value);
++  }
++
++  const text = await res.text();
++  let body = text;
++  try { body = JSON.parse(text); } catch { /* not JSON — keep the text */ }
++  return { status: res.status, body };
++}
++
++/** Run `wrangler d1 execute` against the local database. */
++function d1(command) {
++  const result = spawnSync(
++    'npx',
++    ['wrangler', 'd1', 'execute', 'polyglot-db', '--local', '--json',
++      '--config', 'worker/wrangler.toml', '--command', command],
++    { encoding: 'utf8', shell: process.platform === 'win32' },
++  );
++  if (result.status !== 0) return null;
++  try { return JSON.parse(result.stdout)[0].results; } catch { return null; }
++}
++
++console.log(`polyglot API tests — ${BASE}`);
++
++// The auth limiter is deliberately tripped below; clearing local counters keeps the
++// suite re-runnable rather than a one-shot.
++if (d1('DELETE FROM rate_limits') !== null) pass('local rate limits reset');
++else fail('could not reset rate limits (is the schema applied?)');
++
++// ── health ───────────────────────────────────────────────────
++let r = await req('GET', '/api/health');
++check('health responds', r.status, 200);
++check('health says ok', JSON.stringify(r.body), '{"ok":true}');
++
++// ── auth is required before anything else ────────────────────
++check('me is 401 when signed out', (await req('GET', '/api/me')).status, 401);
++check('sync is 401 when signed out', (await req('GET', '/api/sync/events')).status, 401);
++
++// ── dev login ────────────────────────────────────────────────
++check('dev login succeeds', (await req('POST', '/api/auth/dev', {})).status, 200);
++check('session cookie was set', jar.has('pg_session'), true);
++r = await req('GET', '/api/me');
++check('me is 200 once signed in', r.status, 200);
++const userId = r.body?.user?.id ?? '';
++if (userId) pass(`me returns a user id (${userId})`);
++else fail('me returned no user id');
++
++// ── push three events ────────────────────────────────────────
++const EVENTS = {
++  events: [
++    { id: '11111111-1111-4111-8111-111111111111', cardId: 'zh:好:hao3#REC', rating: 3, ts: 1721556000000, durMs: 4200 },
++    { id: '22222222-2222-4222-8222-222222222222', cardId: 'zh:好:hao3#PROD', rating: 2, ts: 1721556001000 },
++    { id: '33333333-3333-4333-8333-333333333333', cardId: 'zh:学习:xue2_xi2#REC', rating: 4, ts: 1721556002000 },
++  ],
++};
++r = await req('POST', '/api/sync/events', EVENTS);
++check('push 3 events', r.status, 200);
++check('push reports 3 stored', r.body.stored, 3);
++
++// ── pushing the same batch again must not duplicate ──────────
++check('push the same 3 again', (await req('POST', '/api/sync/events', EVENTS)).status, 200);
++r = await req('GET', '/api/sync/events?since=0');
++check('pull since 0', r.status, 200);
++check('still exactly 3 events', r.body.events.length, 3);
++const cursor = r.body.cursor;
++if (cursor) pass(`pull returns a cursor (${cursor})`);
++else fail('pull returned no cursor');
++
++// ── the cursor is exhaustive ─────────────────────────────────
++r = await req('GET', `/api/sync/events?since=${cursor}`);
++check('pull since cursor', r.status, 200);
++check('nothing new after the cursor', r.body.events.length, 0);
++
++// ── hardened validation rejects garbage without failing the batch ──
++r = await req('POST', '/api/sync/events', {
++  events: [
++    { id: 'x'.repeat(65), cardId: 'zh:好:hao3#REC', rating: 3, ts: 1721556000000 },
++    { id: '44444444-4444-4444-8444-444444444444', cardId: 'c'.repeat(121), rating: 3, ts: 1721556000000 },
++    { id: '55555555-5555-4555-8555-555555555555', cardId: 'zh:好:hao3#REC', rating: 3, ts: Date.now() + 8 * 86400000 },
++    { id: '66666666-6666-4666-8666-666666666666', cardId: 'zh:好:hao3#REC', rating: 3, ts: 1721556000000, durMs: 4000000 },
++  ],
++});
++check('oversized/garbage events are accepted as a request', r.status, 200);
++check('…but every one is rejected', r.body.rejected, 4);
++check('…and none stored', r.body.stored, 0);
++
++// ── custom words, last write wins ────────────────────────────
++const word = (defs, updatedAt) =>
++  ({ words: [{ id: 'zh:咖啡:ka1_fei1', simp: '咖啡', defs: [defs], updatedAt, deleted: false }] });
++check('upsert a word', (await req('POST', '/api/sync/words', word('coffee', 1000))).status, 200);
++check('stale write is ignored', (await req('POST', '/api/sync/words', word('STALE', 500))).status, 200);
++check('newer write wins', (await req('POST', '/api/sync/words', word('FRESH', 2000))).status, 200);
++r = await req('GET', '/api/sync/words?since=0');
++check('pull words', r.status, 200);
++check('last write won', r.body.words.length === 1 ? r.body.words[0].defs[0] : `?${r.body.words.length}`, 'FRESH');
++
++// ── export ───────────────────────────────────────────────────
++r = await req('GET', '/api/export');
++check('export responds', r.status, 200);
++check('export carries the data', `${r.body.events.length}:${r.body.customWords.length}`, '3:1');
++
++// ── rate limiting is wired up ────────────────────────────────
++for (let i = 0; i < 12; i += 1) await req('POST', '/api/auth/dev', {});
++check('auth rate limit eventually trips', (await req('POST', '/api/auth/dev', {})).status, 429);
++
++// ── session cap held through all those logins ────────────────
++const rows = d1("SELECT COUNT(*) AS n FROM sessions WHERE user_id = 'dev:local'");
++const live = rows?.[0]?.n;
++if (live === undefined || live === null) fail('could not count sessions');
++else check('sessions per user stay capped (≤ 10)', live <= 10, true);
++
++// ── account deletion removes everything ──────────────────────
++check('delete the account', (await req('DELETE', '/api/me')).status, 200);
++check('me is 401 afterwards', (await req('GET', '/api/me')).status, 401);
++
++console.log();
++if (failures === 0) {
++  console.log('all API checks passed');
++  process.exit(0);
++}
++console.log(`${failures} check(s) failed`);
++process.exit(1);
+diff --git a/scripts/api-tests.sh b/scripts/api-tests.sh
+deleted file mode 100644
+index cf92ab0..0000000
+--- a/scripts/api-tests.sh
++++ /dev/null
+@@ -1,112 +0,0 @@
+-#!/usr/bin/env bash
+-# End-to-end API checks (§11), run against a live `npm run dev`.
+-#
+-#   npm run dev            # in one terminal
+-#   bash scripts/api-tests.sh   # in another
+-#
+-# Exits non-zero on the first failure. Needs DEV_MODE="1" in .dev.vars, and the schema
+-# applied locally:
+-#   npx wrangler d1 execute polyglot-db --local --file worker/schema.sql --config worker/wrangler.toml
+-set -uo pipefail
+-
+-BASE="${BASE:-http://127.0.0.1:8787}"
+-JAR="$(mktemp)"
+-FAILURES=0
+-
+-cleanup() { rm -f "$JAR" "$JAR.body"; }
+-trap cleanup EXIT
+-
+-pass() { printf '  \033[32mok\033[0m   %s\n' "$1"; }
+-fail() { printf '  \033[31mFAIL\033[0m %s\n' "$1"; FAILURES=$((FAILURES + 1)); }
+-check() { if [ "$2" = "$3" ]; then pass "$1"; else fail "$1 (expected $3, got $2)"; fi; }
+-
+-# curl helper: prints the status, leaves the body in $JAR.body
+-req() {
+-  local method="$1" path="$2" data="${3:-}"
+-  if [ -n "$data" ]; then
+-    curl -sS -o "$JAR.body" -w '%{http_code}' -X "$method" \
+-      -H 'content-type: application/json' -b "$JAR" -c "$JAR" \
+-      --data "$data" "$BASE$path"
+-  else
+-    curl -sS -o "$JAR.body" -w '%{http_code}' -X "$method" -b "$JAR" -c "$JAR" "$BASE$path"
+-  fi
+-}
+-
+-body() { cat "$JAR.body"; }
+-# Read one field out of the JSON body without needing jq.
+-field() { node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{const o=JSON.parse(d);const v=process.argv[1].split(".").reduce((a,k)=>a?.[k],o);console.log(v===undefined?"":v)}catch{console.log("")}})' "$1" < "$JAR.body"; }
+-
+-# The auth limiter is 10 requests / 10 min / IP, and this script deliberately trips it.
+-# Clearing the local counters is what makes the suite re-runnable rather than a one-shot.
+-reset_limits() {
+-  npx wrangler d1 execute polyglot-db --local --config worker/wrangler.toml     --command "DELETE FROM rate_limits" >/dev/null 2>&1     && pass "local rate limits reset"     || fail "could not reset rate limits (is the schema applied?)"
+-}
+-
+-echo "polyglot API tests — $BASE"
+-reset_limits
+-
+-# ── health ───────────────────────────────────────────────────
+-check "health responds" "$(req GET /api/health)" 200
+-check "health says ok" "$(body)" '{"ok":true}'
+-
+-# ── auth is required before anything else ────────────────────
+-check "me is 401 when signed out" "$(req GET /api/me)" 401
+-check "sync is 401 when signed out" "$(req GET /api/sync/events)" 401
+-
+-# ── dev login ────────────────────────────────────────────────
+-check "dev login succeeds" "$(req POST /api/auth/dev '{}')" 200
+-check "session cookie was set" "$(grep -c pg_session "$JAR")" 1
+-check "me is 200 once signed in" "$(req GET /api/me)" 200
+-USER_ID="$(field user.id)"
+-[ -n "$USER_ID" ] && pass "me returns a user id ($USER_ID)" || fail "me returned no user id"
+-
+-# ── push three events ────────────────────────────────────────
+-EVENTS='{"events":[
+-  {"id":"11111111-1111-4111-8111-111111111111","cardId":"zh:好:hao3#REC","rating":3,"ts":1721556000000,"durMs":4200},
+-  {"id":"22222222-2222-4222-8222-222222222222","cardId":"zh:好:hao3#PROD","rating":2,"ts":1721556001000},
+-  {"id":"33333333-3333-4333-8333-333333333333","cardId":"zh:学习:xue2_xi2#REC","rating":4,"ts":1721556002000}
+-]}'
+-check "push 3 events" "$(req POST /api/sync/events "$EVENTS")" 200
+-CURSOR="$(field cursor)"
+-check "push reports 3 stored" "$(field stored)" 3
+-
+-# ── pushing the same batch again must not duplicate ──────────
+-check "push the same 3 again" "$(req POST /api/sync/events "$EVENTS")" 200
+-check "pull since 0" "$(req "GET" "/api/sync/events?since=0")" 200
+-COUNT="$(node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{console.log(JSON.parse(d).events.length)})' < "$JAR.body")"
+-check "still exactly 3 events" "$COUNT" 3
+-NEW_CURSOR="$(field cursor)"
+-[ -n "$NEW_CURSOR" ] && pass "pull returns a cursor ($NEW_CURSOR)" || fail "pull returned no cursor"
+-
+-# ── the cursor is exhaustive ─────────────────────────────────
+-check "pull since cursor" "$(req GET "/api/sync/events?since=$NEW_CURSOR")" 200
+-EMPTY="$(node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{console.log(JSON.parse(d).events.length)})' < "$JAR.body")"
+-check "nothing new after the cursor" "$EMPTY" 0
+-
+-# ── custom words, last write wins ────────────────────────────
+-check "upsert a word" "$(req POST /api/sync/words '{"words":[{"id":"zh:咖啡:ka1_fei1","simp":"咖啡","defs":["coffee"],"updatedAt":1000,"deleted":false}]}')" 200
+-check "stale write is ignored" "$(req POST /api/sync/words '{"words":[{"id":"zh:咖啡:ka1_fei1","simp":"咖啡","defs":["STALE"],"updatedAt":500,"deleted":false}]}')" 200
+-check "newer write wins" "$(req POST /api/sync/words '{"words":[{"id":"zh:咖啡:ka1_fei1","simp":"咖啡","defs":["FRESH"],"updatedAt":2000,"deleted":false}]}')" 200
+-check "pull words" "$(req GET "/api/sync/words?since=0")" 200
+-DEFS="$(node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const w=JSON.parse(d).words;console.log(w.length===1?w[0].defs[0]:"?"+w.length)})' < "$JAR.body")"
+-check "last write won" "$DEFS" FRESH
+-
+-# ── export ───────────────────────────────────────────────────
+-check "export responds" "$(req GET /api/export)" 200
+-EXPORTED="$(node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const o=JSON.parse(d);console.log(o.events.length+":"+o.customWords.length)})' < "$JAR.body")"
+-check "export carries the data" "$EXPORTED" "3:1"
+-
+-# ── rate limiting is wired up ────────────────────────────────
+-check "auth rate limit eventually trips" "$(for _ in $(seq 1 12); do req POST /api/auth/dev '{}' >/dev/null; done; req POST /api/auth/dev '{}')" 429
+-
+-# ── account deletion removes everything ──────────────────────
+-check "delete the account" "$(req DELETE /api/me)" 200
+-check "me is 401 afterwards" "$(req GET /api/me)" 401
+-
+-echo
+-if [ "$FAILURES" -eq 0 ]; then
+-  echo "all API checks passed"
+-  exit 0
+-fi
+-echo "$FAILURES check(s) failed"
+-exit 1
+diff --git a/scripts/dev.mjs b/scripts/dev.mjs
+new file mode 100644
+index 0000000..99eae51
+--- /dev/null
++++ b/scripts/dev.mjs
+@@ -0,0 +1,34 @@
++#!/usr/bin/env node
++/**
++ * Build the client bundle, then serve the PWA and the API together from one origin.
++ * Node replaces bash here so `npm run dev` behaves identically in PowerShell, cmd,
++ * and POSIX shells (CLAUDE.md §6.5). Extra CLI args are forwarded to wrangler:
++ *   npm run dev -- --ip 0.0.0.0
++ */
++import { spawn } from 'node:child_process';
++import path from 'node:path';
++import { fileURLToPath } from 'node:url';
++
++const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
++
++/** Run a command in the repo root, inheriting stdio; resolves on exit 0. */
++function run(cmd, args) {
++  return new Promise((resolve, reject) => {
++    const child = spawn(cmd, args, {
++      cwd: root,
++      stdio: 'inherit',
++      // npm/npx are .cmd shims on Windows and need a shell to resolve.
++      shell: process.platform === 'win32',
++    });
++    child.on('error', reject);
++    child.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`${cmd} exited with ${code}`))));
++  });
++}
++
++try {
++  await run('npm', ['run', 'build']);
++  await run('npx', ['wrangler', 'dev', '--config', 'worker/wrangler.toml', ...process.argv.slice(2)]);
++} catch (err) {
++  console.error(err.message);
++  process.exit(1);
++}
+diff --git a/scripts/dev.sh b/scripts/dev.sh
+deleted file mode 100644
+index 470663b..0000000
+--- a/scripts/dev.sh
++++ /dev/null
+@@ -1,8 +0,0 @@
+-#!/usr/bin/env bash
+-# Build the client bundle, then serve the PWA and the API together from one origin.
+-set -euo pipefail
+-
+-cd "$(dirname "$0")/.."
+-
+-npm run build
+-exec npx wrangler dev --config worker/wrangler.toml "$@"
+-- 
+2.43.0
+
+
+From eecae7822f9a8555adce368128c020ae2fa41c9b Mon Sep 17 00:00:00 2001
+From: "Claude (reviewing model)" <claude@review.local>
+Date: Thu, 23 Jul 2026 20:21:43 +0000
+Subject: [PATCH 3/4] hardening: event validation bounds, unspoofable limiter
+ key, per-user session cap
+
+---
+ config/app.config.js        |  1 +
+ tests/hardening.test.js     | 77 +++++++++++++++++++++++++++++++++++++
+ tests/worker.test.js        |  6 +--
+ worker/src/api/sync.js      | 23 ++++++++---
+ worker/src/auth/sessions.js | 15 ++++++++
+ worker/src/mw/ratelimit.js  |  9 +++--
+ 6 files changed, 120 insertions(+), 11 deletions(-)
+ create mode 100644 tests/hardening.test.js
+
+diff --git a/config/app.config.js b/config/app.config.js
+index 1fb5125..6686925 100644
+--- a/config/app.config.js
++++ b/config/app.config.js
+@@ -33,6 +33,7 @@ export const config = deepFreeze({
+   auth: {
+     oauthProviders: ['github', 'google'],
+     sessionTtlDays: 30,
++    maxSessionsPerUser: 10, // oldest sessions beyond this are dropped at login
+     syncBatchMax: 500, // review events per request
+     rateLimitAuth: { requests: 10, windowMinutes: 10, per: 'ip' },
+     rateLimitApi: { requests: 120, windowMinutes: 60, per: 'user' },
+diff --git a/tests/hardening.test.js b/tests/hardening.test.js
+new file mode 100644
+index 0000000..7065bad
+--- /dev/null
++++ b/tests/hardening.test.js
+@@ -0,0 +1,77 @@
++/**
++ * Hardening suite: event validation bounds and rate-limiter identity.
++ * These are the invariants the API tests exercise end-to-end; here they are pinned
++ * as units so a refactor cannot loosen them silently.
++ */
++import { describe, expect, it } from 'vitest';
++import { validEvent } from '../worker/src/api/sync.js';
++import { clientIp } from '../worker/src/mw/ratelimit.js';
++
++const NOW = 1_800_000_000_000;
++const good = (over = {}) => ({
++  id: '11111111-1111-4111-8111-111111111111',
++  cardId: 'zh:好:hao3#REC',
++  rating: 3,
++  ts: NOW - 1000,
++  durMs: 4200,
++  ...over,
++});
++
++describe('validEvent bounds', () => {
++  it('accepts a well-formed event, with or without durMs', () => {
++    expect(validEvent(good(), NOW)).toBe(true);
++    expect(validEvent(good({ durMs: undefined }), NOW)).toBe(true);
++    expect(validEvent(good({ durMs: null }), NOW)).toBe(true);
++  });
++
++  it('caps id at 64 chars', () => {
++    expect(validEvent(good({ id: 'x'.repeat(64) }), NOW)).toBe(true);
++    expect(validEvent(good({ id: 'x'.repeat(65) }), NOW)).toBe(false);
++  });
++
++  it('caps cardId at 120 chars', () => {
++    expect(validEvent(good({ cardId: 'c'.repeat(120) }), NOW)).toBe(true);
++    expect(validEvent(good({ cardId: 'c'.repeat(121) }), NOW)).toBe(false);
++  });
++
++  it('rejects timestamps beyond a week of clock skew, and non-positive ones', () => {
++    expect(validEvent(good({ ts: NOW + 6 * 86_400_000 }), NOW)).toBe(true);
++    expect(validEvent(good({ ts: NOW + 8 * 86_400_000 }), NOW)).toBe(false);
++    expect(validEvent(good({ ts: 0 }), NOW)).toBe(false);
++    expect(validEvent(good({ ts: -5 }), NOW)).toBe(false);
++  });
++
++  it('bounds durMs to [0, one hour] integers when present', () => {
++    expect(validEvent(good({ durMs: 0 }), NOW)).toBe(true);
++    expect(validEvent(good({ durMs: 3_600_000 }), NOW)).toBe(true);
++    expect(validEvent(good({ durMs: 3_600_001 }), NOW)).toBe(false);
++    expect(validEvent(good({ durMs: -1 }), NOW)).toBe(false);
++    expect(validEvent(good({ durMs: 12.5 }), NOW)).toBe(false);
++  });
++
++  it('still enforces the original shape rules', () => {
++    expect(validEvent(good({ rating: 0 }), NOW)).toBe(false);
++    expect(validEvent(good({ rating: 5 }), NOW)).toBe(false);
++    expect(validEvent(good({ id: '' }), NOW)).toBe(false);
++    expect(validEvent(null, NOW)).toBe(false);
++  });
++});
++
++describe('clientIp', () => {
++  const withHeaders = (headers) => new Request('https://example.com/', { headers });
++
++  it('uses cf-connecting-ip when present', () => {
++    expect(clientIp(withHeaders({ 'cf-connecting-ip': '203.0.113.7' }))).toBe('203.0.113.7');
++  });
++
++  it('ignores x-forwarded-for — a spoofable key is a limiter bypass', () => {
++    expect(
++      clientIp(withHeaders({ 'x-forwarded-for': '198.51.100.1', 'cf-connecting-ip': '203.0.113.7' })),
++    ).toBe('203.0.113.7');
++    expect(clientIp(withHeaders({ 'x-forwarded-for': '198.51.100.1' }))).toBe('local');
++  });
++
++  it('falls back to local with no headers at all', () => {
++    expect(clientIp(withHeaders({}))).toBe('local');
++  });
++});
+diff --git a/tests/worker.test.js b/tests/worker.test.js
+index aa3be01..0491b08 100644
+--- a/tests/worker.test.js
++++ b/tests/worker.test.js
+@@ -132,11 +132,11 @@ describe('rate limits', () => {
+     });
+   });
+ 
+-  it('identifies a caller by Cloudflare\'s header first', () => {
++  it('identifies a caller by Cloudflare\'s header only \u2014 x-forwarded-for is spoofable', () => {
+     const request = (headers) => new Request('https://x/', { headers });
+     expect(clientIp(request({ 'cf-connecting-ip': '1.2.3.4' }))).toBe('1.2.3.4');
+-    expect(clientIp(request({ 'x-forwarded-for': '5.6.7.8' }))).toBe('5.6.7.8');
+-    expect(clientIp(request({}))).toBe('unknown');
++    expect(clientIp(request({ 'x-forwarded-for': '5.6.7.8' }))).toBe('local');
++    expect(clientIp(request({}))).toBe('local');
+   });
+ });
+ 
+diff --git a/worker/src/api/sync.js b/worker/src/api/sync.js
+index e706ba2..1e007fd 100644
+--- a/worker/src/api/sync.js
++++ b/worker/src/api/sync.js
+@@ -26,18 +26,31 @@ async function nextReceivedAt(env, userId, now) {
+   return Math.max(now, previous + 1);
+ }
+ 
+-/** A review event the client is allowed to store. */
+-function validEvent(event) {
+-  return (
++// Validation invariants, not tunables: a uuid is 36 chars and the longest legitimate
++// card id (word id + '#WRITE') is well under 120. Anything larger is storage abuse.
++const MAX_ID_LENGTH = 64;
++const MAX_CARD_ID_LENGTH = 120;
++const MAX_DUR_MS = 3_600_000; // one hour of staring at one card
++const MAX_CLOCK_SKEW_MS = 7 * 86_400_000; // a week of client clock error
++
++/** A review event the client is allowed to store. Exported for the unit suite. */
++export function validEvent(event, now = Date.now()) {
++  return Boolean(
+     event &&
+     typeof event.id === 'string' &&
+     event.id.length > 0 &&
++    event.id.length <= MAX_ID_LENGTH &&
+     typeof event.cardId === 'string' &&
+     event.cardId.length > 0 &&
++    event.cardId.length <= MAX_CARD_ID_LENGTH &&
+     Number.isInteger(event.rating) &&
+     event.rating >= 1 &&
+     event.rating <= 4 &&
+-    Number.isFinite(event.ts)
++    Number.isFinite(event.ts) &&
++    event.ts > 0 &&
++    event.ts <= now + MAX_CLOCK_SKEW_MS &&
++    (event.durMs === undefined || event.durMs === null ||
++      (Number.isInteger(event.durMs) && event.durMs >= 0 && event.durMs <= MAX_DUR_MS))
+   );
+ }
+ 
+@@ -49,7 +62,7 @@ export async function pushEvents(env, userId, events, now = Date.now()) {
+   if (!Array.isArray(events)) throw new HttpError(400, 'events must be an array');
+   if (events.length > BATCH_MAX) throw new HttpError(413, `batch exceeds ${BATCH_MAX}`);
+ 
+-  const valid = events.filter(validEvent);
++  const valid = events.filter((event) => validEvent(event, now));
+   const rejected = events.length - valid.length;
+   if (valid.length === 0) {
+     const row = await env.DB.prepare(
+diff --git a/worker/src/auth/sessions.js b/worker/src/auth/sessions.js
+index 7fb8d64..ceed364 100644
+--- a/worker/src/auth/sessions.js
++++ b/worker/src/auth/sessions.js
+@@ -69,11 +69,26 @@ export const isLocal = (request) => new URL(request.url).hostname === 'localhost
+ export async function createSession(env, userId, now = Date.now()) {
+   const token = newToken();
+   const expiresAt = now + TTL_MS;
++
++  // Login is the hygiene moment: drop this user's expired rows, insert the new session,
++  // then enforce the cap so the table stays bounded without a scheduled job. D1 does not
++  // enforce foreign keys, so nothing else is cleaning up behind us.
++  await env.DB.prepare('DELETE FROM sessions WHERE user_id = ? AND expires_at <= ?')
++    .bind(userId, now)
++    .run();
+   await env.DB.prepare(
+     'INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)',
+   )
+     .bind(await hashToken(token), userId, now, expiresAt)
+     .run();
++  await env.DB.prepare(
++    `DELETE FROM sessions WHERE user_id = ? AND token_hash NOT IN (
++       SELECT token_hash FROM sessions WHERE user_id = ?
++        ORDER BY created_at DESC, token_hash DESC LIMIT ?)`,
++  )
++    .bind(userId, userId, config.auth.maxSessionsPerUser)
++    .run();
++
+   return { token, expiresAt };
+ }
+ 
+diff --git a/worker/src/mw/ratelimit.js b/worker/src/mw/ratelimit.js
+index 0b64fd2..c1b25af 100644
+--- a/worker/src/mw/ratelimit.js
++++ b/worker/src/mw/ratelimit.js
+@@ -15,9 +15,12 @@ export const LIMITS = Object.freeze({
+   api: { requests: rateLimitApi.requests, windowMs: rateLimitApi.windowMinutes * 60000 },
+ });
+ 
+-/** The caller's IP, as Cloudflare reports it. */
+-export const clientIp = (request) =>
+-  request.headers.get('cf-connecting-ip') ?? request.headers.get('x-forwarded-for') ?? 'unknown';
++/**
++ * The caller's IP. On Cloudflare, `cf-connecting-ip` is set by the edge and cannot be
++ * forged by the client; `x-forwarded-for` can be, so it is deliberately not consulted —
++ * a spoofable limiter key is a limiter bypass. Absent header means local dev.
++ */
++export const clientIp = (request) => request.headers.get('cf-connecting-ip') ?? 'local';
+ 
+ /**
+  * Count one request against a scope.
+-- 
+2.43.0
+
+
+From 04d5bfbfff4bc19f109c602b9a50531b32bdbd42 Mon Sep 17 00:00:00 2001
+From: "Claude (reviewing model)" <claude@review.local>
+Date: Thu, 23 Jul 2026 20:21:43 +0000
+Subject: [PATCH 4/4] hardening: deploy gates on Windows tests and the live API
+ suite
+
+---
+ .github/workflows/deploy.yml | 48 ++++++++++++++++++++++++++++++++----
+ 1 file changed, 43 insertions(+), 5 deletions(-)
+
+diff --git a/.github/workflows/deploy.yml b/.github/workflows/deploy.yml
+index 036f566..2c31376 100644
+--- a/.github/workflows/deploy.yml
++++ b/.github/workflows/deploy.yml
+@@ -15,23 +15,61 @@ concurrency:
+   cancel-in-progress: true
+ 
+ jobs:
+-  deploy:
+-    runs-on: ubuntu-latest
++  # The maintainer develops on Windows; a suite that is only ever green on Linux
++  # is not green. Unit tests and the build must pass on both.
++  test-windows:
++    runs-on: windows-latest
+     steps:
+       - uses: actions/checkout@v4
+-
+       - uses: actions/setup-node@v4
+         with:
+           node-version: 22
+           cache: npm
++      - run: npm ci
++      - run: npm test
++      - run: npm run build
+ 
++  # The live API suite: schema, worker, and every endpoint, against a real local D1.
++  # Runner steps may use bash — runners are pinned environments, unlike contributors'
++  # machines; the repo's own scripts stay Node-only.
++  api:
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-node@v4
++        with:
++          node-version: 22
++          cache: npm
+       - run: npm ci
++      - run: npm run build
++      - run: echo 'DEV_MODE="1"' > worker/.dev.vars
++      - run: npm run db:local
++      - name: Start worker and run the API suite
++        run: |
++          npx wrangler dev --config worker/wrangler.toml --port 8787 &
++          WRANGLER_PID=$!
++          for i in $(seq 1 30); do
++            curl -sf http://127.0.0.1:8787/api/health >/dev/null && break
++            sleep 1
++          done
++          node scripts/api-tests.mjs
++          STATUS=$?
++          kill "$WRANGLER_PID" 2>/dev/null || true
++          exit "$STATUS"
+ 
++  deploy:
++    needs: [test-windows, api]
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-node@v4
++        with:
++          node-version: 22
++          cache: npm
++      - run: npm ci
+       # The gate: a red test never reaches production.
+       - run: npm test
+-
+       - run: npm run build
+-
+       - name: Deploy to Cloudflare
+         uses: cloudflare/wrangler-action@v3
+         with:
+-- 
+2.43.0
+
