@@ -15,23 +15,61 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
+  # The maintainer develops on Windows; a suite that is only ever green on Linux
+  # is not green. Unit tests and the build must pass on both.
+  test-windows:
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-
       - run: npm ci
-
-      # The gate: a red test never reaches production.
       - run: npm test
-
       - run: npm run build
 
+  # The live API suite: schema, worker, and every endpoint, against a real local D1.
+  # Runner steps may use bash — runners are pinned environments, unlike contributors'
+  # machines; the repo's own scripts stay Node-only.
+  api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: echo 'DEV_MODE="1"' > worker/.dev.vars
+      - run: npm run db:local
+      - name: Start worker and run the API suite
+        run: |
+          npx wrangler dev --config worker/wrangler.toml --port 8787 &
+          WRANGLER_PID=$!
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8787/api/health >/dev/null && break
+            sleep 1
+          done
+          node scripts/api-tests.mjs
+          STATUS=$?
+          kill "$WRANGLER_PID" 2>/dev/null || true
+          exit "$STATUS"
+
+  deploy:
+    needs: [test-windows, api]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # The gate: a red test never reaches production.
+      - run: npm test
+      - run: npm run build
       - name: Deploy to Cloudflare
         uses: cloudflare/wrangler-action@v3
         with:
