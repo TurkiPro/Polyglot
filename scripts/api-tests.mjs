@@ -11,6 +11,9 @@
  * (`npm run db:local`).
  */
 import { spawnSync } from 'node:child_process';
+import { unlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const BASE = process.env.BASE ?? 'http://127.0.0.1:8787';
 let failures = 0;
@@ -50,15 +53,29 @@ async function req(method, path, data) {
 }
 
 /** Run `wrangler d1 execute` against the local database. */
+/**
+ * Run one SQL statement against the local D1.
+ *
+ * The statement goes through a temp file rather than `--command`. Windows needs
+ * `shell: true` to run `npx.cmd`, and with a shell the arguments are concatenated
+ * unescaped — so `--command "SELECT 1 AS n"` arrived as three separate arguments and
+ * wrangler rejected it. A file path has no spaces to lose.
+ */
 function d1(command) {
-  const result = spawnSync(
-    'npx',
-    ['wrangler', 'd1', 'execute', 'polyglot-db', '--local', '--json',
-      '--config', 'worker/wrangler.toml', '--command', command],
-    { encoding: 'utf8', shell: process.platform === 'win32' },
-  );
-  if (result.status !== 0) return null;
-  try { return JSON.parse(result.stdout)[0].results; } catch { return null; }
+  const file = join(tmpdir(), `polyglot-d1-${process.pid}-${Date.now()}.sql`);
+  writeFileSync(file, command);
+  try {
+    const result = spawnSync(
+      'npx',
+      ['wrangler', 'd1', 'execute', 'polyglot-db', '--local', '--json',
+        '--config', 'worker/wrangler.toml', '--file', file],
+      { encoding: 'utf8', shell: process.platform === 'win32' },
+    );
+    if (result.status !== 0) return null;
+    try { return JSON.parse(result.stdout)[0].results; } catch { return null; }
+  } finally {
+    try { unlinkSync(file); } catch { /* already gone */ }
+  }
 }
 
 console.log(`polyglot API tests — ${BASE}`);

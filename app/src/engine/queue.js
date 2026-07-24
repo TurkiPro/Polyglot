@@ -21,14 +21,29 @@ export function isDue(state, now) {
 }
 
 /**
+ * When the learner asked for this word, or 0 if they never did.
+ *
+ * Two ways to ask: adding a word of your own, or pressing "Study next" on a curriculum
+ * word. Both are explicit intent, so both take the same lane (§8) — a custom word is
+ * prioritized at the moment it was added, without needing a separate record.
+ */
+export function priorityOf(word, priorities) {
+  const explicit = priorities?.get(word.id) ?? 0;
+  const implicit = word.custom === true ? word.updatedAt ?? 1 : 0;
+  return Math.max(explicit, implicit);
+}
+
+/**
  * REC cards for words the learner has not met yet.
  *
- * Words the user added themselves come first (§8): looking a word up and adding it is
- * explicit intent, and it outranks curriculum order. Everything else follows in teaching
- * order — band, then the order the pack lists them in. NEW_CARDS_PER_DAY still caps the
- * total either way.
+ * Words the learner asked for come first (§8), most recently asked leading — looking a
+ * word up, or choosing to study it next, outranks curriculum order. Everything else
+ * follows in teaching order: band, then the order the pack lists them in.
+ * NEW_CARDS_PER_DAY still caps the total either way.
+ *
+ * @param {Map<string, number>} [priorities] wordId → when "Study next" was pressed
  */
-export function newCardCandidates(deck, states) {
+export function newCardCandidates(deck, states, priorities = new Map()) {
   const candidates = [];
   for (const [index, word] of deck.words.entries()) {
     const id = makeCardId(word.id, 'REC');
@@ -37,16 +52,15 @@ export function newCardCandidates(deck, states) {
       cardId: id,
       wordId: word.id,
       band: word.band ?? 0,
-      custom: word.custom === true,
-      // Newest first among custom words, so the one just added leads.
-      addedAt: word.updatedAt ?? 0,
+      priority: priorityOf(word, priorities),
       index,
     });
   }
   candidates.sort(
     (a, b) =>
-      Number(b.custom) - Number(a.custom) ||
-      (a.custom ? b.addedAt - a.addedAt : 0) ||
+      // Prioritized words lead, most recent first; everything else is curriculum order.
+      Number(b.priority > 0) - Number(a.priority > 0) ||
+      b.priority - a.priority ||
       a.band - b.band ||
       a.index - b.index,
   );
@@ -73,6 +87,7 @@ export function buildQueue(deck, states, options = {}) {
     newDoneToday = 0,
     maxReviews = maxReviewsPerDay,
     maxNew = newCardsPerDay,
+    priorities,
   } = options;
 
   const reviewBudget = Math.max(0, maxReviews - reviewsDoneToday);
@@ -88,7 +103,7 @@ export function buildQueue(deck, states, options = {}) {
     .slice(0, reviewBudget)
     .map((state) => state.cardId);
 
-  const fresh = newCardCandidates(deck, states)
+  const fresh = newCardCandidates(deck, states, priorities)
     .slice(0, newBudget)
     .map((candidate) => candidate.cardId);
 

@@ -28,9 +28,15 @@ vi.mock('../app/src/zh/tts.js', () => ({
   ready: async () => ({ lang: 'zh-CN' }),
   isAvailable: () => true,
   speak: vi.fn(async () => true),
+  speakSlow: vi.fn(async () => true),
   stop: vi.fn(),
   pickVoice: () => null,
+  chineseVoices: () => [],
+  setPreferredVoice: () => null,
+  getPreferredVoice: () => null,
   reset: () => {},
+  RATE_NORMAL: 0.9,
+  RATE_SLOW: 0.6,
 }));
 
 const word = (over = {}) => ({
@@ -554,10 +560,10 @@ describe('flip guard', () => {
     const tts = await import('../app/src/zh/tts.js');
 
     // The replay control appears once the voice resolves.
-    await vi.waitFor(() => expect(host.querySelector('.btn-replay')).not.toBeNull());
+    await vi.waitFor(() => expect(host.querySelector('.audio-control')).not.toBeNull());
     tts.speak.mockClear();
 
-    host.querySelector('.btn-replay').click();
+    host.querySelector('.audio-control .btn-audio').click();
 
     // Still on the front: no rating row, and the audio actually played.
     expect(host.querySelector('.ratings')).toBeNull();
@@ -585,10 +591,30 @@ describe('flip guard', () => {
     teardown?.();
   });
 
-  it('still flips on a tap that is not on a control', async () => {
-    const { host, teardown } = await sessionOn('REC');
+  it('speaks the hanzi on tap, and does not reveal (§3.4.3)', async () => {
+    const { store, host, teardown } = await sessionOn('REC');
+    const tts = await import('../app/src/zh/tts.js');
+    tts.speak.mockClear();
+
     host.querySelector('.hanzi').click();
+
+    // Tap-to-flip is gone: the tap is a hint, not an answer.
+    expect(tts.speak).toHaveBeenCalledWith('爱');
+    expect(host.querySelector('.ratings')).toBeNull();
+    expect(store.store.events).toHaveLength(0);
+
+    // Show answer is how you reveal now.
+    host.querySelector('.controls .btn').click();
     await vi.waitFor(() => expect(host.querySelector('.ratings')).not.toBeNull());
+    teardown?.();
+  });
+
+  it('tapping the card body does nothing at all', async () => {
+    const { host, teardown } = await sessionOn('REC');
+    host.querySelector('.front-body').click();
+    host.querySelector('.stage').click();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(host.querySelector('.ratings')).toBeNull();
     teardown?.();
   });
 

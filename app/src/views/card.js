@@ -8,7 +8,7 @@
  * Split from review.js, which owns the session loop, to stay under the file cap (§4.6).
  */
 import { RATING, gradeWriting, gradeProduction } from '../engine/srs.js';
-import { button, div, el, icon, p, span, tianzige } from '../ui/components.js';
+import { audioControl, button, div, el, icon, p, span, tianzige } from '../ui/components.js';
 import { iconForMode } from '../ui/icons.js';
 import { strings } from '../ui/strings.js';
 import { colorMarkedPinyin, colorPinyin, highlightWord } from '../zh/tones.js';
@@ -27,11 +27,43 @@ function eyebrow(mode) {
   return div({ class: 'eyebrow' }, [glyph, span({ text: s.modes[mode] ?? s.modes.REC })]);
 }
 
-/** Audio control — suppressed for non-primary split members (§9). */
-function audioButton(word, text, label = s.play) {
+/**
+ * Audio for a word or a sentence: normal and slow (§3.4.2, §3.4.4).
+ *
+ * Suppressed for non-primary split members (§9) — the default voice speaks the primary
+ * reading, and wrong audio is worse than none.
+ */
+function audioFor(word, text, options = {}) {
   if (word.splitPrimary === false) return null;
-  const node = button('', () => tts.speak(text), { variant: 'btn-quiet btn-audio', 'aria-label': label });
-  node.append(icon('volume-2', 18), span({ text: label }));
+  return audioControl(() => tts.speak(text), () => tts.speakSlow(text), {
+    label: s.play,
+    slowLabel: s.playSlow,
+    ...options,
+  });
+}
+
+/** The word's shortest example, for the back of any card (§3.4.5). */
+function shortestSentence(word) {
+  const sentences = word.sentences ?? [];
+  if (sentences.length === 0) return null;
+  return [...sentences].sort((a, b) => [...a.zh].length - [...b.zh].length)[0];
+}
+
+/** A hanzi or sentence that plays its own audio when tapped (§3.4.3). */
+function speakable(node, word, text) {
+  if (word.splitPrimary === false) return node;
+  node.dataset.noFlip = '';
+  node.classList.add('speakable');
+  node.setAttribute('role', 'button');
+  node.setAttribute('tabindex', '0');
+  node.setAttribute('aria-label', s.tapToSpeak);
+  node.addEventListener('click', () => tts.speak(text));
+  node.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      tts.speak(text);
+    }
+  });
   return node;
 }
 
@@ -90,15 +122,20 @@ export function renderBack({ mode, word, typed }) {
 
   // Listening and sentence cards answer with their sentence first — that was the prompt.
   if ((mode === 'LIS' || mode === 'SENT') && sentence) {
-    parts.push(sentenceBlock(sentence, word, { highlight: mode === 'SENT' }));
+    parts.push(sentenceBlock(sentence, word, { highlight: mode === 'SENT', audio: true }));
   }
 
+  // The SENT and LIS backs already lead with their sentence; every other back gets the
+  // shortest one, between the definitions and the meta row (§3.4.5).
+  const example = mode === 'SENT' || mode === 'LIS' ? null : shortestSentence(word);
+
   parts.push(
-    div({ class: 'hanzi hanzi-back', text: word.simp }),
+    speakable(div({ class: 'hanzi hanzi-back', text: word.simp }), word, word.simp),
     pinyinLine(word, 'pinyin pinyin-answer'),
     typedMismatch(word, typed),
     el('hr', { class: 'rule' }),
     defsList(word),
+    example ? sentenceBlock(example, word, { audio: true }) : null,
     metaRow(word),
   );
 
@@ -120,26 +157,38 @@ function metaRow(word) {
   for (const alt of word.altReadings ?? []) {
     bits.push(span({ class: 'alt', text: `${s.alsoRead(alt.pinyin)} — ${alt.gloss}` }));
   }
-  const audio = audioButton(word, word.simp);
+  const audio = audioFor(word, word.simp);
   if (audio) bits.push(audio);
   return bits.length ? div({ class: 'meta-row' }, bits) : null;
 }
 
-/** A sentence with its pinyin and translation. */
-function sentenceBlock(sentence, word, { highlight = false } = {}) {
+/** A sentence with its pinyin, translation, and its own audio (§3.4.2). */
+function sentenceBlock(sentence, word, { highlight = false, audio = false } = {}) {
   const zh = div({ class: 'sentence-zh' });
   zh.append(highlight ? highlightWord(sentence.zh, word.simp) : document.createTextNode(sentence.zh));
+  speakable(zh, word, sentence.zh);
 
   const pinyin = div({ class: 'sentence-pinyin' });
   pinyin.append(colorMarkedPinyin(sentence.pinyin));
 
-  return div({ class: 'sentence' }, [zh, pinyin, p(sentence.en, 'sentence-en')]);
+  return div({ class: 'sentence' }, [
+    zh,
+    pinyin,
+    p(sentence.en, 'sentence-en'),
+    audio ? audioFor(word, sentence.zh, { compact: true }) : null,
+  ].filter(Boolean));
 }
 
-/** REC: the hanzi inside a practice grid. */
+/**
+ * REC: the hanzi inside a practice grid.
+ *
+ * Tapping the character speaks it rather than revealing the answer (§3.4.3). Hearing a
+ * word you are trying to recall is a hint, not a give-away — and tap-to-flip was firing
+ * by accident.
+ */
 function recognizeFront(word) {
   return div({ class: 'front-body' }, [
-    tianzige([div({ class: 'hanzi', text: word.simp })]),
+    tianzige([speakable(div({ class: 'hanzi', text: word.simp }), word, word.simp)]),
     siblingHints(word),
   ].filter(Boolean));
 }
@@ -184,7 +233,12 @@ function listenFront(word, onReady, onSuggest, onFlip) {
   tts.ready().then((voice) => {
     if (voice) {
       play();
-      body.append(replayButton(() => play()));
+      body.append(
+        audioControl(() => play(), () => tts.speakSlow(text), {
+          label: s.replay,
+          slowLabel: s.playSlow,
+        }),
+      );
     } else {
       // No voice: show the text, or the card is unanswerable.
       body.append(div({ class: 'sentence-zh', text }));
@@ -193,13 +247,6 @@ function listenFront(word, onReady, onSuggest, onFlip) {
 
   onReady(() => tts.stop());
   return body;
-}
-
-/** A quiet secondary control, per §3.2.5. */
-function replayButton(onClick) {
-  const node = button('', onClick, { variant: 'btn-quiet btn-replay', 'aria-label': s.replay });
-  node.append(icon('rotate-ccw', 18), span({ text: s.replay }));
-  return node;
 }
 
 /**
@@ -262,9 +309,11 @@ function produceFront(word, onSuggest, onFlip) {
 function sentenceFront(word) {
   const sentence = firstSentence(word);
   if (!sentence) return recognizeFront(word);
+  const zh = div({ class: 'sentence-zh prompt-sentence' }, [highlightWord(sentence.zh, word.simp)]);
   return div({ class: 'front-body' }, [
-    div({ class: 'sentence-zh prompt-sentence' }, [highlightWord(sentence.zh, word.simp)]),
-  ]);
+    speakable(zh, word, sentence.zh),
+    audioFor(word, sentence.zh, { compact: true }),
+  ].filter(Boolean));
 }
 
 /** WRITE: definitions and pinyin above, the canvas inside a full practice grid. */

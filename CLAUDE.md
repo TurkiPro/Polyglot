@@ -375,8 +375,9 @@ Build `app/src/engine/` with **zero UI imports** so everything runs under vitest
 - `queue.js`: today = (a) due, unlocked, unburied cards capped at MAX_REVIEWS_PER_DAY,
   ordered by due date; (b) up to NEW_CARDS_PER_DAY new REC cards ordered by band then
   deck order; interleave a new card roughly every 5 reviews.
-  **Custom words go to the front of the new-card queue** (newest first), ahead of
-  curriculum order: looking a word up and adding it is explicit user intent.
+  **User-prioritized words go to the front of the new-card queue** (most recently asked
+  first), ahead of curriculum order: adding a word of your own, or pressing "Study next"
+  on a curriculum word, are both explicit user intent and share one lane.
   NEW_CARDS_PER_DAY still caps the total.
 - Grading adapters (pure functions; UI calls them):
   - **PROD**: normalize typed pinyin (lowercase, trim, collapse spaces, `v`→`ü`, accept
@@ -401,6 +402,14 @@ Build `app/src/engine/` with **zero UI imports** so everything runs under vitest
 Hash routes: `#home` (due count, streak, XP, start), `#review`, `#browse`, `#words`,
 `#word/:id`, `#stats`, `#settings`, `#credits`. Space/tap flips; keys 1–4 grade.
 
+**`#browse`**: with no query, shows collections — the HSK bands, each opening its word
+list. Frequency collections are out until a redistributable frequency list exists (see
+DECISIONS). Every deck word offers **Study next**; a word already being learned shows its
+status instead.
+
+**`#word/:id`**: gains **Practice writing** — the stroke quiz on demand, ungraded, with no
+SRS effect, so writing is reachable on day one rather than only after WRITE unlocks.
+
 **`#words` ("My Words")**: the user's own words, newest first — hanzi, coloured pinyin,
 first definitions, and a status chip from live card state ("Up next", "Learning",
 "Due <relative date>"), plus a remove action behind a confirm. Removing tombstones the
@@ -411,6 +420,12 @@ events: the log is immutable, and `rebuildFromEvents` skips events whose word is
 |---|---|---|
 | REC | large simp | colored pinyin, defs, trad if differs, audio button |
 | LIS | ▶ auto-plays sentence audio (fallback: word audio) + typed-pinyin input judged per §8; empty input reveals self-graded | sentence + colored pinyin + en + defs, plus what you typed when it differs |
+
+**Card faces**: every face showing hanzi or a sentence carries an audio control — normal
+and slow (rate 0.6); long-press the normal button for slow. Backs show the word's shortest
+example sentence between the definitions and the meta row, except LIS and SENT, which
+already lead with one. Tapping the hanzi **speaks** it; revealing is Show answer or Space
+only — there is no tap-to-flip.
 | PROD | defs (EN) | typed input judged per §8, then full card |
 | SENT | sentence in hanzi, target word highlighted | colored pinyin + en |
 | WRITE | defs + pinyin + drawing canvas per char (hanzi-writer quiz; outline off after first char) | full card |
@@ -419,8 +434,10 @@ events: the log is immutable, and `rebuildFromEvents` skips events whose word is
 - `tones.js`: wrap each syllable in `<span class="t1…t5">`; colors are CSS variables
   fed from config.
 - `tts.js`: `speechSynthesis`; pick a voice whose lang starts with `zh` (prefer
-  `zh-CN`), rate 0.9. No zh voice → one-time dismissible banner (install a Chinese voice
-  at OS level); LIS fronts fall back to showing sentence text.
+  `zh-CN`), rate 0.9, and 0.6 for slow replay. Settings lists every zh voice the device
+  offers with a preview, and remembers the choice by `voiceURI`. No zh voice → one-time
+  dismissible banner (install a Chinese voice at OS level); LIS fronts fall back to
+  showing sentence text.
 - `writer.js`: hanzi-writer wired to the local strokes path (§5.3).
 - Split-group members: REC fronts append one hint line per sibling ("not <sibling
   pinyin>"). TTS buttons are suppressed on non-primary members — default TTS speaks

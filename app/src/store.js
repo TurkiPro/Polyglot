@@ -20,12 +20,15 @@ const GAMIFY_KEY = 'gamifyCache';
 const CURSOR_KEY = 'syncCursor';
 const WORD_CURSOR_KEY = 'syncWordCursor';
 const LAST_SYNC_KEY = 'lastSyncAt';
+const PRIORITIES_KEY = 'studyNext';
 
 /** Settings a user can change; defaults come from config (§0). */
 export const DEFAULT_SETTINGS = Object.freeze({
   newPerDay: config.study.newCardsPerDay,
   maxPerDay: config.study.maxReviewsPerDay,
   theme: 'light',
+  /** Chosen zh voice, by voiceURI; null lets tts pick (§3.4.4). */
+  voiceUri: null,
   audioBannerDismissed: false,
 });
 
@@ -43,6 +46,8 @@ export const store = {
   /** Set once /api/me answers; null means guest (§1.3). */
   account: null,
   lastSyncAt: null,
+  /** wordId → when "Study next" was pressed (§3.4.1). Local intent, not synced. */
+  priorities: new Map(),
   listeners: new Set(),
 };
 
@@ -72,6 +77,7 @@ export async function init() {
   store.events = events;
   store.states = rebuildFromEvents(store.deck, events).states;
   store.lastSyncAt = await db.getMeta(store.db, LAST_SYNC_KEY, null);
+  store.priorities = new Map(Object.entries(await db.getMeta(store.db, PRIORITIES_KEY, {})));
   await refreshGamify();
 
   notify();
@@ -100,6 +106,7 @@ export function queue(now = Date.now()) {
     maxReviews: store.settings.maxPerDay,
     reviewsDoneToday: countReviewsToday(now),
     newDoneToday: countNewToday(now),
+    priorities: store.priorities,
   });
 }
 
@@ -147,6 +154,32 @@ export async function recordReview({ cardId, rating, durMs, now = Date.now() }) 
 }
 
 const wordIdOf = (cardId) => cardId.slice(0, cardId.lastIndexOf('#'));
+
+/**
+ * Move a curriculum word to the front of the new-card queue (§3.4.1).
+ *
+ * The same lane a word you added yourself uses — "Add" is refused for words already in
+ * the curriculum, and being told no is not an answer to "I want to learn this now".
+ * Local intent rather than synced data: which device you asked on is where it applies.
+ */
+export async function studyNext(wordId, now = Date.now()) {
+  if (!store.deck?.has(wordId)) return false;
+  store.priorities.set(wordId, now);
+  await db.setMeta(store.db, PRIORITIES_KEY, Object.fromEntries(store.priorities));
+  notify();
+  return true;
+}
+
+/** Whether a word is already queued to lead. */
+export const isPrioritized = (wordId) => store.priorities.has(wordId);
+
+/** Undo a "Study next". */
+export async function unstudyNext(wordId) {
+  if (!store.priorities.delete(wordId)) return false;
+  await db.setMeta(store.db, PRIORITIES_KEY, Object.fromEntries(store.priorities));
+  notify();
+  return true;
+}
 
 /** Add a word of the user's own, from Browse. */
 export async function addCustomWord(word) {
@@ -261,6 +294,7 @@ export async function wipeLocal() {
   store.events = [];
   store.states = new Map();
   store.settings = { ...DEFAULT_SETTINGS };
+  store.priorities = new Map();
   store.deck = createDeck(store.pack, []);
   store.gamify = null;
   await refreshGamify();

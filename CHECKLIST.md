@@ -160,3 +160,23 @@ These need a real deployment:
       after pressing a sign-in button — never while reviewing, browsing or offline.
 - [ ] Push to main and watch the deploy workflow run tests before deploying.
 
+## Usability pack (§3.4) — maintainer sign-off
+
+- [ ] Browse a curriculum word (咖啡): it offers **Study next**, and after pressing it the
+      word is the first new card in the next session.
+- [ ] Every card back plays audio — recognition, typing, sentence and writing alike.
+- [ ] The 🐢 button is audibly slower than the normal one; long-pressing the normal button
+      does the same on a phone.
+- [ ] Tapping 好 on a recognition card **speaks it** and does not reveal the answer.
+      Revealing is Show answer or Space only.
+- [ ] Settings lists your device's Chinese voices with a preview. Pick one, restart the
+      app, and it is still selected. On Windows, compare Edge's neural voices against the
+      default — the tip should be true.
+- [ ] A recognition back shows an example sentence with coloured pinyin and its English.
+- [ ] On a day-one account, **Practice writing** is reachable from any word page and draws
+      the stroke quiz. Nothing is graded and no review appears in Stats.
+- [ ] Home shows the locked-modes line while modes are still locked, and stops once they
+      are not.
+- [ ] Browse with nothing typed shows the HSK bands; opening one lists its words.
+- [ ] You found Practice writing without being told where it was.
+

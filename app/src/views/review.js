@@ -256,14 +256,13 @@ export function renderReview(root, ctx) {
     }
   }
 
-  /**
-   * Tapping the card reveals it — but a control inside the card is not the card.
-   * Without this, "Play again" bubbled up and revealed the answer (§3.3.1).
+  /*
+   * There is deliberately no tap-to-flip listener here (§3.4.3).
+   *
+   * Tapping the card body used to reveal it, which was redundant with Show answer and
+   * fired by accident constantly — reaching for the audio button, or just resting a
+   * thumb. Revealing is now Show answer or Space, and a tap on the hanzi speaks it.
    */
-  stage.addEventListener('click', (event) => {
-    if (event.target.closest?.('button, a, input, [data-no-flip]')) return;
-    if (!session.flipped) flip();
-  });
   addEventListener('keydown', onKey);
 
   if (session.cards.length === 0) {

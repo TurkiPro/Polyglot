@@ -7,6 +7,7 @@ import { button, div, el, h, p, panel, replace, slider } from '../ui/components.
 import { strings } from '../ui/strings.js';
 import { applyTheme } from '../ui/theme.js';
 import { accountPanel } from '../sync/account.js';
+import { voicePanel } from './voices.js';
 
 const s = strings.settings;
 
@@ -15,6 +16,7 @@ export function renderSettings(root, ctx) {
     h(1, s.title, 'title'),
     studyPanel(),
     appearancePanel(),
+    voicePanel(),
     dataPanel(),
     accountPanel(ctx),
     dangerPanel(ctx),

@@ -17,9 +17,15 @@ vi.mock('../app/src/zh/tts.js', () => ({
   ready: async () => null,
   isAvailable: () => false,
   speak: async () => false,
+  speakSlow: async () => false,
   stop: () => {},
   pickVoice: () => null,
+  chineseVoices: () => [],
+  setPreferredVoice: () => null,
+  getPreferredVoice: () => null,
   reset: () => {},
+  RATE_NORMAL: 0.9,
+  RATE_SLOW: 0.6,
 }));
 
 const packWord = (id, band, index) => ({

@@ -321,3 +321,42 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
 - Hardening: deploy gates on a Windows test job and the live API suite, not unit tests
   alone; the workflow may use bash internally because runners are pinned environments,
   unlike contributor machines.
+- Phase 3.4.1: the §8 queue rule generalizes from "custom words lead" to "user-prioritized
+  words lead". `priorityOf()` treats a custom word as prioritized at the moment it was
+  added and a "Study next" press as prioritized then, so both share one lane with no
+  migration and no second sort key. Priorities are local intent stored in `meta`, not
+  synced: which device you asked on is where it applies.
+- Phase 3.4.2: audio lives in one `audioControl()` component, so "every face that shows
+  hanzi or a sentence has audio" is structural rather than remembered. Card backs get it
+  through the meta row, which is why REC, PROD, SENT and WRITE all gained it at once.
+- Phase 3.4.3: the card-body flip listener is gone entirely. Tapping the hanzi now speaks
+  it; revealing is Show answer or Space. The two jsdom tests that asserted tap-to-flip
+  were updated rather than deleted — they now assert the opposite, which is the point.
+- Phase 3.4.4: the chosen voice is stored by `voiceURI` and re-applied at boot before the
+  first listening card. A voice that has been uninstalled falls back to zh-CN rather than
+  going silent, because a profile can move between machines.
+- Phase 3.4.5: backs show the *shortest* example, not the first — a back is a glance, and
+  the shortest sentence is the one that can be read in one. LIS and SENT are excluded
+  because they already lead with a sentence.
+- Phase 3.4.6: "Practice writing" mounts the same Hanzi Writer quiz as a WRITE card but
+  records no event and touches no card state, so it cannot affect scheduling. It is on the
+  word page rather than in review, where an ungraded card would be a contradiction.
+- **Phase 3.4.7: frequency collections are NOT shipped — bands only, per the fallback the
+  spec names.** SUBTLEX-CH publishes no licence: its page asks only that you cite the
+  paper "if you use the frequencies for your research", which is a citation request scoped
+  to research, not a grant to redistribute derived ranks in an AGPL app. The BCC list has
+  no redistributable published form I could find — `bcc.blcu.edu.cn` is a query interface,
+  and the GitHub mirrors named for it 404. So neither fits, and §7's own instruction is to
+  ship bands and log it.
+  One candidate does fit if you want frequency later: `hermitdave/FrequencyWords`
+  (MIT, `content/2018/zh_cn/zh_cn_50k.txt`, derived from OpenSubtitles). It is not
+  SUBTLEX-CH or BCC, so adopting it is a source substitution that needs your approval
+  under §4.
+- Phase 3.4.7: **the deck was not rebuilt** — no `freqRank`, so no pipeline change and no
+  pack diff. `app/assets/packs/` is byte-identical to its Phase 3.3 state.
+- Phase 3.4 (incidental): `scripts/api-tests.mjs` could not reset the rate-limit table on
+  Windows. `spawnSync` with `shell: true` concatenates arguments unescaped, so
+  `--command "DELETE FROM rate_limits"` arrived as three arguments and wrangler rejected
+  it — which made the suite pass once and then 429 on every later run. It now writes the
+  statement to a temp file and uses `--file`, which has no spaces to lose.
+

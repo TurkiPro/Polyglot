@@ -106,6 +106,61 @@ export function banner(title, body, dismissLabel, onDismiss) {
   return node;
 }
 
+/**
+ * An audio control: normal speech, plus a slow variant (§3.4.2, §3.4.4).
+ *
+ * Every face that shows hanzi or a sentence gets one. Both buttons carry `data-no-flip`
+ * so pressing them can never be mistaken for asking to see the answer (§3.4.3), and a
+ * long press on the normal button also plays slowly, which is the reachable gesture on
+ * a phone.
+ *
+ * @param {() => void} onPlay
+ * @param {() => void} onSlow
+ * @param {{ label?: string, slowLabel?: string, compact?: boolean }} [options]
+ */
+export function audioControl(onPlay, onSlow, { label = 'Play', slowLabel = 'Play slowly', compact = false } = {}) {
+  const LONG_PRESS_MS = 450;
+  let timer = null;
+  let longFired = false;
+
+  const play = button('', () => {
+    // A long press already spoke; do not speak twice on release.
+    if (longFired) {
+      longFired = false;
+      return;
+    }
+    onPlay();
+  }, { variant: `btn-quiet btn-audio${compact ? ' btn-small' : ''}`, 'aria-label': label });
+  play.dataset.noFlip = '';
+  play.append(icon('volume-2', compact ? 16 : 18));
+  if (!compact) play.append(span({ text: label }));
+
+  const startPress = () => {
+    longFired = false;
+    timer = setTimeout(() => {
+      longFired = true;
+      onSlow();
+    }, LONG_PRESS_MS);
+  };
+  const endPress = () => clearTimeout(timer);
+  play.addEventListener('pointerdown', startPress);
+  for (const event of ['pointerup', 'pointerleave', 'pointercancel']) {
+    play.addEventListener(event, endPress);
+  }
+
+  const slow = button('', () => onSlow(), {
+    variant: `btn-quiet btn-audio btn-slow${compact ? ' btn-small' : ''}`,
+    'aria-label': slowLabel,
+    title: slowLabel,
+  });
+  slow.dataset.noFlip = '';
+  slow.append(span({ class: 'turtle', text: '🐢' }));
+
+  const group = div({ class: 'audio-control' }, [play, slow]);
+  group.dataset.noFlip = '';
+  return group;
+}
+
 /** Empty-state message. */
 export const empty = (text) => p(text, 'empty');
 
