@@ -15,9 +15,11 @@ beforeEach(() => {
 });
 
 describe('turnstile loading', () => {
-  it('ships with no site key, so a default deploy loads nothing', () => {
-    // An operator opts in by filling this in (SELF_HOSTING step 5).
-    expect(config.auth.turnstile.siteKey).toBe('');
+  it('loads nothing at import time, whether or not an operator configured a key', () => {
+    // The invariant is the mechanism (opt-in loading), never the operator's value:
+    // pinning siteKey === '' made configuring the app (SELF_HOSTING step 5) break CI.
+    expect(document.querySelectorAll('script')).toHaveLength(0);
+    expect(typeof config.auth.turnstile.siteKey).toBe('string');
   });
 
   it('injects the script only when asked, once', async () => {
