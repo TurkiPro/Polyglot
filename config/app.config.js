@@ -40,7 +40,7 @@ export const config = deepFreeze({
     turnstile: {
       enabled: true, // login page only
       /** Public Turnstile site key — filled in by the operator (§13.4). Secret lives in Wrangler. */
-      siteKey: '',
+      siteKey: '0x4AAAAAAD8qSzwYwdEI0mI7',
     },
   },
 
