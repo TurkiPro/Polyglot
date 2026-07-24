@@ -7,6 +7,7 @@ app/sw.js
 packs/zh/audio/models/
 packs/zh/audio/samples/
 packs/zh/audio/out/
+*.mbox
 
 # G2PW downloads its model here on first use (Phase 8 §1 bake-off, build machine only).
 g2pW/
