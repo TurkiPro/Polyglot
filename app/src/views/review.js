@@ -6,11 +6,14 @@
 import { parseCardId } from '../engine/deck.js';
 import { RATING, newCard, previewSchedules } from '../engine/srs.js';
 import { noteSync, queue, recordReview, store, syncPort, updateSettings } from '../store.js';
+import { localDayKey } from '../engine/replay.js';
 import { httpApi, syncNow } from '../sync/client.js';
 import { banner, button, div, el, emptyState, formatInterval, h, p, replace } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { renderBack, renderFront } from './card.js';
 import { renderTeach } from './teach.js';
+import { neonIgnite } from '../zh/writer.js';
+import { odometer, stage } from '../ui/arcade.js';
 import * as tts from '../zh/tts.js';
 
 const s = strings.review;
@@ -62,7 +65,8 @@ export function renderReview(root, ctx) {
   // desktop. Only the progress line sits outside (§3.2.5).
   const stage = div({ class: 'stage' });
   const controls = div({ class: 'controls' });
-  const sessionFill = div({ class: 'session-bar-fill' });
+  // §4 sanctioned accent 1: the progress line is neon.
+  const sessionFill = div({ class: 'session-bar-fill neon-line' });
   const sessionBar = div({ class: 'session-bar' }, [sessionFill]);
   const counter = div({ class: 'session-count' });
   const progress = div({ class: 'session-progress' }, [sessionBar, counter]);
@@ -88,15 +92,28 @@ export function renderReview(root, ctx) {
     syncNow(syncPort(), httpApi())
       .then((result) => (result.ok ? noteSync(result.at, store.account) : null))
       .catch(() => {});
+    /*
+     * The day's sign-lighting moment (§2.2): the word that fought hardest today is lit
+     * stroke by stroke. It is the one piece of theatre that has to be earned — you only
+     * see it because you struggled with that character and finished anyway.
+     */
+    const hardest = hardestToday();
+    const sign = div({ class: 'done-sign' });
+
     replace(
       root,
-      emptyState(
-        'seal',
-        s.sessionDone,
-        button(s.backHome, () => ctx.navigate('#home'), { variant: 'btn-primary' }),
-        { note: s.reviewed(session.reviewed) },
-      ),
+      stage('review-done', [
+        hardest ? div({ class: 'done-sign-wrap' }, [sign, p(s.hardestToday, 'muted')]) : null,
+        emptyState(
+          'seal',
+          s.sessionDone,
+          button(s.backHome, () => ctx.navigate('#home'), { variant: 'btn-primary' }),
+          { note: s.reviewed(session.reviewed) },
+        ),
+      ].filter(Boolean)),
     );
+
+    if (hardest) neonIgnite(sign, [...hardest.simp][0], { color: 'var(--accent)', size: 160 });
   }
 
   function showFront() {

@@ -70,6 +70,50 @@ async function loadHsk() {
   return parseHsk(files);
 }
 
+/**
+ * Topic collections (Design v3 §5.1) — committed, reviewable data like overrides.json.
+ * Validated here so a stale id can never reach the app.
+ */
+async function checkTopics(words) {
+  let file;
+  try {
+    file = JSON.parse(await readFile(new URL('topics.json', import.meta.url), 'utf8'));
+  } catch (err) {
+    if (err.code === 'ENOENT') return null;
+    throw new Error(`topics.json is not valid JSON: ${err.message}`);
+  }
+
+  const byId = new Map(words.map((word) => [word.id, word]));
+  const counts = {};
+  const unknown = [];
+
+  for (const [topic, ids] of Object.entries(file.topics ?? {})) {
+    counts[topic] = ids.length;
+    for (const id of ids) if (!byId.has(id)) unknown.push(`${topic}:${id}`);
+  }
+
+  if (unknown.length) {
+    throw new Error(
+      `topics.json names ${unknown.length} id(s) the deck does not have: ` +
+        `${unknown.slice(0, 5).join(', ')}${unknown.length > 5 ? '…' : ''}`,
+    );
+  }
+
+  const mapped = new Set(Object.values(file.topics ?? {}).flat());
+  const inScope = words.filter((word) => word.band >= 1 && word.band <= 4);
+  const unmappedBand1 = words
+    .filter((word) => word.band === 1 && !mapped.has(word.id))
+    .map((word) => `${word.simp} (${word.defs[0]})`);
+
+  return {
+    counts,
+    labels: file.labels ?? {},
+    scope: inScope.length,
+    mapped: inScope.filter((word) => mapped.has(word.id)).length,
+    unmappedBand1,
+  };
+}
+
 /** Hand-written entries merged over the generated deck; absent file means none. */
 async function loadOverrides() {
   try {
@@ -355,6 +399,11 @@ async function main() {
   const fonts = await buildFonts(words);
 
   const idCheck = await assertIdsUnchanged(words);
+  const topics = await checkTopics(words);
+  if (topics) {
+    log(`  topics: ${topics.mapped}/${topics.scope} words in bands 1-4, ` +
+        `${topics.unmappedBand1.length} band-1 words unmapped`);
+  }
   await writeArtifacts({ words, cedict, version, generatedAt });
 
   const bandCounts = new Map();
@@ -377,6 +426,7 @@ async function main() {
     introMetrics,
     components: componentStats,
     idCheck,
+    topics,
     declinedSplits: overridesFile.declinedSplits ?? {},
     deckWords: words.length,
     missing,

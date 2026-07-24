@@ -200,3 +200,21 @@ Use a **fresh guest profile** for the first five; your own account should see no
       offering the walkthrough once. Dismissing it sticks.
 - [ ] `packs/zh/data/report.txt` shows the n+1 metrics and "card ids preserved".
 
+## Design v3 — night market — maintainer sign-off
+
+- [ ] The 语 mark on Home ignites stroke by stroke, once per app launch — not once per
+      visit to Home.
+- [ ] Finish a session in which you pressed Again on something: the day's hardest word
+      lights up above the stats, and it feels earned rather than decorative.
+- [ ] Scanlines are invisible at reading distance on Home and Stats, and **absent** on
+      review cards, word pages, Settings and lists.
+- [ ] Mid-review, exactly four things carry neon: the progress line, the eyebrow icon, a
+      correct-answer pulse on typed cards, and nothing else. The 田字格 is ink.
+- [ ] Browse with no query shows the topic signboard and the HSK bands. Opening a topic
+      lists its words, each with Study next.
+- [ ] **Settings → Neon and motion → Off** removes every glow, scanline and rolling
+      number. The app is still completely usable and legible.
+- [ ] Paper theme looks exactly like v2 — no glow, no scanlines, seal red unchanged.
+- [ ] Spot-check `packs/zh/data/report.txt`: the per-topic counts look sane, and the
+      unmapped band-1 list contains grammar words rather than nouns.
+

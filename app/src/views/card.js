@@ -24,6 +24,7 @@ const firstSentence = (word) => word.sentences?.[0] ?? null;
 /** The label + icon that names the card's mode. */
 function eyebrow(mode) {
   const glyph = iconForMode(mode, 16);
+  if (glyph) glyph.classList.add('eyebrow-glyph');
   return div({ class: 'eyebrow' }, [glyph, span({ text: s.modes[mode] ?? s.modes.REC })]);
 }
 
@@ -278,7 +279,8 @@ function typedAnswer(word, onSuggest, onFlip, { autoFocus = true } = {}) {
       const { correct, suggested } = gradeProduction(typed, word.pinyinNum);
       onSuggest(suggested, typed);
       verdict.textContent = correct ? s.correct : s.incorrect;
-      verdict.className = `verdict ${correct ? 'ok' : 'bad'}`;
+      // §4 sanctioned accent 3: one pulse on a correct judged answer, and nothing else.
+      verdict.className = `verdict ${correct ? 'ok pulse-ok' : 'bad'}`;
     }
     // Empty: reveal and let the learner grade themselves. Nothing forces typing.
     onFlip();

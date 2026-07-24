@@ -402,4 +402,41 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
 - Phase 7 §5: voice rotation is opt-in per call (`speak(text, { rotate: true })`), used by
   drills and teach screens only. Ordinary review keeps the chosen voice, so it stays
   predictable, and a device with one voice degrades to exactly the previous behaviour.
+- Design v3 §1: night market is the default theme and paper is unchanged from v2. The
+  signage pink is split by role, exactly as v2 split vermilion: white on `#ff3d68` is
+  3.43:1, under the 4.5 a button label needs. `--accent` keeps the bright value wherever
+  the colour is *seen* — chrome, text on dark, every glow — and `--accent-fill` (#d93458)
+  carries white labels. Same for `--danger` / `--danger-fill` (#cc4242, from #ff5252 at
+  3.19:1). The contrast suite is the wall, so the palette bent rather than the suite.
+- Design v3 §1: the existing night tone colours all clear 4.5:1 on the new darker ground
+  (t1 5.68, t2 8.53, t3 7.84, t4 7.97, t5 6.88), so they were left alone. Retuning them
+  toward neon was permitted but not required, and they are semantics, not decoration.
+- Design v3 §2: `neonIgnite(host, char, opts)` is the single implementation, in
+  `zh/writer.js`, reusing the stroke data the handwriting quiz already ships — an ordered
+  set of paths is exactly what a tube sign needs. Reduced motion or reduce-effects renders
+  the finished character at steady glow with no animation.
+- Design v3 §2.2: the session-done sign lights the word with the most Again presses today,
+  ties to the newest, and shows **nothing** on a day with no struggle. A sign that lights
+  every time means nothing; this one is earned by definition.
+- Design v3 §3: every effect is gated on one attribute, `data-effects`, set by the
+  Settings switch and asserted in CSS by a test — "reduce effects removes every glow" is
+  checkable rather than promised. Scanlines are additionally disabled on paper regardless.
+- Design v3 §3: a broken streak renders as an em dash. No shake, no red, no "you lost it"
+  — the loss-aversion note in Phase 7 §6 is about extrinsic pressure, and that reasoning
+  applies to visuals as much as to XP.
+- Design v3 §4: the review sheet gained exactly the four sanctioned accents, and a test
+  asserts the card interior, the hanzi and the 田字格 carry no glow rule at all. The 田字格
+  is reading furniture; lighting it would be the exact failure the stage/tool law names.
+- Design v3 §5.1: `packs/zh/topics.json` maps 1,239 of 1,979 band 1-4 words across the 15
+  topics, drafted from English definitions plus a hand-written seed list for words a gloss
+  cannot classify (pronouns, greetings, directions). 27 band-1 words are unmapped and all
+  of them are grammar (不, 都, 个, 很, 太, 也, 一下 …) — that list is in report.txt for
+  review, and the build refuses any id the deck does not have.
+- **Design v3 §5.2: the frequency row is NOT shipped, because `freqRank` does not exist.**
+  §5.2 cites "3.4 §7's freqRank", but Phase 3.4 §7 explicitly did not ship it — no
+  frequency list we could find permits redistributing derived ranks (SUBTLEX-CH has no
+  licence; no redistributable BCC list exists). The signboard renders the row
+  automatically the moment the deck carries the field, so this is one pipeline change
+  away. `hermitdave/FrequencyWords` (MIT) remains the candidate, and adopting it is still
+  a source substitution needing approval under §4.
 

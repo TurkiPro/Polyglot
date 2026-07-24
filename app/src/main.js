@@ -5,6 +5,7 @@ import { config } from '../../config/app.config.js';
 import { init, noteSync, store, subscribe, syncPort } from './store.js';
 import { httpApi, syncNow } from './sync/client.js';
 import { setPreferredVoice } from './zh/tts.js';
+import { applyEffects } from './ui/arcade.js';
 import { div, el, empty, p, replace, sealMark } from './ui/components.js';
 import { iconFor } from './ui/icons.js';
 import { applyTheme, applyToneColors } from './ui/theme.js';
@@ -144,6 +145,7 @@ function boot() {
   init()
     .then(() => {
       applyTheme(store.settings.theme);
+      applyEffects(store.settings.effects);
       // The saved voice has to be in place before the first listening card (§3.4.4).
       setPreferredVoice(store.settings.voiceUri);
       // Repaint on state changes so tile counts stay honest after a review.

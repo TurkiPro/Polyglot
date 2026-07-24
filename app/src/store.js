@@ -33,7 +33,9 @@ export const DEFAULT_SETTINGS = Object.freeze({
    * wins over it.
    */
   newPerDayExplicit: false,
-  theme: 'light',
+  theme: 'dark',
+  /** Neon glow, scanlines and odometer rolls. Off is a full, honest opt-out (v3 §3). */
+  effects: true,
   /** Chosen zh voice, by voiceURI; null lets tts pick (§3.4.4). */
   voiceUri: null,
   audioBannerDismissed: false,
@@ -67,6 +69,8 @@ export const store = {
   priorities: new Map(),
   /** Tone-drill history (Phase 7 §1.2): stats in `meta`, never FSRS cards. */
   toneStats: null,
+  /** Committed topic collections for the Browse signboard (v3 §5.1). */
+  topics: null,
   listeners: new Set(),
 };
 
@@ -112,6 +116,10 @@ export async function init() {
 
   store.states = rebuildFromEvents(store.deck, events, replayOptions()).states;
   store.toneStats = await db.getMeta(store.db, TONE_STATS_KEY, null);
+  // Committed data, cached by the service worker like the deck — a miss is not fatal.
+  store.topics = await fetch(`/assets/packs/${LANG}/topics.json`)
+    .then((res) => (res.ok ? res.json() : null))
+    .catch(() => null);
   store.lastSyncAt = await db.getMeta(store.db, LAST_SYNC_KEY, null);
   store.priorities = new Map(Object.entries(await db.getMeta(store.db, PRIORITIES_KEY, {})));
   await refreshGamify();

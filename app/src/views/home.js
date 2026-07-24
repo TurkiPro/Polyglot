@@ -8,9 +8,15 @@ import { queue, store, updateSettings } from '../store.js';
 import { MODES, modesForWord } from '../engine/deck.js';
 import { banner, button, div, h, p, replace, sealMark, stat } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
+import { comboCounter, odometer, stage } from '../ui/arcade.js';
+import { neonIgnite } from '../zh/writer.js';
 import { span } from '../ui/components.js';
 
 const s = strings.home;
+
+/** Once per app launch (§2.1), and the last score we showed, for the odometer. */
+let heroIgnited = false;
+let lastScore = 0;
 
 /**
  * One line explaining why only recognition shows up at first (§3.4.6).
@@ -23,6 +29,45 @@ const s = strings.home;
  * Tone gym (Phase 7 §1): the drills stay available forever, not just at onboarding.
  * Tone perception is a skill that keeps repaying practice long after the words land.
  */
+/** XP as an arcade SCORE — the number rolls when it changes (§3). */
+function scoreTile(gamify) {
+  const previous = lastScore;
+  lastScore = gamify.xp.total;
+  return div({ class: 'stat' }, [
+    div({ class: 'stat-value' }, [odometer(gamify.xp.total, { previous })]),
+    div({ class: 'stat-label', text: s.score }),
+  ]);
+}
+
+/** The streak as a combo counter. A break is quiet, deliberately (§3). */
+function comboTile(gamify) {
+  return div({ class: 'stat' }, [
+    div({ class: 'stat-value' }, [comboCounter(gamify.streak)]),
+    div({ class: 'stat-label', text: s.streak }),
+  ]);
+}
+
+/**
+ * The 语 mark, lit stroke by stroke — once per app launch (§2.1).
+ *
+ * Once, not once per visit to Home: a sign that re-ignites every time you glance at it is
+ * a flicker, not an arrival.
+ */
+function heroSign() {
+  const host = div({ class: 'home-hero' });
+  const mark = div({ class: 'hero-sign' });
+  host.append(mark);
+
+  if (heroIgnited) {
+    mark.classList.add('neon-sign', 'lit', 'hero-static');
+    mark.append(div({ class: 'neon-stage' }, [div({ class: 'neon-fallback', text: '语' })]));
+  } else {
+    heroIgnited = true;
+    neonIgnite(mark, '语', { color: 'var(--accent)', size: 140 });
+  }
+  return host;
+}
+
 function toneGymTile(ctx) {
   const tile = button('', () => ctx.navigate('#tones'), { variant: 'collection tone-gym' });
   tile.append(
@@ -72,8 +117,8 @@ export function renderHome(root, ctx) {
   const tiles = div({ class: 'tiles' }, [
     stat(dueCount, s.due),
     stat(newCount, s.newWords),
-    gamify ? stat(gamify.streak, s.streak) : null,
-    gamify ? stat(gamify.level, s.level) : null,
+    gamify ? scoreTile(gamify) : null,
+    gamify ? comboTile(gamify) : null,
   ].filter(Boolean));
 
   const total = cards.length;
@@ -87,8 +132,9 @@ export function renderHome(root, ctx) {
     ]);
     replace(
       root,
-      div({ class: 'home' }, [
+      stage('home', [
         welcomeBanner(ctx),
+        heroSign(),
         h(1, s.greeting, 'greeting'),
         cta,
         tiles,
@@ -109,5 +155,5 @@ export function renderHome(root, ctx) {
     button(strings.browse.title, () => ctx.navigate('#browse'), { variant: 'btn-quiet' }),
   ].filter(Boolean));
 
-  replace(root, div({ class: 'home' }, [welcomeBanner(ctx), tiles, done, toneGymTile(ctx)].filter(Boolean)));
+  replace(root, stage('home', [welcomeBanner(ctx), heroSign(), tiles, done, toneGymTile(ctx)].filter(Boolean)));
 }

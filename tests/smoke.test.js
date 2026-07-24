@@ -38,10 +38,11 @@ describe('scaffold smoke', () => {
     }
   });
 
-  it('defaults to paper and re-applies tones when the theme changes', () => {
-    expect(normalizeTheme(undefined)).toBe('light');
-    expect(normalizeTheme('nope')).toBe('light');
-    expect(normalizeTheme('dark')).toBe('dark');
+  it('defaults to night market and re-applies tones when the theme changes', () => {
+    // Night market is the flagship theme (v3 §1); paper is the light alternative.
+    expect(normalizeTheme(undefined)).toBe('dark');
+    expect(normalizeTheme('nope')).toBe('dark');
+    expect(normalizeTheme('light')).toBe('light');
 
     const el = { dataset: {}, style: { setProperty: (k, v) => (el.applied[k] = v) }, applied: {} };
     expect(applyTheme('dark', el)).toBe('dark');

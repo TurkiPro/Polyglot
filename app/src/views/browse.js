@@ -13,6 +13,7 @@ import { strings } from '../ui/strings.js';
 import { colorPinyin } from '../zh/tones.js';
 import { summarize } from '../zh/defs.js';
 import { prepareEntries, rankResults } from './search.js';
+import { stage } from '../ui/arcade.js';
 
 const s = strings.browse;
 const LANG = config.pack.langPackV1;
@@ -54,7 +55,70 @@ export function renderBrowse(root, ctx) {
    * could find permits redistributing derived ranks. Bands are the curriculum itself and
    * need no third-party data.
    */
+  /**
+   * The signboard (Design v3 §5): a wall of small neon signs rather than an empty page.
+   *
+   * Topics first, because "I want to talk about food" is how a person actually thinks
+   * about vocabulary; bands second, because that is the curriculum. The frequency row
+   * §5.2 asks for is absent — it needs `freqRank`, which no redistributable frequency
+   * list has yet allowed us to ship (see DECISIONS, Phase 3.4.7). It appears here
+   * automatically the moment the deck carries the field.
+   */
   function showCollections() {
+    const sections = [p(s.startTyping, 'muted')];
+
+    const topicTiles = topicCollections();
+    if (topicTiles.length) {
+      sections.push(
+        h(2, s.topics, 'panel-title'),
+        div({ class: 'signboard' }, topicTiles),
+      );
+    }
+
+    if (hasFrequency()) {
+      sections.push(
+        h(2, s.frequent, 'panel-title'),
+        div({ class: 'signboard' }, frequencyCollections()),
+      );
+    }
+
+    sections.push(
+      h(2, s.bands, 'panel-title'),
+      div({ class: 'signboard' }, bandCollections()),
+    );
+
+    replace(results, ...sections);
+  }
+
+  /** One sign per topic, from the committed mapping. */
+  function topicCollections() {
+    const topics = store.topics;
+    if (!topics?.topics) return [];
+
+    return Object.entries(topics.topics)
+      .filter(([, ids]) => ids.length > 0)
+      .map(([topic, ids]) => {
+        const label = topics.labels?.[topic] ?? topic;
+        return signTile(label, s.wordCount(ids.length), () =>
+          showList(label, ids.map((id) => store.deck.word(id)).filter(Boolean)),
+        );
+      });
+  }
+
+  /** Top 100 / 500 / 1000 — only when the deck actually carries ranks. */
+  function frequencyCollections() {
+    const ranked = store.deck.words
+      .filter((word) => Number.isFinite(word.freqRank))
+      .sort((a, b) => a.freqRank - b.freqRank);
+
+    return [100, 500, 1000].map((n) =>
+      signTile(s.topN(n), s.wordCount(Math.min(n, ranked.length)), () =>
+        showList(s.topN(n), ranked.slice(0, n)),
+      ),
+    );
+  }
+
+  function bandCollections() {
     const bands = new Map();
     for (const word of store.deck.words) {
       if (!word.band) continue;
@@ -64,37 +128,37 @@ export function renderBrowse(root, ctx) {
       if (store.states.get(`${word.id}#REC`)?.reps > 0) row.started += 1;
     }
 
-    const tiles = [...bands.entries()]
+    return [...bands.entries()]
       .sort((a, b) => a[0] - b[0])
-      .map(([band, counts]) => {
-        const tile = button('', () => showBand(band), { variant: 'collection' });
-        tile.append(
-          span({ class: 'collection-name', text: s.bandLabel(band) }),
-          span({ class: 'collection-meta', text: s.learned(counts.started, counts.total) }),
-        );
-        return tile;
-      });
-
-    replace(
-      results,
-      p(s.startTyping, 'muted'),
-      h(2, s.bands, 'panel-title'),
-      p(s.bandBlurb, 'muted'),
-      div({ class: 'collections' }, tiles),
-    );
+      .map(([band, counts]) =>
+        signTile(s.bandLabel(band), s.learned(counts.started, counts.total), () =>
+          showList(s.bandTitle(band), store.deck.words.filter((word) => word.band === band)),
+        ),
+      );
   }
 
-  /** One band's words, in teaching order, each with the same actions as a search row. */
-  function showBand(band) {
-    const words = store.deck.words.filter((word) => word.band === band);
+  /** A single neon sign. Glow is a stage affordance, so it lives on the signboard only. */
+  function signTile(name, meta, onOpen) {
+    const tile = button('', onOpen, { variant: 'sign' });
+    tile.append(
+      span({ class: 'sign-name', text: name }),
+      span({ class: 'sign-meta', text: meta }),
+    );
+    return tile;
+  }
+
+  /** Any collection's words, in deck order, with the same actions as a search row. */
+  function showList(title, words) {
     replace(
       results,
       button(s.backToCollections, () => showCollections(), { variant: 'btn-quiet btn-small' }),
-      h(2, s.bandTitle(band), 'panel-title'),
-      p(s.bandCount(words.length), 'result-count'),
+      h(2, title, 'panel-title'),
+      p(s.wordCount(words.length), 'result-count'),
       ...words.map((word) => deckRow(word, ctx)),
     );
   }
+
+  const hasFrequency = () => store.deck.words.some((word) => Number.isFinite(word.freqRank));
 
   const input = el('input', {
     class: 'search',
@@ -140,7 +204,7 @@ export function renderBrowse(root, ctx) {
     timer = setTimeout(() => search(input.value), 150);
   });
 
-  replace(root, div({ class: 'browse' }, [h(1, s.title, 'title'), input, status, results]));
+  replace(root, stage('browse', [h(1, s.title, 'title'), input, status, results]));
   showCollections();
   queueMicrotask(() => input.focus({ preventScroll: true }));
 

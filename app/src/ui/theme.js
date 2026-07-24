@@ -7,7 +7,8 @@
 import { config } from '../../../config/app.config.js';
 
 export const THEMES = Object.freeze(['light', 'dark']);
-export const DEFAULT_THEME = 'light';
+/** Night market is the flagship (v3 §1); paper stays as the reading-lamp light theme. */
+export const DEFAULT_THEME = 'dark';
 
 /** Normalize anything to a theme we actually have. */
 export const normalizeTheme = (theme) => (THEMES.includes(theme) ? theme : DEFAULT_THEME);

@@ -38,6 +38,7 @@ const PRECACHE = [
   '/assets/icons/icon-maskable-192px.png',
   '/assets/icons/icon-maskable-512px.png',
   `/assets/packs/${LANG}/deck.${LANG}.json`,
+  `/assets/packs/${LANG}/topics.json`,
 ];
 
 /** Big, lazily needed assets: fetched on demand, then kept. */

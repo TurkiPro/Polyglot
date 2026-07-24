@@ -98,3 +98,131 @@ function cssVar(name, fallback) {
   const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   return value || fallback;
 }
+
+/* ── Neon stroke ignition (Design v3 §2) ────────────────── */
+
+const NS = 'http://www.w3.org/2000/svg';
+/** One ignition, tuned so a multi-stroke character finishes in about 1.2s. */
+const IGNITE_MS = 1200;
+
+/** Honour the OS setting, and the app's own reduce-effects switch. */
+const effectsOff = (doc = document) =>
+  doc.documentElement.dataset.effects === 'off' ||
+  (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+/**
+ * Light a character like a neon sign, stroke by stroke.
+ *
+ * The stroke data we already ship for handwriting quizzes turns out to be exactly what a
+ * tube sign needs: an ordered set of paths. Drawing them in sequence under a blur filter
+ * is a sign igniting — and it is the one thing this app can do that a flashcard app with
+ * no stroke data cannot copy.
+ *
+ * The single implementation all four sanctioned uses share (§2). Reduced motion, or the
+ * reduce-effects setting, renders the finished character at steady glow with no animation.
+ *
+ * @param {HTMLElement} host
+ * @param {string} char
+ * @param {{ color?: string, size?: number, duration?: number, onDone?: () => void }} [options]
+ * @returns {{ destroy: () => void }}
+ */
+export function neonIgnite(host, char, { color = 'var(--accent)', size = 160, duration = IGNITE_MS, onDone } = {}) {
+  host.replaceChildren();
+  host.classList.add('neon-sign');
+  host.style.setProperty('--neon-color', color);
+
+  const still = effectsOff(host.ownerDocument ?? document);
+  let writer = null;
+  let cancelled = false;
+
+  // A filter per instance, because two signs on one screen may burn different colours.
+  const filterId = `neon-${Math.random().toString(36).slice(2, 9)}`;
+  const defs = document.createElementNS(NS, 'svg');
+  defs.setAttribute('width', '0');
+  defs.setAttribute('height', '0');
+  defs.setAttribute('aria-hidden', 'true');
+  defs.classList.add('neon-defs');
+  const filter = document.createElementNS(NS, 'filter');
+  filter.setAttribute('id', filterId);
+  filter.setAttribute('x', '-50%');
+  filter.setAttribute('y', '-50%');
+  filter.setAttribute('width', '200%');
+  filter.setAttribute('height', '200%');
+
+  const blur = document.createElementNS(NS, 'feGaussianBlur');
+  blur.setAttribute('stdDeviation', '3');
+  blur.setAttribute('result', 'glow');
+  const merge = document.createElementNS(NS, 'feMerge');
+  for (const input of ['glow', 'glow', 'SourceGraphic']) {
+    const node = document.createElementNS(NS, 'feMergeNode');
+    node.setAttribute('in', input);
+    merge.append(node);
+  }
+  filter.append(blur, merge);
+  defs.append(filter);
+  host.append(defs);
+
+  const stage = document.createElement('div');
+  stage.className = 'neon-stage';
+  host.append(stage);
+
+  try {
+    writer = HanziWriter.create(stage, char, {
+      width: size,
+      height: size,
+      padding: 8,
+      showOutline: false,
+      showCharacter: still,
+      strokeColor: color,
+      charDataLoader: (character, onLoad, onError) => {
+        loadCharData(character).then(onLoad).catch(onError);
+      },
+      onLoadCharDataError: () => fallback(stage, char),
+    });
+
+    stage.querySelector('svg')?.setAttribute('filter', `url(#${filterId})`);
+
+    if (!still) {
+      writer.animateCharacter({
+        onComplete: () => {
+          if (!cancelled) {
+            host.classList.add('lit');
+            onDone?.();
+          }
+        },
+      });
+      // Hold the finished glow even if the animation never reports back.
+      setTimeout(() => {
+        if (!cancelled) host.classList.add('lit');
+      }, duration);
+    } else {
+      host.classList.add('lit');
+      onDone?.();
+    }
+  } catch {
+    fallback(stage, char);
+    host.classList.add('lit');
+    onDone?.();
+  }
+
+  return {
+    destroy: () => {
+      cancelled = true;
+      try {
+        writer?.cancelQuiz();
+      } catch {
+        // Nothing was running.
+      }
+      host.replaceChildren();
+      host.classList.remove('neon-sign', 'lit');
+    },
+  };
+}
+
+/** No stroke data: the character still lights, it just does not draw itself. */
+function fallback(stage, char) {
+  const text = document.createElement('div');
+  text.className = 'neon-fallback';
+  text.textContent = char;
+  stage.replaceChildren(text);
+}

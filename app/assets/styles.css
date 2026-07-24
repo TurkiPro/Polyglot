@@ -36,12 +36,21 @@
 
   /* Seal red: stamps, primary CTAs, active states. Never body text, never decoration. */
   --accent: #b4372a;
+  --accent-fill: #b4372a;
   --accent-fg: #ffffff;
+
+  /* Paper is the reading lamp: no neon, no glow. The tokens exist so a shared rule
+     never falls back to an undefined value; they are simply inert here. */
+  --neon-cyan: #1a5fb4;
+  --neon-yellow: #8a6d1f;
+  --glow-sm: none;
+  --glow-lg: none;
 
   --ok: #2f7d3f;
   /* Deliberately a shade off tone 1: the tones are config-owned, and a destructive
      action should not read as a tone mark. */
   --danger: #ad3429;
+  --danger-fill: #ad3429;
 
   --shadow-1: 0 1px 2px rgb(35 33 32 / 0.08);
   --shadow-2: 0 10px 30px rgb(35 33 32 / 0.12);
@@ -82,23 +91,40 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  /* night ink — warm deep charcoal, never pure black. */
-  --bg: #1a1815;
-  --surface: #232019;
-  --surface-2: #2c2820;
-  --border: #3a352b;
-  --fg: #ece8df;
-  --fg-dim: #a29a8c;
+  /* night market — the flagship theme. Deep blue-black street, signage pink, neon
+     accents. Never pure black: a sign glows against a night sky, not a void. */
+  --bg: #0c0f16;
+  --surface: #151a24;
+  --surface-2: #1d2330;
+  --border: #2a3244;
+  --fg: #e9ecf2;
+  --fg-dim: #97a0b3;
 
-  --accent: #cd4231;
+  /*
+   * Signage pink, split by role for the same reason v2 split vermilion: white on
+   * #ff3d68 is 3.43:1, under the 4.5 a button label needs. The bright value stays
+   * wherever the colour is *seen* — chrome, text on dark, and every glow — and only
+   * filled buttons darken, which is imperceptible under a glow.
+   */
+  --accent: #ff3d68;
+  --accent-fill: #d93458;
   --accent-fg: #ffffff;
 
-  --ok: #4fae63;
-  --danger: #c54c41;
+  /* Secondary sign colours. Used for glow and accents, never for body text. */
+  --neon-cyan: #33e6ff;
+  --neon-yellow: #ffd23f;
 
-  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
-  --shadow-2: 0 10px 30px rgb(0 0 0 / 0.45);
-  --grid: rgb(236 232 223 / 0.1);
+  --ok: #3ddc84;
+  --danger: #ff5252;
+  --danger-fill: #cc4242;
+
+  /* Neon tube glow. `currentColor` so a sign glows in whatever colour it is lit. */
+  --glow-sm: 0 0 2px currentColor, 0 0 8px currentColor;
+  --glow-lg: 0 0 2px currentColor, 0 0 10px currentColor, 0 0 28px currentColor;
+
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.5);
+  --shadow-2: 0 10px 30px rgb(0 0 0 / 0.55);
+  --grid: rgb(233 236 242 / 0.1);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -377,11 +403,11 @@ body {
 .btn-primary {
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--accent) 92%, white) 0%,
-    var(--accent) 100%
+    color-mix(in srgb, var(--accent-fill) 92%, white) 0%,
+    var(--accent-fill) 100%
   );
   color: var(--accent-fg);
-  border: 1px solid color-mix(in srgb, var(--accent) 80%, black);
+  border: 1px solid color-mix(in srgb, var(--accent-fill) 80%, black);
   border-radius: var(--radius-sm);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), var(--shadow-1);
   font-weight: 600;
@@ -391,7 +417,7 @@ body {
 
 .btn-primary:hover:not(:disabled) {
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), var(--shadow-2);
-  border-color: color-mix(in srgb, var(--accent) 80%, black);
+  border-color: color-mix(in srgb, var(--accent-fill) 80%, black);
 }
 
 .btn-primary:active:not(:disabled) {
@@ -421,8 +447,8 @@ body {
 }
 
 .btn-danger {
-  background: var(--danger);
-  border-color: var(--danger);
+  background: var(--danger-fill);
+  border-color: var(--danger-fill);
   color: #fff;
   font-weight: 600;
 }
@@ -1341,8 +1367,8 @@ body {
 }
 
 .badge-earned .badge-mark {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--accent-fill);
+  border-color: var(--accent-fill);
 }
 
 .badge-label {
@@ -1823,4 +1849,305 @@ body {
 
 .teach-controls {
   min-height: 1px;
+}
+
+/* ══ Design v3 — night market ═══════════════════════════════════════════
+   Stage surfaces get the theatre; tool surfaces stay fast and legible.
+   Every glow below is gated on [data-effects="on"] and reduced motion. */
+
+/* ── Neon signs (§2) ────────────────────────────────────── */
+
+.neon-sign {
+  display: grid;
+  place-items: center;
+  color: var(--neon-color, var(--accent));
+}
+
+.neon-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.neon-stage {
+  display: grid;
+  place-items: center;
+}
+
+.neon-fallback {
+  font-family: var(--font-han);
+  font-size: clamp(64px, 18vw, 120px);
+  line-height: 1;
+  color: var(--neon-color, var(--accent));
+}
+
+/* The tube holds its glow once lit. */
+:root[data-effects="on"] .neon-sign.lit .neon-fallback,
+:root[data-effects="on"] .neon-sign.lit svg {
+  filter: drop-shadow(0 0 6px var(--neon-color, var(--accent)))
+    drop-shadow(0 0 18px var(--neon-color, var(--accent)));
+}
+
+.home-hero {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-3);
+}
+
+.hero-sign,
+.done-sign {
+  width: 140px;
+  height: 140px;
+}
+
+.done-sign-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+/* ── Arcade layer (§3) — stage surfaces only ────────────── */
+
+.odometer {
+  display: inline-flex;
+  gap: 1px;
+  font-variant-numeric: tabular-nums;
+}
+
+.odometer-digit {
+  display: inline-block;
+}
+
+:root[data-effects="on"] .odometer-digit.rolling {
+  animation: odo-roll 300ms var(--ease) both;
+  animation-delay: var(--roll-delay, 0ms);
+}
+
+@keyframes odo-roll {
+  from {
+    transform: translateY(-0.55em);
+    opacity: 0.2;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.combo {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.combo-lit .combo-value {
+  color: var(--accent);
+}
+
+:root[data-effects="on"] .combo-lit .combo-value {
+  text-shadow: var(--glow-sm);
+}
+
+.combo-flame {
+  font-size: 0.7em;
+}
+
+.medallions {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-2);
+}
+
+.medallion {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  opacity: 0.55;
+  position: relative;
+  overflow: hidden;
+}
+
+.medallion.earned {
+  opacity: 1;
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+
+.medallion-face {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  color: var(--accent);
+}
+
+.medallion.earned .medallion-face {
+  border-color: var(--accent);
+}
+
+:root[data-effects="on"] .medallion.earned .medallion-face {
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.medallion-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.medallion-label {
+  font-size: var(--text-sm);
+}
+
+.medallion-progress {
+  font-size: var(--text-xs);
+  color: var(--fg-dim);
+}
+
+/* A single glint the first time an earned medallion is seen. */
+:root[data-effects="on"] .medallion.glint::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgb(255 255 255 / 0.22) 50%,
+    transparent 60%
+  );
+  transform: translateX(-120%);
+  animation: glint 900ms var(--ease) 200ms 1;
+}
+
+@keyframes glint {
+  to {
+    transform: translateX(120%);
+  }
+}
+
+/* CRT scanlines — stage backgrounds only, never over reading. */
+.stage-surface {
+  position: relative;
+}
+
+:root[data-effects="on"] .stage-surface::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgb(255 255 255 / 0.03) 0 1px,
+    transparent 1px 3px
+  );
+}
+
+.stage-surface > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Paper is the reading lamp: no scanlines, whatever the effects setting. */
+:root[data-theme="light"] .stage-surface::before {
+  display: none;
+}
+
+/* ── Browse signboard (§5) ──────────────────────────────── */
+
+.signboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.sign {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 68px;
+  padding: var(--space-3);
+  text-align: left;
+  border-color: var(--border);
+}
+
+.sign-name {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  color: var(--fg);
+}
+
+.sign-meta {
+  font-size: var(--text-xs);
+  color: var(--fg-dim);
+}
+
+.sign:hover:not(:disabled),
+.sign:focus-visible {
+  border-color: var(--accent);
+}
+
+:root[data-effects="on"] .sign:hover:not(:disabled) .sign-name,
+:root[data-effects="on"] .sign:focus-visible .sign-name {
+  color: var(--accent);
+  text-shadow: var(--glow-sm);
+}
+
+/* ── Review: the four sanctioned accents (§4) ───────────── */
+
+/* 1. The progress line. */
+.session-bar-fill.neon-line {
+  background: var(--accent);
+}
+
+:root[data-effects="on"] .session-bar-fill.neon-line {
+  box-shadow: 0 0 6px var(--accent);
+}
+
+/* 2. The mode eyebrow's icon, faintly. */
+:root[data-effects="on"] .eyebrow-glyph {
+  filter: drop-shadow(0 0 4px currentColor);
+  opacity: 0.9;
+}
+
+/* 3. One pulse on a correct judged answer. */
+:root[data-effects="on"] .verdict.pulse-ok {
+  animation: pulse-ok 420ms var(--ease) 1;
+}
+
+@keyframes pulse-ok {
+  0% {
+    text-shadow: none;
+  }
+  40% {
+    text-shadow: 0 0 8px var(--ok);
+  }
+  100% {
+    text-shadow: none;
+  }
+}
+
+/* 4. Nothing else. The 田字格 stays ink — it is reading furniture, never a sign. */
+
+/* Reduced motion and the reduce-effects switch stop everything above. */
+@media (prefers-reduced-motion: reduce) {
+  .odometer-digit.rolling,
+  .medallion.glint::after,
+  .verdict.pulse-ok {
+    animation: none;
+  }
+
+  .stage-surface::before {
+    display: none;
+  }
 }

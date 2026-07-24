@@ -65,9 +65,17 @@ describe('contrast', () => {
   });
 
   it.each(THEMES)('%s: filled controls clear 4.5:1 for their label', (_name, t) => {
-    // Seal red and danger are both used as fills with a white label.
-    expect(contrast(t['accent-fg'], t.accent)).toBeGreaterThanOrEqual(4.5);
-    expect(contrast('#ffffff', t.danger)).toBeGreaterThanOrEqual(4.5);
+    // The *fill* variants are what carry a white label. The bright values are for
+    // chrome, text on dark, and glow — see the night-market token block.
+    expect(contrast(t['accent-fg'], t['accent-fill'])).toBeGreaterThanOrEqual(4.5);
+    expect(contrast('#ffffff', t['danger-fill'])).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it.each(THEMES)('%s: accent and danger stay legible as text on dark', (_name, t) => {
+    // Used for the progress line, the combo counter, verdicts — all text or chrome.
+    expect(contrast(t.accent, t.bg)).toBeGreaterThanOrEqual(3);
+    expect(contrast(t.danger, t.surface)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(t.ok, t.surface)).toBeGreaterThanOrEqual(4.5);
   });
 
   it.each(THEMES)('%s: accent as chrome clears 3:1', (_name, t) => {

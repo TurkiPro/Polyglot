@@ -8,9 +8,13 @@ import { heatmap } from '../engine/gamify.js';
 import { store } from '../store.js';
 import { div, el, emptyState, h, p, progressBar, replace, span, stat } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
+import { comboCounter, medallion, odometer, stage } from '../ui/arcade.js';
 
 const s = strings.stats;
 const b = strings.badges;
+
+/** Which medallions have already glinted this session — a reward that repeats is not one. */
+const glinted = new Set();
 
 /** Intensity buckets for the heatmap, so a quiet day still reads as activity. */
 export function intensity(count, busiest) {
@@ -39,7 +43,7 @@ export function renderStats(root) {
 
   replace(
     root,
-    div({ class: 'stats' }, [
+    stage('stats', [
       h(1, s.title, 'title'),
       tiles(gamify),
       levelPanel(gamify),
@@ -56,7 +60,10 @@ function tiles(g) {
     stat(g.totals.reviews, s.totalReviews),
     stat(g.totals.wordsStarted, s.wordsStarted),
     stat(g.passRate === null ? '—' : `${Math.round(g.passRate * 100)}%`, s.passRate),
-    stat(g.streak, s.streak),
+    div({ class: 'stat' }, [
+      div({ class: 'stat-value' }, [comboCounter(g.streak)]),
+      div({ class: 'stat-label', text: s.streak }),
+    ]),
   ]);
 }
 
@@ -109,22 +116,14 @@ function bandsPanel(g) {
   ]);
 }
 
-/** Earned badges first; the rest show what is still ahead. */
+/** Earned first; the rest show what is still ahead. Enamel-pin medallions, glinting once when first seen (v3 §3). */
 function badgesPanel(g) {
   const sorted = [...g.badges].sort((x, y) => Number(y.earned) - Number(x.earned));
-  const items = sorted.map((badge) =>
-    div({ class: `badge${badge.earned ? ' badge-earned' : ''}` }, [
-      div({ class: 'badge-mark', text: badge.earned ? '✓' : '' }),
-      div({ class: 'badge-text' }, [
-        p(badgeLabel(badge), 'badge-label'),
-        badge.earned ? null : p(`${Math.round(badge.progress * 100)}%`, 'muted'),
-      ].filter(Boolean)),
-    ]),
-  );
+  const items = sorted.map((badge) => medallion(badge, badgeLabel(badge), { seen: glinted }));
 
   return el('section', { class: 'panel' }, [
     h(2, s.badges, 'panel-title'),
-    div({ class: 'badges' }, items),
+    div({ class: 'medallions' }, items),
   ]);
 }
 
@@ -142,7 +141,7 @@ function xpPanel(g) {
   rows.push(
     el('li', { class: 'xp-total' }, [
       span({ text: s.xpTotal }),
-      span({ class: 'xp-value', text: String(g.xp.total) }),
+      span({ class: 'xp-value' }, [odometer(g.xp.total)]),
     ]),
   );
 

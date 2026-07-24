@@ -837,7 +837,7 @@ describe('stats screen', () => {
     expect(host.querySelector('.level-number').textContent).toBe(String(gamify.level));
     // Two bands in this deck, each with a bar.
     expect(host.querySelectorAll('.bars .bar')).toHaveLength(2);
-    expect(host.querySelectorAll('.badge').length).toBeGreaterThan(0);
+    expect(host.querySelectorAll('.medallion').length).toBeGreaterThan(0);
 
     // The XP rows add up to the stated total, so the screen cannot drift from the engine.
     const values = [...host.querySelectorAll('.xp-list li:not(.xp-total) .xp-value')].map((n) =>

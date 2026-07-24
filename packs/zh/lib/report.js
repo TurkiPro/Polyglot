@@ -53,6 +53,31 @@ export function homographReport(homographs, words, declined = {}) {
   return lines;
 }
 
+/**
+ * Topic collections, and the band-1 words nothing claimed.
+ *
+ * That list is the review surface: a grammar word belongs there, a noun almost certainly
+ * does not, and reading it is how a wrong mapping gets caught.
+ */
+function topicReport(topics) {
+  if (!topics) return [];
+
+  const lines = [
+    `topic collections (Design v3 §5.1): ${topics.mapped} of ${topics.scope} words in bands 1-4`,
+  ];
+  for (const [topic, count] of Object.entries(topics.counts)) {
+    lines.push(`  ${(topics.labels[topic] ?? topic).padEnd(20)} ${count}`);
+  }
+
+  lines.push(
+    '',
+    `band-1 words in no topic (${topics.unmappedBand1.length}) — expect grammar words here:`,
+    ...topics.unmappedBand1.map((word) => `  - ${word}`),
+    '',
+  );
+  return lines;
+}
+
 export async function writeReport(stats, warnings = []) {
   const lines = [
     `${identity.projectName} — ${LANG} pack build report`,
@@ -98,6 +123,7 @@ export async function writeReport(stats, warnings = []) {
     `HSK words missing from CEDICT (${stats.missing.length}):`,
     ...stats.missing.map((w) => `  - ${w}`),
     '',
+    ...topicReport(stats.topics),
     ...homographReport(stats.homographs, stats.words, stats.declinedSplits),
   ];
   await writeFile(new URL('../data/report.txt', import.meta.url), lines.join('\n'));

@@ -6,6 +6,7 @@ import { exportData, importData, store, updateSettings, wipeLocal } from '../sto
 import { button, div, el, h, p, panel, replace, slider } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { applyTheme } from '../ui/theme.js';
+import { applyEffects } from '../ui/arcade.js';
 import { accountPanel } from '../sync/account.js';
 import { voicePanel } from './voices.js';
 
@@ -97,10 +98,28 @@ function appearancePanel() {
     );
   }
 
-  return panel(s.appearance, [el('div', { class: 'field' }, [
-    el('span', { class: 'field-label', text: s.theme }),
-    group,
-  ])]);
+  const effectsOn = store.settings.effects !== false;
+  const effectsToggle = button(effectsOn ? strings.common.on : strings.common.off, async () => {
+    applyEffects(!effectsOn);
+    await updateSettings({ effects: !effectsOn });
+    location.reload();
+  }, {
+    variant: `btn-quiet${effectsOn ? ' active' : ''}`,
+    role: 'switch',
+    'aria-checked': String(effectsOn),
+  });
+
+  return panel(s.appearance, [
+    el('div', { class: 'field' }, [
+      el('span', { class: 'field-label', text: s.theme }),
+      group,
+    ]),
+    el('div', { class: 'field' }, [
+      el('span', { class: 'field-label', text: s.effects }),
+      effectsToggle,
+    ]),
+    p(s.effectsNote, 'muted'),
+  ]);
 }
 
 function dataPanel() {
