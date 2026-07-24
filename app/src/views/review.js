@@ -64,7 +64,7 @@ export function renderReview(root, ctx) {
 
   // The sheet: everything the card is lives inside it, including the grade bar on
   // desktop. Only the progress line sits outside (§3.2.5).
-  const stage = div({ class: 'stage' });
+  const flipStage = div({ class: 'stage' });
   const controls = div({ class: 'controls' });
   // §4 sanctioned accent 1: the progress line is neon.
   const sessionFill = div({ class: 'session-bar-fill neon-line' });
@@ -72,8 +72,8 @@ export function renderReview(root, ctx) {
   const counter = div({ class: 'session-count' });
   const progress = div({ class: 'session-progress' }, [sessionBar, counter]);
   // The card area is a perspective container so the reveal is a real flip (§3.3.3).
-  stage.classList.add('flip-stage');
-  const sheet = div({ class: 'sheet' }, [stage, controls]);
+  flipStage.classList.add('flip-flipStage');
+  const sheet = div({ class: 'sheet' }, [flipStage, controls]);
   const view = div({ class: 'review' }, [progress, sheet]);
 
   replace(root, view);
@@ -138,7 +138,7 @@ export function renderReview(root, ctx) {
      */
     if (mode === 'REC' && !store.states.has(cardId) && !session.taught.has(word.id)) {
       session.taught.add(word.id);
-      replace(stage, renderTeach(word, () => showFront()));
+      replace(flipStage, renderTeach(word, () => showFront()));
       replace(controls, div({ class: 'teach-controls' }));
       return;
     }
@@ -148,7 +148,7 @@ export function renderReview(root, ctx) {
     session.suggested = null;
     session.typed = null;
     session.shownAt = Date.now();
-    stage.style.removeProperty('height');
+    flipStage.style.removeProperty('height');
     controls.classList.remove('controls-hidden');
 
     // "7 of 30" reads as progress; "23 left" reads as a chore.
@@ -172,7 +172,7 @@ export function renderReview(root, ctx) {
       onFlip: () => flip(),
     });
 
-    replace(stage, front);
+    replace(flipStage, front);
     replace(controls, button(s.show, () => flip(), { variant: 'btn-primary btn-wide' }));
   }
 
@@ -194,7 +194,7 @@ export function renderReview(root, ctx) {
     const back = renderBack({ mode, word, typed: session.typed });
 
     if (reducedMotion()) {
-      replace(stage, back);
+      replace(flipStage, back);
       replace(controls, ratingRow());
       return;
     }
@@ -203,32 +203,32 @@ export function renderReview(root, ctx) {
     controls.classList.add('controls-hidden');
 
     // Measure the back off-screen so the height can be transitioned to it.
-    const startHeight = stage.offsetHeight;
-    const endHeight = measure(back, stage);
-    stage.style.height = `${startHeight}px`;
+    const startHeight = flipStage.offsetHeight;
+    const endHeight = measure(back, flipStage);
+    flipStage.style.height = `${startHeight}px`;
 
-    const face = stage.firstElementChild;
+    const face = flipStage.firstElementChild;
     face?.classList.add('flip-out');
     requestAnimationFrame(() => {
-      stage.style.height = `${endHeight}px`;
+      flipStage.style.height = `${endHeight}px`;
     });
 
     const half = durationMs();
     setTimeout(() => {
-      replace(stage, back);
+      replace(flipStage, back);
       back.classList.add('flip-in');
       replace(controls, ratingRow());
 
       setTimeout(() => {
         session.flipping = false;
-        stage.style.removeProperty('height');
+        flipStage.style.removeProperty('height');
         back.classList.remove('flip-in');
         controls.classList.remove('controls-hidden');
       }, half);
     }, half);
   }
 
-  /** Height of a node if it were rendered in this stage, without showing it. */
+  /** Height of a node if it were rendered in this flip stage, without showing it. */
   function measure(node, host) {
     const ghost = node.cloneNode(true);
     ghost.classList.add('measuring');

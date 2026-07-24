@@ -22,6 +22,7 @@ vi.mock('../app/src/zh/writer.js', () => ({
   mountQuiz: () => ({ writer: {}, mistakes: () => 0, reveal: () => {}, destroy: () => {} }),
   loadCharData: async () => ({ strokes: [], medians: [] }),
   hasStrokeData: async () => true,
+  neonIgnite: vi.fn(),
 }));
 
 vi.mock('../app/src/zh/audio.js', () => ({
