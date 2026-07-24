@@ -85,3 +85,17 @@ def write_wav(path: Path, pcm: bytes, rate: int) -> None:
         target.setsampwidth(2)
         target.setframerate(rate)
         target.writeframes(pcm)
+
+
+def use_sync_phonemizer(voice) -> None:
+    """Run g2pW's DataLoader in-process, which is ~36× faster here.
+
+    g2pW phonemizes through a torch DataLoader whose default two workers are spawned fresh
+    on every call. On Windows that is process-spawn overhead — ~4.5 s per item against
+    0.13 s of actual work, which is the difference between a 25-hour build and a 40-minute
+    one. num_workers=0 runs it synchronously; the phoneme output is identical, so hashes
+    are unaffected. The phonemizer is created lazily, so call this after one phonemize.
+    """
+    phonemizer = getattr(voice, "_chinese_phonemizer", None)
+    if phonemizer is not None and hasattr(phonemizer, "g2p"):
+        phonemizer.g2p.num_workers = 0

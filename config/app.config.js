@@ -93,14 +93,14 @@ export const config = deepFreeze({
      * and picks by ear (§8.1) — the client works either way, falling back to browser
      * speech when no manifest is present.
      */
-    engine: '',
+    engine: 'piper-fixed',
     /**
      * Pinned so a regeneration uses the same engine build. Note that pinning the version
      * is not by itself enough to reproduce the same hashes: `piper` and `melotts` sample
      * synthesis noise inside the ONNX graph, so identical text renders different bytes on
      * every run. Only `piper-fixed` (noise disabled) is bit-reproducible.
      */
-    engineVersion: '',
+    engineVersion: 'piper-fixed',
     /** R2 bucket the pack is served from; see worker/wrangler.toml for the binding. */
     bucket: 'polyglot-audio',
     /** Slow replay is the same file at this rate — no second file (§8.4). */

@@ -32,7 +32,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 
 sys.path.insert(0, str(HERE))
-from carrier import CARRIER, crop_target, write_wav  # noqa: E402
+from carrier import CARRIER, crop_target, use_sync_phonemizer, write_wav  # noqa: E402
 from lib import ensure_utf8_mode, normalize, trim_silence  # noqa: E402
 
 # Must run before anything reads a file: g2pW opens its dictionaries in the locale
@@ -113,11 +113,13 @@ def render_piper(items: list[tuple[str, str]], force: bool, deterministic: bool 
     syn_config = SynthesisConfig(noise_scale=0.0, noise_w_scale=0.0) if deterministic else None
 
     # Silence would be shipped 17,000 times over, so check once before committing to a run.
+    # This also warms up the lazily-created phonemizer, which the next line then speeds up.
     if not any(voice.phonemize(items[0][1])):
         raise SystemExit(
             "the Chinese phonemizer returned no phonemes — nothing would be rendered but "
             "silence. See packs/zh/audio/README.md (usually the locale/UTF-8 mode)."
         )
+    use_sync_phonemizer(voice)  # 25-hour build → 40 minutes on Windows (see carrier.py)
 
     OUT.mkdir(parents=True, exist_ok=True)
     manifest: dict[str, dict] = {}
