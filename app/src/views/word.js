@@ -7,7 +7,7 @@ import { audioControl, button, div, el, empty, h, p, relativeDay, replace, span 
 import { strings } from '../ui/strings.js';
 import { colorMarkedPinyin, colorPinyin } from '../zh/tones.js';
 import { classifiers, humanDefs } from '../zh/defs.js';
-import * as tts from '../zh/tts.js';
+import * as tts from '../zh/audio.js';
 import { mountQuiz } from '../zh/writer.js';
 
 const s = strings.word;
@@ -25,7 +25,7 @@ export function renderWord(root, ctx, wordId) {
     word.trad ? p(word.trad, 'trad') : null,
     word.splitPrimary === false
       ? null
-      : audioControl(() => tts.speak(word.simp), () => tts.speakSlow(word.simp), {
+      : audioControl(() => tts.speak(word.simp, { key: word.id }), () => tts.speakSlow(word.simp, { key: word.id }), {
           label: strings.review.play,
           slowLabel: strings.review.playSlow,
         }),
@@ -99,7 +99,7 @@ function sentenceBlock(sentence) {
     div({ class: 'sentence-zh', text: sentence.zh }),
     pinyin,
     p(sentence.en, 'sentence-en'),
-    audioControl(() => tts.speak(sentence.zh), () => tts.speakSlow(sentence.zh), {
+    audioControl(() => tts.speak(sentence.zh, { key: sentence.src }), () => tts.speakSlow(sentence.zh, { key: sentence.src }), {
       label: strings.review.play,
       slowLabel: strings.review.playSlow,
       compact: true,

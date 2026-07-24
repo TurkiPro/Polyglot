@@ -218,3 +218,29 @@ Use a **fresh guest profile** for the first five; your own account should see no
 - [ ] Spot-check `packs/zh/data/report.txt`: the per-topic counts look sane, and the
       unmapped band-1 list contains grammar words rather than nouns.
 
+## Audio pack (Phase 8) — maintainer steps and sign-off
+
+**Blocked on you: the engine pick.** Everything downstream is built and waiting.
+
+1. [ ] Install an engine (see `packs/zh/audio/README.md` — note that Chinese needs torch
+       either way, and Piper additionally needs g2pw, which downloads its own model).
+2. [ ] `python packs/zh/audio/bakeoff.py`, then open `samples/index.html` and listen with
+       headphones. Judge **tone accuracy**: 好 / 号 / 巧 must be unmistakably different,
+       and third tone should dip rather than merely fall.
+3. [ ] Set the winner as `audio.engine` (and `audio.engineVersion`) in
+       `config/app.config.js`.
+4. [ ] `python packs/zh/audio/generate.py --limit 50` first — check fifty files sound
+       right and the manifest looks sane — then run it without `--limit`.
+5. [ ] `npx wrangler r2 bucket create polyglot-audio`, then `node packs/zh/audio/upload.mjs`.
+6. [ ] Spot-check five `/audio/<hash>.ogg` URLs on the deployed origin.
+
+Then, on device:
+
+- [ ] On a phone with **no Chinese voice installed**, 好 vs 号 vs 巧 are audibly distinct
+      tones. This is the whole point of the phase.
+- [ ] The 🐢 button is audibly slower and the *same voice*, not a lower-pitched one.
+- [ ] Play a word, go into airplane mode, play it again — it still works (the service
+      worker caches audio after first play).
+- [ ] Turn the audio pack off by pointing at a nonexistent bucket: the app falls back to
+      browser speech rather than going silent.
+

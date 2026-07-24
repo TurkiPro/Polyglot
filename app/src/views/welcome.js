@@ -11,7 +11,7 @@ import { button, div, el, h, p, replace, sealMark, span } from '../ui/components
 import { strings } from '../ui/strings.js';
 import { ARCHETYPE, buildDrillSet, isCorrect } from '../zh/tones-drill.js';
 import { colorPinyin } from '../zh/tones.js';
-import * as tts from '../zh/tts.js';
+import * as tts from '../zh/audio.js';
 
 const s = strings.welcome;
 const { toneGymSetSize } = config.learn;

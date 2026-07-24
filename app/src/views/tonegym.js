@@ -11,7 +11,7 @@ import { recordToneResult, store } from '../store.js';
 import { button, div, h, p, progressBar, replace, span } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { buildDrillSet, isCorrect, summarize } from '../zh/tones-drill.js';
-import * as tts from '../zh/tts.js';
+import * as tts from '../zh/audio.js';
 
 const s = strings.tones;
 const { toneGymSetSize } = config.learn;

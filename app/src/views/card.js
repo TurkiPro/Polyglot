@@ -13,7 +13,7 @@ import { iconForMode } from '../ui/icons.js';
 import { strings } from '../ui/strings.js';
 import { colorMarkedPinyin, colorPinyin, highlightWord } from '../zh/tones.js';
 import { mountQuiz } from '../zh/writer.js';
-import * as tts from '../zh/tts.js';
+import * as tts from '../zh/audio.js';
 import { store } from '../store.js';
 
 const s = strings.review;
@@ -36,7 +36,10 @@ function eyebrow(mode) {
  */
 function audioFor(word, text, options = {}) {
   if (word.splitPrimary === false) return null;
-  return audioControl(() => tts.speak(text), () => tts.speakSlow(text), {
+  // The manifest key is the word id for a word, and the sentence's src for a sentence,
+  // so the resolver can find pack audio before falling back to browser speech (§8.4).
+  const key = text === word.simp ? word.id : options.key;
+  return audioControl(() => tts.speak(text, { key }), () => tts.speakSlow(text, { key }), {
     label: s.play,
     slowLabel: s.playSlow,
     ...options,
@@ -58,7 +61,7 @@ function speakable(node, word, text) {
   node.setAttribute('role', 'button');
   node.setAttribute('tabindex', '0');
   node.setAttribute('aria-label', s.tapToSpeak);
-  node.addEventListener('click', () => tts.speak(text));
+  node.addEventListener('click', () => tts.speak(text, { key: word.simp === text ? word.id : undefined }));
   node.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
@@ -176,7 +179,7 @@ function sentenceBlock(sentence, word, { highlight = false, audio = false } = {}
     zh,
     pinyin,
     p(sentence.en, 'sentence-en'),
-    audio ? audioFor(word, sentence.zh, { compact: true }) : null,
+    audio ? audioFor(word, sentence.zh, { compact: true, key: sentence.src }) : null,
   ].filter(Boolean));
 }
 
@@ -314,7 +317,7 @@ function sentenceFront(word) {
   const zh = div({ class: 'sentence-zh prompt-sentence' }, [highlightWord(sentence.zh, word.simp)]);
   return div({ class: 'front-body' }, [
     speakable(zh, word, sentence.zh),
-    audioFor(word, sentence.zh, { compact: true }),
+    audioFor(word, sentence.zh, { compact: true, key: sentence.src }),
   ].filter(Boolean));
 }
 

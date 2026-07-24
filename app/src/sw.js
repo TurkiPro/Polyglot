@@ -45,6 +45,9 @@ const PRECACHE = [
 const RUNTIME_PATHS = [
   `/assets/packs/${LANG}/dict.`,
   `/assets/packs/${LANG}/strokes/`,
+  // Audio the learner has actually played, kept forever after — the filenames are
+  // content hashes, so a cached file can never be stale (Phase 8 §3).
+  '/audio/',
   // ~1.8 MB of subset serif. font-display: swap means the app is usable before it
   // arrives, so it does not belong in the install-time precache.
   '/assets/fonts/',

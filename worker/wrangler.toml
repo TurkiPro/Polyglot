@@ -23,6 +23,13 @@ database_name = "polyglot-db"
 # Local dev (`wrangler dev`) works with this placeholder.
 database_id = "aa9073c4-a293-4c17-b22e-c4dbaa66295e"
 
+# The pre-rendered audio pack (Phase 8 §3). Create with:
+#   npx wrangler r2 bucket create polyglot-audio
+# The route degrades to 503 when the binding is absent, so a deploy without it still runs.
+[[r2_buckets]]
+binding = "AUDIO"
+bucket_name = "polyglot-audio"
+
 # Secrets (never committed — set with `wrangler secret put`, or .dev.vars locally):
 #   GITHUB_CLIENT_ID  GITHUB_CLIENT_SECRET
 #   GOOGLE_CLIENT_ID  GOOGLE_CLIENT_SECRET

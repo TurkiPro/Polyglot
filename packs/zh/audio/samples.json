@@ -1,0 +1,36 @@
+{
+  "$note": [
+    "The bake-off set (Phase 8 §1). Chosen to make tone accuracy audible rather than to",
+    "sound pretty: minimal pairs that differ only in tone, the third-tone sandhi case,",
+    "and neutral-tone endings — the places a flat voice gives itself away."
+  ],
+  "words": [
+    { "simp": "好", "pinyin": "hǎo", "why": "tone 3 — the dip, against 号 and 巧" },
+    { "simp": "号", "pinyin": "hào", "why": "tone 4 — same syllable, falling" },
+    { "simp": "巧", "pinyin": "qiǎo", "why": "tone 3 again, different initial" },
+    { "simp": "妈", "pinyin": "mā", "why": "tone 1 — the archetype, flat and high" },
+    { "simp": "麻", "pinyin": "má", "why": "tone 2 — rising" },
+    { "simp": "马", "pinyin": "mǎ", "why": "tone 3 — dipping" },
+    { "simp": "骂", "pinyin": "mà", "why": "tone 4 — falling" },
+    { "simp": "吗", "pinyin": "ma", "why": "neutral — must not be given a contour" },
+    { "simp": "你好", "pinyin": "nǐhǎo", "why": "3-3 sandhi: the first should rise" },
+    { "simp": "很好", "pinyin": "hěnhǎo", "why": "3-3 sandhi again" },
+    { "simp": "老师", "pinyin": "lǎoshī", "why": "3-1" },
+    { "simp": "学习", "pinyin": "xuéxí", "why": "2-2" },
+    { "simp": "谢谢", "pinyin": "xièxie", "why": "4-neutral" },
+    { "simp": "什么", "pinyin": "shénme", "why": "2-neutral" },
+    { "simp": "咖啡", "pinyin": "kāfēi", "why": "1-1, a loanword" },
+    { "simp": "中国", "pinyin": "zhōngguó", "why": "1-2" },
+    { "simp": "传统", "pinyin": "chuántǒng", "why": "2-3" },
+    { "simp": "汉语", "pinyin": "hànyǔ", "why": "4-3" },
+    { "simp": "女", "pinyin": "nǚ", "why": "ü — the vowel most engines mangle" },
+    { "simp": "四十", "pinyin": "sìshí", "why": "4-2, and a number for clarity" }
+  ],
+  "sentences": [
+    { "zh": "你好，很高兴认识你。", "why": "greeting, mixed tones, natural phrasing" },
+    { "zh": "我不知道他在哪里。", "why": "bù tone change before a fourth tone" },
+    { "zh": "这是一个古老的传统。", "why": "yī tone change, longer prosody" },
+    { "zh": "我想喝一杯咖啡。", "why": "3-3 sandhi inside a sentence" },
+    { "zh": "今天天气很好。", "why": "sentence-final third tone" }
+  ]
+}

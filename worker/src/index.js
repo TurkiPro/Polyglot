@@ -21,7 +21,7 @@ import { clientIp, rateLimit } from './mw/ratelimit.js';
 import { secure } from './mw/security.js';
 import { verifyTurnstile } from './mw/turnstile.js';
 
-/** @typedef {{ ASSETS: { fetch: (req: Request) => Promise<Response> }, DB: D1Database, DEV_MODE?: string }} Env */
+/** @typedef {{ ASSETS: { fetch: (req: Request) => Promise<Response> }, DB: D1Database, AUDIO?: R2Bucket, DEV_MODE?: string }} Env */
 
 /** JSON response helper. */
 function json(body, status = 200, headers = {}) {
@@ -192,6 +192,37 @@ async function handleApi(request, env, pathname) {
   return handleAuthenticated(request, env, pathname, user);
 }
 
+/**
+ * GET /audio/:file — the pre-rendered audio pack, streamed from R2 (Phase 8 §3).
+ *
+ * Public data with no auth: it is the same audio anyone can generate from the committed
+ * manifest, and requiring a session would break guest mode (§1.3). Filenames are content
+ * hashes, so the response is immutable — a changed recording is a different filename.
+ */
+async function handleAudio(request, env, pathname) {
+  if (!env.AUDIO) return new Response('audio pack not configured', { status: 503 });
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    return new Response('method not allowed', { status: 405 });
+  }
+
+  const file = decodeURIComponent(pathname.slice('/audio/'.length));
+  // No traversal: a hash is a flat name, and anything else is not ours.
+  if (!file || file.includes('/') || file.includes('..')) {
+    return new Response('not found', { status: 404 });
+  }
+
+  const object = await env.AUDIO.get(file);
+  if (!object) return new Response('not found', { status: 404 });
+
+  const headers = new Headers({
+    'content-type': 'audio/ogg',
+    'cache-control': 'public, max-age=31536000, immutable',
+    etag: object.httpEtag,
+  });
+
+  return new Response(request.method === 'HEAD' ? null : object.body, { headers });
+}
+
 export default {
   /**
    * @param {Request} request
@@ -199,6 +230,10 @@ export default {
    */
   async fetch(request, env) {
     const { pathname } = new URL(request.url);
+
+    if (pathname.startsWith('/audio/')) {
+      return secure(await handleAudio(request, env, pathname), env);
+    }
 
     if (pathname === '/api' || pathname.startsWith('/api/')) {
       try {

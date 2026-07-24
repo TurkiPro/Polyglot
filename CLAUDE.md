@@ -48,6 +48,11 @@ MAX_REVIEWS_PER_DAY   = 200
 STAGGER_UNLOCK_DAYS   = 3          # non-REC cards unlock when REC interval ≥ this
 FSRS_TARGET_RETENTION = 0.9
 
+# ── Audio pack (Phase 8) ──────────────────────────────────
+AUDIO_ENGINE          = <unset — maintainer picks after the §1 bake-off>
+AUDIO_BUCKET          = polyglot-audio
+AUDIO_SLOW_RATE       = 0.6        # same file, played slower
+
 # ── Learn mode (Phase 7) ──────────────────────────────────
 WRITING_TRACK         = choice at onboarding; default off (new), on (migrated)
 MULTI_VOICE           = on

@@ -14,7 +14,7 @@ import { renderBack, renderFront } from './card.js';
 import { renderTeach } from './teach.js';
 import { neonIgnite } from '../zh/writer.js';
 import { odometer, stage } from '../ui/arcade.js';
-import * as tts from '../zh/tts.js';
+import * as tts from '../zh/audio.js';
 
 const s = strings.review;
 

@@ -13,7 +13,7 @@ vi.mock('../app/src/zh/writer.js', () => ({
   loadCharData: async () => ({}),
   hasStrokeData: async () => true,
 }));
-vi.mock('../app/src/zh/tts.js', () => ({
+vi.mock('../app/src/zh/audio.js', () => ({
   ready: async () => null,
   isAvailable: () => false,
   speak: async () => false,
@@ -26,6 +26,9 @@ vi.mock('../app/src/zh/tts.js', () => ({
   reset: () => {},
   RATE_NORMAL: 0.9,
   RATE_SLOW: 0.6,
+  SOURCE: { PACK: 'pack', TTS: 'tts', NONE: 'none' },
+  loadManifest: async () => null,
+  packUrl: () => null,
 }));
 
 const packWord = (id, band, index) => ({

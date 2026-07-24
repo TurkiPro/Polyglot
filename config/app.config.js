@@ -86,6 +86,22 @@ export const config = deepFreeze({
     toneGymSetSize: 10,
   },
 
+  // ── Audio pack (Phase 8) ──────────────────────────────────
+  audio: {
+    /**
+     * Which TTS engine rendered the pack. Empty until the maintainer runs the bake-off
+     * and picks by ear (§8.1) — the client works either way, falling back to browser
+     * speech when no manifest is present.
+     */
+    engine: '',
+    /** Pinned so a regeneration reproduces the same audio, and the same hashes. */
+    engineVersion: '',
+    /** R2 bucket the pack is served from; see worker/wrangler.toml for the binding. */
+    bucket: 'polyglot-audio',
+    /** Slow replay is the same file at this rate — no second file (§8.4). */
+    slowRate: 0.6,
+  },
+
   // ── Gamification ──────────────────────────────────────────
   gamify: {
     xpShowup: 20, // first review of the local day

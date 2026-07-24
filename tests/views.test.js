@@ -24,7 +24,7 @@ vi.mock('../app/src/zh/writer.js', () => ({
   hasStrokeData: async () => true,
 }));
 
-vi.mock('../app/src/zh/tts.js', () => ({
+vi.mock('../app/src/zh/audio.js', () => ({
   ready: async () => ({ lang: 'zh-CN' }),
   isAvailable: () => true,
   speak: vi.fn(async () => true),
@@ -37,6 +37,9 @@ vi.mock('../app/src/zh/tts.js', () => ({
   reset: () => {},
   RATE_NORMAL: 0.9,
   RATE_SLOW: 0.6,
+  SOURCE: { PACK: 'pack', TTS: 'tts', NONE: 'none' },
+  loadManifest: async () => null,
+  packUrl: () => null,
 }));
 
 const word = (over = {}) => ({
@@ -557,7 +560,7 @@ describe('flip guard', () => {
 
   it('does not reveal when "Play again" is clicked on a listening front', async () => {
     const { store, host, teardown } = await sessionOn('LIS');
-    const tts = await import('../app/src/zh/tts.js');
+    const tts = await import('../app/src/zh/audio.js');
 
     // The replay control appears once the voice resolves.
     await vi.waitFor(() => expect(host.querySelector('.audio-control')).not.toBeNull());
@@ -574,7 +577,7 @@ describe('flip guard', () => {
 
   it('does not re-flip or advance when the audio button on a back is tapped', async () => {
     const { store, host, teardown } = await sessionOn('REC');
-    const tts = await import('../app/src/zh/tts.js');
+    const tts = await import('../app/src/zh/audio.js');
 
     document.dispatchEvent(new window.KeyboardEvent('keydown', { key: ' ', bubbles: true }));
     await vi.waitFor(() => expect(host.querySelector('.ratings')).not.toBeNull());
@@ -593,13 +596,14 @@ describe('flip guard', () => {
 
   it('speaks the hanzi on tap, and does not reveal (§3.4.3)', async () => {
     const { store, host, teardown } = await sessionOn('REC');
-    const tts = await import('../app/src/zh/tts.js');
+    const tts = await import('../app/src/zh/audio.js');
     tts.speak.mockClear();
 
     host.querySelector('.hanzi').click();
 
-    // Tap-to-flip is gone: the tap is a hint, not an answer.
-    expect(tts.speak).toHaveBeenCalledWith('爱');
+    // Tap-to-flip is gone: the tap is a hint, not an answer. The word id rides along so
+    // the resolver can reach for pack audio before browser speech (§8.4).
+    expect(tts.speak).toHaveBeenCalledWith('爱', expect.objectContaining({ key: 'w1' }));
     expect(host.querySelector('.ratings')).toBeNull();
     expect(store.store.events).toHaveLength(0);
 

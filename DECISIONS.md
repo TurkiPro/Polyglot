@@ -439,4 +439,40 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   automatically the moment the deck carries the field, so this is one pipeline change
   away. `hermitdave/FrequencyWords` (MIT) remains the candidate, and adopting it is still
   a source substitution needing approval under §4.
+- **Phase 8 §1: the licence check changed which Piper voice the bake-off uses.** Engine
+  licences are the easy part — Piper and MeloTTS are both MIT, and MeloTTS-Chinese is MIT.
+  The *training datasets* are where it nearly went wrong. Piper's best-known Chinese voice,
+  `zh_CN-huayan`, states its dataset licence as **"Unknown"**, which is not a grant;
+  `zh_CN-xiao_ya` is explicitly **non-commercial**, which AGPL cannot accept. Only
+  `zh_CN-chaowen` (dataset **CC0**) is clean, so that is what the bake-off renders.
+- **Phase 8 §1: Piper's Chinese path is not the lightweight option its reputation
+  suggests.** Getting it to speak Mandarin needs `piper-tts` + `g2pw` + **torch** +
+  `requests` + `unicode_rbnf` + `sentence_stream`, and G2PW downloads a model of its own
+  on first use. I installed all of it on this machine and `phonemize('你好')` still
+  returned an empty phoneme list, so no samples were produced. MeloTTS also needs torch.
+  The "Piper is lighter" premise does not survive contact with Chinese — worth knowing
+  before the pick.
+- Phase 8 §1: the bake-off **fails loudly** rather than writing 25 silent files. An empty
+  phoneme list is checked before rendering, because silent audio that looks successful is
+  worse than an obvious failure.
+- Phase 8 §2: 17,001 items (10,904 words + 6,097 intro sentences), estimated 0.13-0.20 GB
+  at 8-12 KB each.
+- Phase 8 §3: **R2 free tier verified 2026-07-24 — 10 GB-month storage, 1M Class A ops,
+  10M Class B ops per month.** The pack is ~2% of storage; the one-time upload is ~17k
+  Class A ops, under 2% of the monthly allowance; playback is Class B and the service
+  worker caches each file forever after first play. It fits comfortably.
+- Phase 8 §3: `/audio/:file` needs no session. It is public data — the same audio anyone
+  can regenerate from the committed manifest — and requiring a session would break guest
+  mode (§1.3). Traversal is refused by rejecting any name containing `/` or `..`, verified
+  against percent-encoded attempts as well.
+- Phase 8 §4: `zh/audio.js` wraps `tts.js` rather than replacing it, and re-exports its
+  whole surface, so every existing audio control kept working with no markup change. The
+  resolver returns *which* source spoke, which is what makes the fallback chain testable
+  rather than merely hoped for.
+- Phase 8 §4: slow replay is the same file at `playbackRate` 0.6 with `preservesPitch`, so
+  a slowed word is the same voice rather than a lower one — and there is no second file to
+  generate, store or upload.
+- Phase 8: the audio pack is **optional by design**. No manifest means browser speech, not
+  silence, so a deploy without R2 — or a fork that never runs the generator — still works.
+  The three manifest-contract tests skip themselves until a pack exists.
 

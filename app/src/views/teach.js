@@ -9,7 +9,7 @@
 import { audioControl, button, div, el, p, span, tianzige } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { colorMarkedPinyin, colorPinyin, highlightWord } from '../zh/tones.js';
-import * as tts from '../zh/tts.js';
+import * as tts from '../zh/audio.js';
 
 const s = strings.teach;
 
@@ -34,7 +34,7 @@ export function renderTeach(word, onDone) {
   const speakable = word.splitPrimary !== false;
 
   // Autoplay, rotating voices: first exposure is where multi-talker input pays most.
-  if (speakable) tts.speak(word.simp, { rotate: true });
+  if (speakable) tts.speak(word.simp, { key: word.id, rotate: true });
 
   const pinyin = div({ class: 'pinyin teach-pinyin' });
   pinyin.append(colorPinyin(word.pinyinNum));
@@ -47,8 +47,8 @@ export function renderTeach(word, onDone) {
     el('ul', { class: 'defs teach-defs' }, (word.defs ?? []).map((def) => el('li', { text: def }))),
     speakable
       ? audioControl(
-          () => tts.speak(word.simp, { rotate: true }),
-          () => tts.speakSlow(word.simp),
+          () => tts.speak(word.simp, { key: word.id, rotate: true }),
+          () => tts.speakSlow(word.simp, { key: word.id }),
           { label: strings.review.play, slowLabel: strings.review.playSlow },
         )
       : null,
@@ -72,8 +72,8 @@ function sentenceBlock(sentence, word, speakable) {
     p(sentence.en, 'sentence-en'),
     speakable
       ? audioControl(
-          () => tts.speak(sentence.zh, { rotate: true }),
-          () => tts.speakSlow(sentence.zh),
+          () => tts.speak(sentence.zh, { key: sentence.src, rotate: true }),
+          () => tts.speakSlow(sentence.zh, { key: sentence.src }),
           { label: strings.review.play, slowLabel: strings.review.playSlow, compact: true },
         )
       : null,

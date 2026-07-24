@@ -11,7 +11,7 @@
 import { store, updateSettings } from '../store.js';
 import { button, div, el, p, panel, replace, span } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
-import * as tts from '../zh/tts.js';
+import * as tts from '../zh/audio.js';
 
 const s = strings.voices;
 
