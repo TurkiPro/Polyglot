@@ -20,6 +20,32 @@ const DAY = 86400000;
 const STREAK_MILESTONES = [7, 30, 100, 365];
 const REVIEW_MILESTONES = [1000, 10000];
 
+/**
+ * The word that fought hardest today (Design v3 §2.2): most Again presses this local
+ * day, ties broken by the most recent press. Null when today held no Again at all —
+ * the sign-lighting is earned by struggle, so an easy day simply has no sign.
+ * Returns a wordId; the caller resolves it against the deck.
+ */
+export function hardestWordToday(events, now = Date.now()) {
+  const today = localDayKey(now);
+  const tally = new Map(); // wordId → { count, latest }
+  for (const event of events) {
+    if (event.rating !== 1 || localDayKey(event.ts) !== today) continue;
+    const wordId = event.cardId.split('#')[0];
+    const entry = tally.get(wordId) ?? { count: 0, latest: 0 };
+    entry.count += 1;
+    entry.latest = Math.max(entry.latest, event.ts);
+    tally.set(wordId, entry);
+  }
+  let best = null;
+  for (const [wordId, { count, latest }] of tally) {
+    if (!best || count > best.count || (count === best.count && latest > best.latest)) {
+      best = { wordId, count, latest };
+    }
+  }
+  return best ? best.wordId : null;
+}
+
 /** Reviews per local day, oldest first. */
 export function reviewsByDay(events) {
   const byDay = new Map();

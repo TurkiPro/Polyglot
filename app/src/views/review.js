@@ -4,6 +4,7 @@
  * Space or tap flips; 1-4 grade (§9). Every mode's front and back follow the §9 table.
  */
 import { parseCardId } from '../engine/deck.js';
+import { hardestWordToday } from '../engine/gamify.js';
 import { RATING, newCard, previewSchedules } from '../engine/srs.js';
 import { noteSync, queue, recordReview, store, syncPort, updateSettings } from '../store.js';
 import { localDayKey } from '../engine/replay.js';
@@ -97,7 +98,8 @@ export function renderReview(root, ctx) {
      * stroke by stroke. It is the one piece of theatre that has to be earned — you only
      * see it because you struggled with that character and finished anyway.
      */
-    const hardest = hardestToday();
+    const hardestId = hardestWordToday(store.events);
+    const hardest = hardestId ? store.deck.word(hardestId) : null;
     const sign = div({ class: 'done-sign' });
 
     replace(
