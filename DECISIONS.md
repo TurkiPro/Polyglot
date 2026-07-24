@@ -519,4 +519,38 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   three, and only an engine actually tried can fail the run.
 - Phase 8 §2: `generate.py` levels every clip for the same reason, and checks the
   phonemizer before committing to a run — silence would otherwise be shipped 17,000 times.
+- **Phase 8 §1: single-character words are rendered through a carrier phrase, not alone.**
+  A lone character is three phonemes with no run-up, and the sentence-trained voice lays
+  almost no tone over it — measured, it swings 130-170 Hz of pitch inside a sentence and
+  only 20-40 Hz for the same character alone, so 好 / 号 / 巧 came out flat and clipped
+  (the maintainer heard this and asked). The fix, in `carrier.py` and applied only to
+  single characters (multi-syllable words already carry their own tone context): render
+  the character at the end of `请说{}。`, where it gets a real tone, then cut the target
+  syllable back out. Verified: bare syllables move 17-46 Hz with no tonal logic; cropped
+  from the carrier they move tone-appropriately (T1 妈 ~9 Hz flat, T4 号/骂 ~76-80 Hz fall,
+  T3 好/马 ~70-85 Hz dip).
+- Phase 8 §1: the carrier ends **high** (说, tone 1) deliberately. The carrier's final
+  syllable coarticulates into the target: `这是` (ending on 是, tone 4, low) flattened a
+  following third tone to 0 Hz, while `请说` (ending high) let it move. `请说` beat `这是`
+  on every tone tested. Coarticulation is a real cost of the approach and the reason the
+  carrier choice is not arbitrary.
+- **Phase 8 §1: the syllable is cut by phoneme alignment, not by energy.** The first
+  attempt cropped the last voiced run, which kept whole neighbouring syllables — Chinese
+  syllables run together with no silence between them, so there is no gap to cut on, and
+  the maintainer correctly heard "almost a whole phrase". The alignment crop is exact
+  (0.27-0.31 s single syllables). Piper's *own* Chinese alignment is broken — its
+  reconciliation assumes a PAD id after every phoneme, but the zh phonemizer only pads
+  after tones and punctuation, so it always reports failure — yet the raw per-id sample
+  counts it returns are correct, so `carrier.py` rebuilds the phoneme→sample mapping from
+  the known padding rule. Needs the `onnx` package (to patch the model for alignment
+  output); without it single characters fall back to a bare render rather than breaking.
+- Phase 8 §1: loading the voice with `include_alignments=True` was verified to produce
+  byte-identical audio for a normal (non-cropped) render, so turning it on for the whole
+  build leaves every multi-syllable and sentence hash unchanged. The carrier crop is
+  itself deterministic under noise-off, so `piper-fixed`'s reproducibility guarantee holds
+  for single-character words too.
+- Phase 8 §1: the audio build scripts share `lib.py` (UTF-8 re-exec, levelling, silence
+  trim, F0 measurement) and `carrier.py` (the single-char crop), so `bakeoff.py`,
+  `generate.py` and `isolated.py` agree on one definition of each and every file stays
+  under the ~300-line cap.
 

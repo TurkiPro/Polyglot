@@ -242,14 +242,23 @@ are installed and working in `.venv/`, so step 1 is done unless you are on anoth
        not currently satisfiable on this machine. (The bake-off writes `.wav` and does not
        need it, which is why this has not surfaced yet.)
 6. [ ] `python packs/zh/audio/generate.py --limit 50` first — check fifty files sound
-       right and the manifest looks sane — then run it without `--limit`.
+       right and the manifest looks sane — then run it without `--limit`. Single-character
+       words are rendered through the `请说_。` carrier and cropped (see below); everything
+       longer renders whole. This needs `onnx` installed (already in `.venv/`); without it
+       single characters silently fall back to a bare, toneless render.
 7. [ ] `npx wrangler r2 bucket create polyglot-audio`, then `node packs/zh/audio/upload.mjs`.
-8. [ ] Spot-check five `/audio/<hash>.ogg` URLs on the deployed origin.
+8. [ ] Spot-check five `/audio/<hash>.ogg` URLs on the deployed origin — include at least
+       one single-character word (好, 女) and confirm its tone is present, not flat.
 
 While listening, note that **MeloTTS renders isolated single characters far quieter than
 sentences** — 5–50× below its own sentence level, with 女 arriving at peak 85/32767. The
 page flags these in red. Levelling rescues them here, but a deck that is mostly short
 words is the wrong shape for that engine's weakness, so weigh it accordingly.
+
+Single-character tone is handled separately, and approved: `python packs/zh/audio/isolated.py`
+renders bare vs. carrier-cropped single characters into `samples/isolated/` — the
+maintainer signed off on the `请说_。` carrier, which `generate.py` now applies to every
+single-character word. If you want to reconfirm by ear, that page is where.
 
 Then, on device:
 

@@ -63,8 +63,10 @@ Neither is a project dependency — they are tools you install on the build mach
 Chinese, because its Mandarin path phonemizes through G2PW.
 
 ```sh
-# Piper — torch, g2pw, and a 159 MB G2PW model downloaded on first use
-pip install piper-tts g2pw torch requests unicode_rbnf sentence_stream
+# Piper — torch, g2pw, and a 159 MB G2PW model downloaded on first use.
+# onnx is for the single-character carrier crop (see Generation); without it those
+# words fall back to a bare, toneless render rather than failing.
+pip install piper-tts g2pw torch requests unicode_rbnf sentence_stream onnx
 python -m piper.download_voices zh_CN-chaowen-medium   # then move the .onnx into models/
 
 # MeloTTS (heavier: torch, ~2 GB)
@@ -117,3 +119,26 @@ expect the previous objects to be orphaned in the bucket.
 Every clip is peak-levelled during generation. Engines render isolated words far quieter
 than sentences — MeloTTS put single characters 5–50× below its own sentence level — and a
 word that plays at a tenth of the volume of its example sentence reads as broken.
+
+### Single characters get a carrier phrase
+
+A lone character is three phonemes with no run-up, and a sentence-trained voice lays almost
+no tone over it: this voice swings 130–170 Hz of pitch inside a sentence and only 20–40 Hz
+for the same character alone, so 好 / 号 / 巧 come out flat and clipped. See `carrier.py`.
+
+The fix, applied automatically to every single-character word (nothing longer, since
+multi-syllable words already carry their own tone context): render the character at the end
+of the carrier `请说{}。` — where it gets a real tone — then cut the target syllable back out
+at exact phoneme boundaries. Two details earned their place:
+
+- The carrier ends **high** (说, tone 1) on purpose. Its final syllable coarticulates into
+  the target, and a low-ending carrier (是, tone 4) flattens a following third tone while a
+  high-ending one lets it move. Measured, `请说` beat `这是` on every tone.
+- The crop uses phoneme→sample **alignment**, not energy gaps. Chinese syllables run
+  together with no silence between them, so an energy-based cut keeps whole neighbours.
+  Piper's own Chinese alignment is broken (it assumes a PAD after every phoneme; the zh
+  phonemizer only pads after tones and punctuation), so `carrier.py` rebuilds the mapping
+  from the raw per-id sample counts, which are correct.
+
+`isolated.py` renders bare vs. both carriers side by side into `samples/isolated/` for
+listening — that is how the carrier was chosen.

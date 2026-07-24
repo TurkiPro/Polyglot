@@ -32,7 +32,8 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 
 sys.path.insert(0, str(HERE))
-from bakeoff import ensure_utf8_mode, normalize  # noqa: E402
+from carrier import CARRIER, crop_target, write_wav  # noqa: E402
+from lib import ensure_utf8_mode, normalize, trim_silence  # noqa: E402
 
 # Must run before anything reads a file: g2pW opens its dictionaries in the locale
 # codepage and returns None for every character when that is not UTF-8 (see bakeoff.py).
@@ -105,8 +106,10 @@ def render_piper(items: list[tuple[str, str]], force: bool, deterministic: bool 
         raise SystemExit(f"voice missing: {model} — see README.md")
 
     # download_dir pins where G2PW's model is found; it defaults to the current directory,
-    # so without this the pack only builds when run from the repo root.
-    voice = PiperVoice.load(str(model), download_dir=ROOT)
+    # so without this the pack only builds when run from the repo root. include_alignments
+    # patches the model in memory for the single-character carrier crop below — verified
+    # not to change the audio of a normal render, so multi-syllable hashes are unaffected.
+    voice = PiperVoice.load(str(model), download_dir=ROOT, include_alignments=True)
     syn_config = SynthesisConfig(noise_scale=0.0, noise_w_scale=0.0) if deterministic else None
 
     # Silence would be shipped 17,000 times over, so check once before committing to a run.
@@ -121,8 +124,21 @@ def render_piper(items: list[tuple[str, str]], force: bool, deterministic: bool 
 
     for index, (key, text) in enumerate(items, 1):
         temp = OUT / "_tmp.wav"
-        with wave.open(str(temp), "wb") as target:
-            voice.synthesize_wav(text, target, syn_config=syn_config)
+
+        # A lone character gets a real tone only inside a carrier phrase; render it there
+        # and crop the target syllable back out (see carrier.py). Everything longer already
+        # carries its own tone context. A crop that cannot align falls back to a bare render.
+        cropped = False
+        if len(text) == 1:
+            pcm, rate = crop_target(voice, syn_config, text, CARRIER)
+            if pcm is not None:
+                write_wav(temp, pcm, rate)
+                trim_silence(temp)
+                cropped = True
+        if not cropped:
+            with wave.open(str(temp), "wb") as target:
+                voice.synthesize_wav(text, target, syn_config=syn_config)
+
         # Level every clip: engines render isolated words far quieter than sentences, and a
         # word that plays at a tenth of the volume of its example sentence reads as broken.
         normalize(temp)

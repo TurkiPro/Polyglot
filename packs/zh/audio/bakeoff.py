@@ -19,31 +19,11 @@ from __future__ import annotations
 import argparse
 import html
 import json
-import os
 import sys
 from pathlib import Path
 
-
-def ensure_utf8_mode() -> None:
-    """Re-exec under Python's UTF-8 mode unless we are already in it.
-
-    g2pW opens its character dictionaries with no explicit encoding, so Python falls back
-    to the locale's ANSI codepage. On any machine whose codepage is not UTF-8 — cp1256,
-    cp1252, cp936, most of the non-en_US world — every Chinese key in POLYPHONIC_CHARS.txt
-    decodes to mojibake, no lookup ever matches, and the phonemizer returns None for every
-    character *without raising*. That is silence, not an error, which is exactly the kind
-    of failure this script exists to catch.
-
-    `open()`'s default encoding is fixed when the interpreter starts, so this cannot be
-    repaired in-process; hence the re-exec.
-    """
-    if sys.flags.utf8_mode or os.environ.get("_POLYGLOT_UTF8"):
-        return
-    os.environ["_POLYGLOT_UTF8"] = "1"  # belt and braces against a re-exec loop
-    os.environ["PYTHONUTF8"] = "1"
-    os.environ.setdefault("PYTHONIOENCODING", "utf-8")
-    os.execv(sys.executable, [sys.executable, "-X", "utf8", *sys.argv])
-
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lib import ensure_utf8_mode, measure, normalize  # noqa: E402
 
 ensure_utf8_mode()
 
@@ -61,54 +41,6 @@ MELO_SPEAKER = "ZH"
 
 def load_set() -> dict:
     return json.loads((HERE / "samples.json").read_text(encoding="utf-8"))
-
-
-def measure(path: Path) -> tuple[int, int]:
-    """Peak and RMS of a 16-bit mono wav, as raw sample values."""
-    import array
-    import wave
-
-    with wave.open(str(path), "rb") as source:
-        samples = array.array("h")
-        samples.frombytes(source.readframes(source.getnframes()))
-
-    if not samples:
-        return 0, 0
-    peak = max(abs(value) for value in samples)
-    rms = int((sum(value * value for value in samples) / len(samples)) ** 0.5)
-    return peak, rms
-
-
-def normalize(path: Path, target: float = 0.89) -> None:
-    """Scale a file to a common peak.
-
-    The engines disagree about output gain by an order of magnitude — Piper returns
-    full-scale audio, MeloTTS returns something far quieter. The page asks for a judgement
-    about *tone accuracy*, and loudness would dominate that judgement, so every sample is
-    levelled before it is heard. The measured levels are reported separately rather than
-    thrown away, because the gain difference is itself a finding.
-    """
-    import array
-    import wave
-
-    with wave.open(str(path), "rb") as source:
-        params = source.getparams()
-        samples = array.array("h")
-        samples.frombytes(source.readframes(source.getnframes()))
-
-    peak = max((abs(value) for value in samples), default=0)
-    if peak == 0:
-        return
-
-    gain = (target * 32767) / peak
-    if abs(gain - 1.0) < 0.01:
-        return
-    for index, value in enumerate(samples):
-        samples[index] = max(-32768, min(32767, int(value * gain)))
-
-    with wave.open(str(path), "wb") as target_file:
-        target_file.setparams(params)
-        target_file.writeframes(samples.tobytes())
 
 
 # ── Piper ────────────────────────────────────────────────────────────────
