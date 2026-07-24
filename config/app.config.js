@@ -26,7 +26,7 @@ export const config = deepFreeze({
     workerName: 'polyglot',
     d1DbName: 'polyglot-db',
     /** Replace <subdomain> with the account's workers.dev subdomain, or a custom domain. */
-    prodUrl: 'https://polyglot.<subdomain>.workers.dev',
+    prodUrl: 'https://polyglot.turkisecurity.com',
   },
 
   // ── Auth / API ────────────────────────────────────────────
