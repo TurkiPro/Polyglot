@@ -94,7 +94,12 @@ export const config = deepFreeze({
      * speech when no manifest is present.
      */
     engine: '',
-    /** Pinned so a regeneration reproduces the same audio, and the same hashes. */
+    /**
+     * Pinned so a regeneration uses the same engine build. Note that pinning the version
+     * is not by itself enough to reproduce the same hashes: `piper` and `melotts` sample
+     * synthesis noise inside the ONNX graph, so identical text renders different bytes on
+     * every run. Only `piper-fixed` (noise disabled) is bit-reproducible.
+     */
     engineVersion: '',
     /** R2 bucket the pack is served from; see worker/wrangler.toml for the binding. */
     bucket: 'polyglot-audio',

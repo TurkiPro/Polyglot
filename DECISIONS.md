@@ -475,4 +475,48 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
 - Phase 8: the audio pack is **optional by design**. No manifest means browser speech, not
   silence, so a deploy without R2 — or a fork that never runs the generator — still works.
   The three manifest-contract tests skip themselves until a pack exists.
+- **Phase 8 §1: the bake-off rendered nothing because of the machine's locale, not the
+  model.** g2pW opens its character dictionaries with no explicit encoding, so Python
+  decodes them in the system ANSI codepage — cp1256 here. Every Chinese key became
+  mojibake (一 arrived as `ن¸€`), no lookup matched, and the phonemizer returned `None`
+  for every character *without raising*: silent output, no error, and nothing wrong with
+  the 159 MB `g2pW/` folder. Same interpreter and same model, only `PYTHONUTF8` differing,
+  turns `[[None, None, None]]` into `[['hao3', 'hao4', 'qiao3']]`. Both scripts now
+  re-exec themselves under `-X utf8`, since `open()`'s default encoding is fixed at
+  interpreter start and cannot be repaired in-process. This will bite anyone whose
+  codepage is not UTF-8 — cp1252, cp936, most of the world outside en_US.
+- Phase 8 §1: the suspected corrupt `bert-base-chinese` cache was **innocent**. Its 126 KB
+  is exactly the three blobs g2pW needs (vocab, config, tokenizer config); the BERT weights
+  are never used, because inference runs through `g2pw.onnx`.
+- Phase 8 §1: two dependency traps sit in front of the engines, and both misreport
+  themselves. `transformers` v5 exposes `BertTokenizer` as a fast-tokenizer wrapper needing
+  `tokenizers>=0.22`, so a stale `tokenizers` makes `import transformers` fail outright.
+  MeloTTS pins `librosa==0.9.1`, which imports `pkg_resources`, which setuptools >= 81
+  removed — so a current venv raises `ModuleNotFoundError: pkg_resources` while `pip list`
+  shows `melotts` installed. The bake-off used to report both as "MeloTTS is not
+  installed"; it now names the real cause.
+- Phase 8 §1: G2PW's model is resolved as `<cwd>/g2pW`, so running the scripts from
+  anywhere but the repo root silently re-downloaded 159 MB. Both now pass an explicit path.
+- **Phase 8 §1: both engines are stochastic, which broke a documented promise.** The
+  synthesis noise is sampled inside the ONNX graph, so seeding numpy does nothing and
+  identical text renders different bytes every run — verified for both. Because a file's
+  name *is* its content hash, `generate.py`'s claim that "regeneration is deterministic for
+  a pinned engine version" was false: a re-run after a deck update would rename all ~17k
+  files, orphan the uploaded pack and invalidate every cached client. Zeroing Piper's
+  `noise_scale`/`noise_w_scale` makes it bit-reproducible (25/25 files identical across
+  full re-renders), so that ships as a third bake-off column, `piper-fixed`. It is a column
+  rather than a silent default because it trades prosodic variation for reproducibility,
+  and this phase judges voices by ear.
+- **Phase 8 §1: samples are peak-levelled before the maintainer hears them.** The engines
+  disagree about output gain by roughly 10×, and MeloTTS renders isolated single characters
+  5–50× below its own sentence level — 女 arrived at peak 85/32767. Judging "tone accuracy"
+  across a 10× loudness gap would have been a loudness test. Raw levels are measured once
+  at render time and kept in a `levels.json` sidecar, because levelling is destructive and
+  a later partial run would otherwise re-measure already-levelled files and erase the
+  finding — a bug that appeared and was caught during this work.
+- Phase 8 §1: `--engine X` no longer reports the other engines as failures. An engine that
+  was not attempted keeps the audio it rendered last time, so the page still compares all
+  three, and only an engine actually tried can fail the run.
+- Phase 8 §2: `generate.py` levels every clip for the same reason, and checks the
+  phonemizer before committing to a run — silence would otherwise be shipped 17,000 times.
 

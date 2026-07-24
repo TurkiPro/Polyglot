@@ -222,17 +222,34 @@ Use a **fresh guest profile** for the first five; your own account should see no
 
 **Blocked on you: the engine pick.** Everything downstream is built and waiting.
 
-1. [ ] Install an engine (see `packs/zh/audio/README.md` — note that Chinese needs torch
-       either way, and Piper additionally needs g2pw, which downloads its own model).
-2. [ ] `python packs/zh/audio/bakeoff.py`, then open `samples/index.html` and listen with
-       headphones. Judge **tone accuracy**: 好 / 号 / 巧 must be unmistakably different,
-       and third tone should dip rather than merely fall.
-3. [ ] Set the winner as `audio.engine` (and `audio.engineVersion`) in
+The bake-off now renders — all three columns, 75 files, verified non-silent. Both engines
+are installed and working in `.venv/`, so step 1 is done unless you are on another machine.
+
+1. [x] Install the engines — done in `.venv/`. If you rebuild it, follow
+       `packs/zh/audio/README.md`, including its **Known traps** section: every one of
+       them fails silently, and one of them (the locale) is why this phase stalled.
+2. [ ] `.venv/Scripts/python.exe packs/zh/audio/bakeoff.py`, then open
+       `samples/index.html` and listen with headphones. Judge **tone accuracy**:
+       好 / 号 / 巧 must be unmistakably different, and third tone should dip rather than
+       merely fall. Samples are peak-levelled, so loudness cannot skew the comparison.
+3. [ ] Compare `piper` against `piper-fixed` specifically. They are the same voice; the
+       second has synthesis noise disabled and is the **only** bit-reproducible option.
+       Prefer `piper-fixed` unless it is audibly worse — otherwise every future
+       regeneration renames all ~17k files and orphans the uploaded pack.
+4. [ ] Set the winner as `audio.engine` (and `audio.engineVersion`) in
        `config/app.config.js`.
-4. [ ] `python packs/zh/audio/generate.py --limit 50` first — check fifty files sound
+5. [ ] Install `ffmpeg` and put it on `PATH` — `generate.py` encodes Opus with it and is
+       not currently satisfiable on this machine. (The bake-off writes `.wav` and does not
+       need it, which is why this has not surfaced yet.)
+6. [ ] `python packs/zh/audio/generate.py --limit 50` first — check fifty files sound
        right and the manifest looks sane — then run it without `--limit`.
-5. [ ] `npx wrangler r2 bucket create polyglot-audio`, then `node packs/zh/audio/upload.mjs`.
-6. [ ] Spot-check five `/audio/<hash>.ogg` URLs on the deployed origin.
+7. [ ] `npx wrangler r2 bucket create polyglot-audio`, then `node packs/zh/audio/upload.mjs`.
+8. [ ] Spot-check five `/audio/<hash>.ogg` URLs on the deployed origin.
+
+While listening, note that **MeloTTS renders isolated single characters far quieter than
+sentences** — 5–50× below its own sentence level, with 女 arriving at peak 85/32767. The
+page flags these in red. Levelling rescues them here, but a deck that is mostly short
+words is the wrong shape for that engine's weakness, so weigh it accordingly.
 
 Then, on device:
 

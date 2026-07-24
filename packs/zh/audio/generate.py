@@ -9,8 +9,13 @@ and writes `app/assets/packs/zh/audio-manifest.json`.
     python packs/zh/audio/generate.py --limit 50 # a slice, to sanity-check first
     python packs/zh/audio/generate.py --force    # re-render even if present
 
-The .ogg files are NOT committed — the manifest is (§2). Regeneration is deterministic
-for a pinned engine version, so a rebuild reproduces the same hashes.
+The .ogg files are NOT committed — the manifest is (§2).
+
+Reproducibility depends on the engine. Piper and MeloTTS both sample synthesis noise
+inside the ONNX graph, so by default identical text renders different bytes every run;
+because a file is named after its content hash, a re-run would rename every file, orphan
+the uploaded pack and invalidate every cached client. The `piper-fixed` engine disables
+that noise and is bit-reproducible — verified, and the reason it exists in the bake-off.
 """
 from __future__ import annotations
 
@@ -25,6 +30,13 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
+
+sys.path.insert(0, str(HERE))
+from bakeoff import ensure_utf8_mode, normalize  # noqa: E402
+
+# Must run before anything reads a file: g2pW opens its dictionaries in the locale
+# codepage and returns None for every character when that is not UTF-8 (see bakeoff.py).
+ensure_utf8_mode()
 OUT = HERE / "out"
 MODELS = HERE / "models"
 DECK = ROOT / "app" / "assets" / "packs" / "zh" / "deck.zh.json"
@@ -83,8 +95,8 @@ def content_hash(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
 
 
-def render_piper(items: list[tuple[str, str]], force: bool) -> dict[str, dict]:
-    from piper import PiperVoice  # imported here so --help works without it
+def render_piper(items: list[tuple[str, str]], force: bool, deterministic: bool = False) -> dict[str, dict]:
+    from piper import PiperVoice, SynthesisConfig  # imported here so --help works without it
 
     from bakeoff import PIPER_VOICE  # the licence-clean voice, one definition
 
@@ -92,14 +104,28 @@ def render_piper(items: list[tuple[str, str]], force: bool) -> dict[str, dict]:
     if not model.exists():
         raise SystemExit(f"voice missing: {model} — see README.md")
 
-    voice = PiperVoice.load(str(model))
+    # download_dir pins where G2PW's model is found; it defaults to the current directory,
+    # so without this the pack only builds when run from the repo root.
+    voice = PiperVoice.load(str(model), download_dir=ROOT)
+    syn_config = SynthesisConfig(noise_scale=0.0, noise_w_scale=0.0) if deterministic else None
+
+    # Silence would be shipped 17,000 times over, so check once before committing to a run.
+    if not any(voice.phonemize(items[0][1])):
+        raise SystemExit(
+            "the Chinese phonemizer returned no phonemes — nothing would be rendered but "
+            "silence. See packs/zh/audio/README.md (usually the locale/UTF-8 mode)."
+        )
+
     OUT.mkdir(parents=True, exist_ok=True)
     manifest: dict[str, dict] = {}
 
     for index, (key, text) in enumerate(items, 1):
         temp = OUT / "_tmp.wav"
         with wave.open(str(temp), "wb") as target:
-            voice.synthesize_wav(text, target)
+            voice.synthesize_wav(text, target, syn_config=syn_config)
+        # Level every clip: engines render isolated words far quieter than sentences, and a
+        # word that plays at a tenth of the volume of its example sentence reads as broken.
+        normalize(temp)
 
         digest = content_hash(temp)
         ogg = OUT / f"{digest}.ogg"
@@ -115,7 +141,12 @@ def render_piper(items: list[tuple[str, str]], force: bool) -> dict[str, dict]:
     return manifest
 
 
-ENGINES = {"piper": render_piper}
+def render_piper_fixed(items: list[tuple[str, str]], force: bool) -> dict[str, dict]:
+    """Reproducible: same voice, synthesis noise off (see the module docstring)."""
+    return render_piper(items, force, deterministic=True)
+
+
+ENGINES = {"piper": render_piper, "piper-fixed": render_piper_fixed}
 
 
 def main() -> int:
@@ -164,5 +195,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.path.insert(0, str(HERE))
     raise SystemExit(main())

@@ -11,3 +11,7 @@ packs/zh/audio/out/
 
 # G2PW downloads its model here on first use (Phase 8 §1 bake-off, build machine only).
 g2pW/
+
+# The TTS engines are build-machine tools, not project dependencies (Phase 8 §1).
+.venv/
+__pycache__/
