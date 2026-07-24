@@ -21,7 +21,7 @@ binding = "DB"
 database_name = "polyglot-db"
 # Replace with the real id from `wrangler d1 create polyglot-db` (§13.2).
 # Local dev (`wrangler dev`) works with this placeholder.
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "aa9073c4-a293-4c17-b22e-c4dbaa66295e"
 
 # Secrets (never committed — set with `wrangler secret put`, or .dev.vars locally):
 #   GITHUB_CLIENT_ID  GITHUB_CLIENT_SECRET
