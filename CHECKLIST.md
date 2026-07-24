@@ -241,11 +241,12 @@ are installed and working in `.venv/`, so step 1 is done unless you are on anoth
 5. [ ] Install `ffmpeg` and put it on `PATH` — `generate.py` encodes Opus with it and is
        not currently satisfiable on this machine. (The bake-off writes `.wav` and does not
        need it, which is why this has not surfaced yet.)
-6. [ ] `python packs/zh/audio/generate.py --limit 50` first — check fifty files sound
-       right and the manifest looks sane — then run it without `--limit`. Single-character
-       words are rendered through the `请说_。` carrier and cropped (see below); everything
-       longer renders whole. This needs `onnx` installed (already in `.venv/`); without it
-       single characters silently fall back to a bare, toneless render.
+6. [x] `python packs/zh/audio/generate.py` — **done**. 17,001 items → 16,217 unique files
+       (shared readings dedupe), 62.2 MB, engine `piper-fixed`, manifest committed. Single
+       characters are carrier-cropped to ~0.3 s, everything longer renders whole; the
+       manifest-contract tests pass and a decode sample found nothing silent. Single-char
+       words use the `请说_。` carrier (see below); this needs `onnx` (already in `.venv/`),
+       without which those words fall back to a bare, toneless render.
 7. [ ] `npx wrangler r2 bucket create polyglot-audio`, then `node packs/zh/audio/upload.mjs`.
 8. [ ] Spot-check five `/audio/<hash>.ogg` URLs on the deployed origin — include at least
        one single-character word (好, 女) and confirm its tone is present, not flat.
