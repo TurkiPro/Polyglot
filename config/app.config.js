@@ -48,7 +48,7 @@ export const config = deepFreeze({
   pack: {
     langPackV1: 'zh',
     hskVersion: '3.0',
-    deckSchemaVersion: 1,
+    deckSchemaVersion: 2,
     sentencesPerWord: 3,
     sentenceMaxChars: 30,
   },
@@ -59,6 +59,31 @@ export const config = deepFreeze({
     maxReviewsPerDay: 200,
     staggerUnlockDays: 3, // non-REC cards unlock when REC interval ≥ this
     fsrsTargetRetention: 0.9,
+    /**
+     * New cards per day for a new account's first active days: 5 for days 1-7, 7 for
+     * days 8-14, then newCardsPerDay. Small early loads fit working-memory limits and
+     * cut week-one dropout. The Settings slider overrides the ramp at any time.
+     */
+    newCardsRamp: [
+      { throughDay: 7, cards: 5 },
+      { throughDay: 14, cards: 7 },
+    ],
+  },
+
+  // ── Learn mode (Phase 7) ──────────────────────────────────
+  learn: {
+    /**
+     * Handwriting track. New accounts choose at onboarding, default off: handwriting
+     * helps character form but is an inefficient use of an absolute beginner's time and
+     * must never gate progress. Migrated accounts are set on — that choice was already
+     * made deliberately. Off means no WRITE sibling cards; Practice writing on a word
+     * page stays available to everyone.
+     */
+    writingTrackDefault: false,
+    /** Rotate installed zh voices per play; multiple talkers aid tone-category learning. */
+    multiVoice: true,
+    /** Drills per tone-gym set. */
+    toneGymSetSize: 10,
   },
 
   // ── Gamification ──────────────────────────────────────────
@@ -117,6 +142,14 @@ export const config = deepFreeze({
      */
     notoSerifScUrl:
       'https://raw.githubusercontent.com/google/fonts/main/ofl/notoserifsc/NotoSerifSC%5Bwght%5D.ttf',
+    /**
+     * Character decomposition for the teach screen's component breakdown.
+     * dictionary.txt is LGPL-3.0-or-later (see the project's COPYING), derived from
+     * Unihan and CJKlib — redistributable, and compatible with this project's AGPL-3.0.
+     * Pinned to a commit so a rebuild is reproducible.
+     */
+    decompUrl:
+      'https://raw.githubusercontent.com/skishore/makemeahanzi/bddc96d41bef78427ed0e034e9f7e31d71fd1b92/dictionary.txt',
     hsk30Base:
       'https://raw.githubusercontent.com/krmanik/HSK-3.0/182692ce5a11bc30bdc771835d2f0f27491c25de/New%20HSK%20(2025)/HSK%20Words/',
     /** Band 7-9 collapses to band 7 per §5.1. */

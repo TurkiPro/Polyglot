@@ -23,75 +23,148 @@
     "喂": "Readings are wèi (to feed; hey) and wéi (hello, on the phone). CC-CEDICT's wèi entry already covers 'hey', and the phone greeting is pronounced wèi by most speakers. Two cards learners cannot tell apart by sound.",
     "乘": "The untaught reading shèng is glossed '(archaic) four-horse military chariot' — a classical measure word, not band-6 vocabulary. Band 6 乘2 is far more likely chéng ('to multiply', 乘法; 'to take advantage of', 乘机), which is the reading already taught."
   },
+  "$seedNote": [
+    "The bootstrap vocabulary (Phase 7 §2): the words no example sentence can",
+    "precede, introduced in this order before the n+1 pass takes over. Kept here",
+    "rather than in code because it is curation, not logic."
+  ],
+  "seedOrder": [
+    "你",
+    "好",
+    "我",
+    "是",
+    "不",
+    "吗",
+    "的",
+    "很",
+    "也",
+    "他",
+    "她",
+    "什么"
+  ],
   "words": [
     {
       "$group": "HSK 3.0 words absent from CC-CEDICT. Definitions hand-written — review welcome.",
       "simp": "新媒体",
       "pinyinNum": "xin1 mei2 ti3",
       "band": 6,
-      "defs": ["new media"]
+      "defs": [
+        "new media"
+      ]
     },
     {
       "simp": "新能源",
       "pinyinNum": "xin1 neng2 yuan2",
       "band": 6,
-      "defs": ["new energy", "renewable energy"]
+      "defs": [
+        "new energy",
+        "renewable energy"
+      ]
     },
     {
       "simp": "不予",
       "pinyinNum": "bu4 yu3",
       "band": 7,
-      "defs": ["to withhold", "to refuse to grant", "to deny"]
+      "defs": [
+        "to withhold",
+        "to refuse to grant",
+        "to deny"
+      ]
     },
     {
       "simp": "精彩纷呈",
       "pinyinNum": "jing1 cai3 fen1 cheng2",
       "band": 7,
-      "defs": ["a spectacular and varied array", "brilliant and diverse"]
+      "defs": [
+        "a spectacular and varied array",
+        "brilliant and diverse"
+      ]
     },
     {
       "simp": "居于",
       "pinyinNum": "ju1 yu2",
       "band": 7,
-      "defs": ["to occupy (a position)", "to be located at", "to rank"]
+      "defs": [
+        "to occupy (a position)",
+        "to be located at",
+        "to rank"
+      ]
     },
     {
       "simp": "口哨儿",
       "pinyinNum": "kou3 shao4 r5",
       "band": 7,
-      "defs": ["whistle (made with the lips)"]
+      "defs": [
+        "whistle (made with the lips)"
+      ]
     },
     {
       "simp": "两翼",
       "pinyinNum": "liang3 yi4",
       "band": 7,
-      "defs": ["both wings", "both flanks"]
+      "defs": [
+        "both wings",
+        "both flanks"
+      ]
     },
     {
       "simp": "压轴",
       "pinyinNum": "ya1 zhou4",
       "band": 7,
-      "defs": ["to be the highlight of a program", "final item on a program"]
+      "defs": [
+        "to be the highlight of a program",
+        "final item on a program"
+      ]
     },
     {
       "simp": "致力于",
       "pinyinNum": "zhi4 li4 yu2",
       "band": 7,
-      "defs": ["to devote oneself to", "to work towards"]
+      "defs": [
+        "to devote oneself to",
+        "to work towards"
+      ]
     },
-
     {
       "$group": "Curated homograph splits. The HSK marker (别1/别2) separates senses, and only sometimes readings — see the homograph section of report.txt for every marked entry and its candidates. Only splits with a genuinely distinct reading belong here; defs come from CC-CEDICT.",
       "simp": "过去",
       "pinyinNum": "guo4 qu5",
       "band": 3
     },
-    { "simp": "别", "pinyinNum": "bie4", "band": 5 },
-    { "simp": "称", "pinyinNum": "chen4", "band": 5 },
-    { "simp": "省", "pinyinNum": "xing3", "band": 5 },
-    { "simp": "为", "pinyinNum": "wei4", "band": 5 },
-    { "simp": "打", "pinyinNum": "da2", "band": 7 },
-    { "simp": "调", "pinyinNum": "tiao2", "band": 7 },
-    { "simp": "露", "pinyinNum": "lou4", "band": 7 }
+    {
+      "simp": "别",
+      "pinyinNum": "bie4",
+      "band": 5
+    },
+    {
+      "simp": "称",
+      "pinyinNum": "chen4",
+      "band": 5
+    },
+    {
+      "simp": "省",
+      "pinyinNum": "xing3",
+      "band": 5
+    },
+    {
+      "simp": "为",
+      "pinyinNum": "wei4",
+      "band": 5
+    },
+    {
+      "simp": "打",
+      "pinyinNum": "da2",
+      "band": 7
+    },
+    {
+      "simp": "调",
+      "pinyinNum": "tiao2",
+      "band": 7
+    },
+    {
+      "simp": "露",
+      "pinyinNum": "lou4",
+      "band": 7
+    }
   ]
 }

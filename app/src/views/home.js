@@ -4,10 +4,11 @@
  * Streak, XP and level are read from the gamification cache when it exists; Phase 4
  * fills it in. Until then the tiles simply do not appear.
  */
-import { queue, store } from '../store.js';
+import { queue, store, updateSettings } from '../store.js';
 import { MODES, modesForWord } from '../engine/deck.js';
-import { button, div, h, p, replace, sealMark, stat } from '../ui/components.js';
+import { banner, button, div, h, p, replace, sealMark, stat } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
+import { span } from '../ui/components.js';
 
 const s = strings.home;
 
@@ -18,6 +19,37 @@ const s = strings.home;
  * new learner sees one mode and reasonably concludes the others are missing. Shown only
  * while something is actually still locked.
  */
+/**
+ * Tone gym (Phase 7 §1): the drills stay available forever, not just at onboarding.
+ * Tone perception is a skill that keeps repaying practice long after the words land.
+ */
+function toneGymTile(ctx) {
+  const tile = button('', () => ctx.navigate('#tones'), { variant: 'collection tone-gym' });
+  tile.append(
+    span({ class: 'collection-name', text: s.toneGym }),
+    span({ class: 'collection-meta', text: toneGymSubtitle() }),
+  );
+  return div({ class: 'home-secondary' }, [tile]);
+}
+
+function toneGymSubtitle() {
+  const stats = store.toneStats;
+  if (!stats?.attempts) return s.toneGymNew;
+  return s.toneGymScore(Math.round((stats.correct / stats.attempts) * 100));
+}
+
+/**
+ * Existing accounts are never dropped into onboarding — it is offered once, quietly, and
+ * stays dismissed (§7.6).
+ */
+function welcomeBanner(ctx) {
+  const { onboarded, welcomeBannerDismissed } = store.settings;
+  if (onboarded || welcomeBannerDismissed || store.events.length === 0) return null;
+  return banner(s.welcomeTitle, s.welcomeBody, s.welcomeDismiss, () =>
+    updateSettings({ welcomeBannerDismissed: true }),
+  );
+}
+
 function lockedNote() {
   const started = [...store.states.values()].filter((state) => state.mode === 'REC' && state.reps > 0);
   if (started.length === 0) return null;
@@ -56,9 +88,11 @@ export function renderHome(root, ctx) {
     replace(
       root,
       div({ class: 'home' }, [
+        welcomeBanner(ctx),
         h(1, s.greeting, 'greeting'),
         cta,
         tiles,
+        toneGymTile(ctx),
         lockedNote(),
       ].filter(Boolean)),
     );
@@ -75,5 +109,5 @@ export function renderHome(root, ctx) {
     button(strings.browse.title, () => ctx.navigate('#browse'), { variant: 'btn-quiet' }),
   ].filter(Boolean));
 
-  replace(root, div({ class: 'home' }, [tiles, done]));
+  replace(root, div({ class: 'home' }, [welcomeBanner(ctx), tiles, done, toneGymTile(ctx)].filter(Boolean)));
 }

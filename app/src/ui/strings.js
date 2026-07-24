@@ -25,6 +25,12 @@ export const strings = Object.freeze({
     start: 'Start review',
     startWith: (n) => `Start review · ${n} due`,
     doneToday: 'Done for today',
+    toneGym: 'Tone gym',
+    toneGymNew: 'Train your ear',
+    toneGymScore: (pct) => `${pct}% accurate so far`,
+    welcomeTitle: 'New: start from zero properly',
+    welcomeBody: 'A short walkthrough of the tones, and a choice about handwriting. Your progress is untouched.',
+    welcomeDismiss: 'No thanks',
     locked:
       'Listening, typing, sentences and writing unlock as recognition settles in.',
     allDone: 'Nothing is due. Add a word or come back tomorrow.',
@@ -177,6 +183,11 @@ export const strings = Object.freeze({
     theme: 'Theme',
     themeDark: 'Dark',
     themeLight: 'Light',
+    learning: 'Learning',
+    writingTrack: 'Handwriting practice',
+    writingTrackNote: 'Adds a stroke-writing card to each word once recognition settles. Turning this off removes those cards; your review history is kept either way.',
+    replayWelcome: 'Replay the introduction',
+    toneGym: 'Tone gym',
     data: 'Your data',
     dataBody: 'Everything lives on this device. Export it whenever you like.',
     export: 'Export JSON',
@@ -193,6 +204,67 @@ export const strings = Object.freeze({
     wipeWord: 'DELETE',
     wipeDone: 'Local data erased.',
     cancel: 'Cancel',
+  },
+
+  welcome: {
+    title: 'Welcome',
+    intro: 'Two minutes before your first word. Chinese is a tone language, and tones are the one thing that does not come for free.',
+    newToChinese: 'I am new to Chinese',
+    knowSome: 'I know some already',
+    skipAll: 'Skip for now',
+    skipStep: 'Skip this',
+    next: 'Next',
+    continue: 'Continue',
+
+    tonesTitle: 'Four tones, one syllable',
+    tonesBody: 'The same sound means five different things depending on its pitch. This is not decoration — it is the word.',
+    tonesTap: 'Tap each one to hear it.',
+    tonesDrill: 'Train my ear',
+    toneNames: ['high', 'rising', 'dipping', 'falling', 'neutral'],
+
+    drillTitle: 'Which tone?',
+    drillPairsTitle: 'Two in a row',
+    drillPrompt: 'Which tone did you hear?',
+    drillPairsPrompt: 'Which two tones did you hear?',
+    drillProgress: (n, total) => `${n} of ${total}`,
+    drillReplay: 'Play again',
+    drillFirst: (tone) => `First: ${tone}. And the second?`,
+    drillRight: 'Yes',
+    drillWrong: (answer) => `It was ${answer}`,
+    drillDone: (score, total) => `${score} of ${total}. Your ear improves faster than your memory does.`,
+
+    pinyinTitle: 'Pinyin, the parts that surprise people',
+    pinyinProgress: (n, total) => `${n} of ${total}`,
+
+    writingTitle: 'Handwriting?',
+    writingBody: 'Do you also want to learn to write characters by hand? It is rewarding, and it is slow.',
+    writingNote: 'Most beginners get further faster by reading and listening first. You can turn this on any time in Settings, and practice writing on any word page either way.',
+    writingYes: 'Yes, include handwriting',
+    writingNo: 'Not for now',
+
+    readyTitle: 'Ready',
+    readyBody: 'Your first words come with a sentence you can already read. Nothing is timed, and nothing is lost if you stop.',
+    start: 'Start learning',
+  },
+
+  teach: {
+    eyebrow: 'New word',
+    inContext: 'In a sentence',
+    madeOf: 'Made of',
+    gotIt: 'Got it',
+  },
+
+  tones: {
+    title: 'Tone gym',
+    blurb: 'Hear a syllable, name its tone. Weighted toward the ones you miss.',
+    startSingles: 'Single syllables',
+    startPairs: 'Tone pairs',
+    noHistory: 'No drills yet.',
+    setDone: (score, total) => `${score} of ${total}`,
+    again: 'Another set',
+    back: 'Done',
+    overall: (pct, attempts) => `${pct}% across ${attempts} drills`,
+    toneAccuracy: (tone, pct, attempts) => `Tone ${tone} — ${pct}% of ${attempts}`,
   },
 
   voices: {
@@ -246,6 +318,8 @@ export const strings = Object.freeze({
   },
 
   common: {
+    on: 'On',
+    off: 'Off',
     loading: 'Loading…',
     error: 'Something went wrong.',
     retry: 'Retry',

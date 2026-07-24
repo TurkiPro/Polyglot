@@ -1,6 +1,6 @@
 {
-  "packVersion": "2026.07.22",
-  "generatedAt": "2026-07-22T19:52:56.965Z",
+  "packVersion": "2026.07.24",
+  "generatedAt": "2026-07-24T13:13:25.284Z",
   "sources": [
     {
       "name": "CC-CEDICT",
@@ -47,6 +47,15 @@
       "downloadUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/notoserifsc/NotoSerifSC%5Bwght%5D.ttf",
       "license": "SIL Open Font License 1.1",
       "licenseUrl": "https://openfontlicense.org/"
+    },
+    {
+      "name": "Make Me a Hanzi",
+      "description": "Character decomposition data, behind the component breakdowns on teach screens.",
+      "url": "https://github.com/skishore/makemeahanzi",
+      "downloadUrl": "https://raw.githubusercontent.com/skishore/makemeahanzi/bddc96d41bef78427ed0e034e9f7e31d71fd1b92/dictionary.txt",
+      "license": "LGPL-3.0-or-later",
+      "licenseUrl": "https://www.gnu.org/licenses/lgpl-3.0.html",
+      "note": "dictionary.txt is itself derived from Unihan and CJKlib."
     },
     {
       "name": "Lucide",

@@ -70,6 +70,17 @@ export async function writeReport(stats, warnings = []) {
     `words with altReadings:     ${stats.withAlts}`,
     `split groups / members:     ${stats.splits.groups} / ${stats.splits.members}`,
     '',
+    'introduction order (Phase 7 §2) — every word debuts in a sentence you can read:',
+    `  seeded (bootstrap):       ${stats.intro.seeded}`,
+    `  clean n+1:                ${stats.intro.clean}`,
+    `  relaxed (1 extra unknown):${String(stats.intro.relaxed).padStart(7)}`,
+    `  no sentence:              ${stats.intro.none}`,
+    `  bands 1-3: ${stats.introMetrics.cleanPct}% clean, ${stats.introMetrics.relaxedPct}% relaxed, ` +
+      `${stats.introMetrics.nonePct}% bare (of ${stats.introMetrics.total} words)`,
+    `  component breakdowns:     ${stats.components.withComponents} words / ` +
+      `${stats.components.charsCovered} characters`,
+    `  card ids preserved:       ${stats.idCheck.checked}${stats.idCheck.added ? ` (+${stats.idCheck.added} new)` : ''}`,
+    '',
     'words per band:',
     ...stats.perBand.map(([band, count]) => `  band ${band}: ${count}`),
     '',

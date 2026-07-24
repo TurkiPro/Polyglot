@@ -59,6 +59,16 @@ export function buildCredits(sources, { packVersion, generatedAt }) {
         licenseUrl: 'https://openfontlicense.org/',
       },
       {
+        name: 'Make Me a Hanzi',
+        description:
+          'Character decomposition data, behind the component breakdowns on teach screens.',
+        url: 'https://github.com/skishore/makemeahanzi',
+        downloadUrl: sources.decompUrl,
+        license: 'LGPL-3.0-or-later',
+        licenseUrl: 'https://www.gnu.org/licenses/lgpl-3.0.html',
+        note: 'dictionary.txt is itself derived from Unihan and CJKlib.',
+      },
+      {
         name: 'Lucide',
         description: 'The UI icon set, vendored as static SVG files rather than a runtime dependency.',
         url: 'https://lucide.dev/',

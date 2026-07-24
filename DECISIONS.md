@@ -359,4 +359,47 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   `--command "DELETE FROM rate_limits"` arrived as three arguments and wrangler rejected
   it — which made the suite pass once and then 429 on every later run. It now writes the
   statement to a temp file and uses `--file`, which has no spaces to lose.
+- Phase 7 §2: **the n+1 pass shipped, and the numbers are good.** Of bands 1-3
+  (989 words): **93.3% clean** — introduced in a sentence whose every other word is
+  already known — **4.4% relaxed** (one extra unknown), **2.2% with no sentence at all**.
+  Across the whole deck: 12 seeded, 5309 clean, 1545 relaxed, 4038 bare (the tail is
+  band 7, where Tatoeba coverage thins out).
+- Phase 7 §2: **zero card ids changed.** The build now refuses to write a deck that loses
+  an id, and reported 10,904 preserved. `introRank` is a new field, not a new identity —
+  reordering introduction cannot orphan anyone's review history.
+- Phase 7 §2: the greedy loop restarts its scan each round rather than making one pass.
+  That is what makes it dependency-ordered instead of merely filtered: a word that could
+  not be introduced in round 1 often can be by round 3, once its prerequisites land.
+- Phase 7 §3: `dictionary.txt` from makemeahanzi is **LGPL-3.0-or-later** (per the
+  project's COPYING; derived from Unihan and CJKlib) — redistributable and compatible with
+  our AGPL-3.0. Pinned to commit `bddc96d4`. Credited by the pipeline like every source.
+- Phase 7 §3: component breakdowns use only the top level of the decomposition. Recursing
+  to atoms turns 好 into a tree nobody reads in twenty seconds; one line per visible part
+  is the point.
+- Phase 7 §1.4: the writing track is a `modesForWord` option rather than stored card data,
+  so replay stays pure and deterministic. Toggling it replays the log instead of patching
+  state — turning it on introduces WRITE siblings for every started word, off drops them,
+  and the event log is untouched either way, so the decision is reversible.
+- Phase 7 §1.4: migration keys off history, not a version flag: an account with events
+  chose writing by using the app as it was, so it keeps WRITE cards **and** skips
+  onboarding. Only a genuinely empty account takes the new default.
+- Phase 7 §1.5: the ramp counts **active days** (days with at least one review), not
+  calendar days since signup. Someone who studies twice in a fortnight is still on day 2
+  of learning, and should not be handed a full load for having owned the app a while.
+  It can only ever lower the cap, and an explicit slider move disables it permanently.
+- Phase 7 §1.2: tone results are counters in `meta`, never FSRS cards — a perceptual drill
+  has no spacing schedule, and minting cards would pollute both the review queue and the
+  XP derived from it. Weighting starts biased toward 2/3 and adapts from there, ignoring
+  samples under four attempts so noise cannot drive it.
+- Phase 7 §4: initial encoding stays blocked and this predates the phase — a new word gets
+  its teach screen and first REC card in the same session, siblings stay buried same-day
+  and staggered by interval (§5.4). Deliberately not "improved": blocked initial encoding
+  then interleaved retrieval is what the evidence actually supports.
+- Phase 7 §6: **XP stays volume-of-retrieval, never correctness.** Paying for "correct"
+  turns honest self-grading into a scoring decision — the learner starts pressing Good to
+  protect a number, and the scheduler silently rots because its input is now a lie. The
+  streak stays as-is; no leaderboards, no multipliers, no loss-aversion mechanics.
+- Phase 7 §5: voice rotation is opt-in per call (`speak(text, { rotate: true })`), used by
+  drills and teach screens only. Ordinary review keeps the chosen voice, so it stays
+  predictable, and a device with one voice degrades to exactly the previous behaviour.
 

@@ -33,8 +33,8 @@ export const localDayKey = (ts) => startOfLocalDay(ts);
  * Create the full card set for a word: REC active, every other mode suspended until the
  * REC card matures (§5.4).
  */
-function introduceWord(word, states, now) {
-  for (const mode of modesForWord(word)) {
+function introduceWord(word, states, now, options) {
+  for (const mode of modesForWord(word, options)) {
     const id = makeCardId(word.id, mode);
     if (states.has(id)) continue;
     states.set(id, {
@@ -53,10 +53,10 @@ function introduceWord(word, states, now) {
  * STAGGER_UNLOCK_DAYS. Unlocking is one-way: a later lapse does not re-suspend, because
  * the learner has already met those cards.
  */
-function applyUnlock(word, states) {
+function applyUnlock(word, states, options) {
   const rec = states.get(makeCardId(word.id, 'REC'));
   if (!rec || intervalDays(rec) < staggerUnlockDays) return;
-  for (const mode of modesForWord(word)) {
+  for (const mode of modesForWord(word, options)) {
     if (mode === 'REC') continue;
     const sibling = states.get(makeCardId(word.id, mode));
     if (sibling?.suspended) sibling.suspended = false;
@@ -64,9 +64,9 @@ function applyUnlock(word, states) {
 }
 
 /** Answering any card of a word buries its siblings until the next local midnight. */
-function applyBury(word, answeredId, states, ts) {
+function applyBury(word, answeredId, states, ts, options) {
   const until = nextLocalMidnight(ts);
-  for (const mode of modesForWord(word)) {
+  for (const mode of modesForWord(word, options)) {
     const id = makeCardId(word.id, mode);
     if (id === answeredId) continue;
     const sibling = states.get(id);
@@ -84,14 +84,14 @@ function applyBury(word, answeredId, states, ts) {
  *
  * @returns {boolean} false if the event could not be applied
  */
-export function applyEvent(deck, states, event) {
+export function applyEvent(deck, states, event, options) {
   const { wordId } = parseCardId(event.cardId);
   const word = deck.word(wordId);
   // An event for a word this deck no longer has (pack rollback, deleted custom word)
   // stays in the log but cannot be replayed.
   if (!word) return false;
 
-  introduceWord(word, states, event.ts);
+  introduceWord(word, states, event.ts, options);
 
   const state = states.get(event.cardId);
   if (!state) return false;
@@ -101,8 +101,8 @@ export function applyEvent(deck, states, event) {
   state.buriedUntil = null;
   state.suspended = false;
 
-  applyBury(word, event.cardId, states, event.ts);
-  applyUnlock(word, states);
+  applyBury(word, event.cardId, states, event.ts, options);
+  applyUnlock(word, states, options);
   return true;
 }
 
@@ -113,11 +113,11 @@ export function applyEvent(deck, states, event) {
  * @param {Array<{ id: string, cardId: string, rating: 1|2|3|4, ts: number }>} events
  * @returns {{ states: Map<string, object>, skipped: number }}
  */
-export function rebuildFromEvents(deck, events) {
+export function rebuildFromEvents(deck, events, options) {
   const states = new Map();
   let skipped = 0;
   for (const event of sortEvents(events)) {
-    if (!applyEvent(deck, states, event)) skipped++;
+    if (!applyEvent(deck, states, event, options)) skipped++;
   }
   return { states, skipped };
 }

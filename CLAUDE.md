@@ -37,15 +37,21 @@ TURNSTILE             = on         # login page only
 # ── Language pack (v1 = zh) ───────────────────────────────
 LANG_PACK_V1          = zh
 HSK_VERSION           = 3.0
-DECK_SCHEMA_VERSION   = 1
+DECK_SCHEMA_VERSION   = 2          # v2 adds introRank, introSentence, components
 SENTENCES_PER_WORD    = 3
 SENTENCE_MAX_CHARS    = 30
 
 # ── Study engine ──────────────────────────────────────────
 NEW_CARDS_PER_DAY     = 10
+NEW_CARDS_RAMP        = 5,7        # active-day thresholds before NEW_CARDS_PER_DAY
 MAX_REVIEWS_PER_DAY   = 200
 STAGGER_UNLOCK_DAYS   = 3          # non-REC cards unlock when REC interval ≥ this
 FSRS_TARGET_RETENTION = 0.9
+
+# ── Learn mode (Phase 7) ──────────────────────────────────
+WRITING_TRACK         = choice at onboarding; default off (new), on (migrated)
+MULTI_VOICE           = on
+TONE_GYM_SET_SIZE     = 10
 
 # ── Gamification ──────────────────────────────────────────
 XP_SHOWUP             = 20         # first review of the local day
@@ -71,6 +77,7 @@ SRC_CEDICT_URL   = https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-
 SRC_TATOEBA_LINKS    = https://downloads.tatoeba.org/exports/links.tar.bz2
 SRC_TATOEBA_SENT_CMN = https://downloads.tatoeba.org/exports/per_language/cmn/cmn_sentences.tsv.bz2
 SRC_TATOEBA_SENT_ENG = https://downloads.tatoeba.org/exports/per_language/eng/eng_sentences.tsv.bz2
+SRC_DECOMP_URL = https://raw.githubusercontent.com/skishore/makemeahanzi/bddc96d41bef78427ed0e034e9f7e31d71fd1b92/dictionary.txt
 SRC_HSK30_BASE = https://raw.githubusercontent.com/krmanik/HSK-3.0/182692ce5a11bc30bdc771835d2f0f27491c25de/New%20HSK%20(2025)/HSK%20Words/
 SRC_HSK30_FILES = HSK_Level_1_words.txt, HSK_Level_2_words.txt, HSK_Level_3_words.txt,
                   HSK_Level_4_words.txt, HSK_Level_5_words.txt, HSK_Level_6_words.txt,
@@ -238,7 +245,12 @@ polyglot/
 ```
 
 - `id` = `zh:<simp>:<pinyinNum with spaces → _>`. On collision append `~2`, `~3`…
-  Ids are permanent; never regenerate them differently.
+  Ids are permanent; never regenerate them differently. The build refuses to write a deck
+  that loses an id.
+- **v2 fields** (Phase 7): `introRank` (integer, unique, dependency order — see §8),
+  `introSentence` (the `src` of the sentence the word debuts in, when one qualifies),
+  `introQuality` (`seeded` | `clean` | `relaxed` | `none`), and `components`
+  (per-character decomposition for the teach screen).
 - `band` ∈ 1–9. If the source list merges bands 7–9, use `7`.
 - `trad` omitted when identical to `simp`.
 
@@ -375,10 +387,14 @@ Build `app/src/engine/` with **zero UI imports** so everything runs under vitest
 - `queue.js`: today = (a) due, unlocked, unburied cards capped at MAX_REVIEWS_PER_DAY,
   ordered by due date; (b) up to NEW_CARDS_PER_DAY new REC cards ordered by band then
   deck order; interleave a new card roughly every 5 reviews.
+  **New cards arrive in `introRank` order** (Phase 7): each word debuts inside a sentence
+  whose every other word is already known, rather than in band order. A pack without
+  `introRank` falls back to band + deck order.
   **User-prioritized words go to the front of the new-card queue** (most recently asked
-  first), ahead of curriculum order: adding a word of your own, or pressing "Study next"
-  on a curriculum word, are both explicit user intent and share one lane.
-  NEW_CARDS_PER_DAY still caps the total.
+  first), ahead of that order: adding a word of your own, or pressing "Study next" on a
+  curriculum word, are both explicit user intent and share one lane.
+  NEW_CARDS_PER_DAY still caps the total, and NEW_CARDS_RAMP lowers it further for a new
+  account's first fortnight unless the learner sets the number themselves.
 - Grading adapters (pure functions; UI calls them):
   - **PROD**: normalize typed pinyin (lowercase, trim, collapse spaces, `v`→`ü`, accept
     with/without spaces), compare to `pinyinNum`; match → preselect Good, else Again;
@@ -401,6 +417,17 @@ Build `app/src/engine/` with **zero UI imports** so everything runs under vitest
 
 Hash routes: `#home` (due count, streak, XP, start), `#review`, `#browse`, `#words`,
 `#word/:id`, `#stats`, `#settings`, `#credits`. Space/tap flips; keys 1–4 grade.
+
+**`#welcome`** (Phase 7): onboarding, shown once when no reviews exist and revisitable
+from Settings. One question, then tones (the mā má mǎ mà · ma archetype plus drills),
+a pinyin crash intro, the handwriting choice, and done. Every step skippable.
+
+**Teach screen**: a word's first appearance, inside the review flow and ungraded — audio,
+hanzi in the 田字格, pinyin, defs, its `introSentence`, and its component breakdown. One
+button ("Got it") and no quiz; the quiz is the card that follows.
+
+**`#tones`** ("Tone gym"): the same drills, endless, weighted toward the learner's own
+errors. Reachable from a Home tile. Results are counters in `meta`, never FSRS cards.
 
 **`#browse`**: with no query, shows collections — the HSK bands, each opening its word
 list. Frequency collections are out until a redistributable frequency list exists (see
@@ -637,6 +664,9 @@ sources.
 5. Fill SRC_HSK30_BASE/SRC_HSK30_FILES with a verified HSK 3.0 list; sanity-check SRC_CEDICT_URL and the
    Tatoeba filenames; run `npm run deck` once locally and commit the pack.
 6. First `wrangler deploy`; custom domain later.
+7. Phase 7 sources: the decomposition data (SRC_DECOMP_URL) is pinned to a commit SHA and
+   is LGPL-3.0-or-later — verified compatible with this project's AGPL-3.0 and credited by
+   the pipeline. Re-verify if the pin is ever moved.
 
 ---
 

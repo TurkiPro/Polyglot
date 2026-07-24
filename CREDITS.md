@@ -5,7 +5,7 @@
 polyglot is built on freely licensed data and libraries. Each source below is
 used under the license named, and keeps its own copyright.
 
-Pack version `2026.07.22`, generated 2026-07-22T19:52:56.965Z.
+Pack version `2026.07.24`, generated 2026-07-24T13:13:25.284Z.
 
 ## CC-CEDICT
 
@@ -52,6 +52,14 @@ The serif face the hanzi are set in, subset at build time to the characters this
 - Home: <https://fonts.google.com/noto/specimen/Noto+Serif+SC>
 - Source data: <https://raw.githubusercontent.com/google/fonts/main/ofl/notoserifsc/NotoSerifSC%5Bwght%5D.ttf>
 - License: [SIL Open Font License 1.1](https://openfontlicense.org/)
+
+## Make Me a Hanzi
+
+Character decomposition data, behind the component breakdowns on teach screens.
+
+- Home: <https://github.com/skishore/makemeahanzi>
+- Source data: <https://raw.githubusercontent.com/skishore/makemeahanzi/bddc96d41bef78427ed0e034e9f7e31d71fd1b92/dictionary.txt>
+- License: [LGPL-3.0-or-later](https://www.gnu.org/licenses/lgpl-3.0.html)
 
 ## Lucide
 

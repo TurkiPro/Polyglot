@@ -15,6 +15,7 @@ export function renderSettings(root, ctx) {
   const view = div({ class: 'settings' }, [
     h(1, s.title, 'title'),
     studyPanel(),
+    learningPanel(ctx),
     appearancePanel(),
     voicePanel(),
     dataPanel(),
@@ -31,7 +32,8 @@ function studyPanel() {
       min: 0,
       max: 50,
       value: store.settings.newPerDay,
-      onChange: (newPerDay) => updateSettings({ newPerDay }),
+      // Moving the slider is the learner overriding the Phase 7 ramp, deliberately.
+      onChange: (newPerDay) => updateSettings({ newPerDay, newPerDayExplicit: true }),
     }),
     slider({
       label: s.maxPerDay,
@@ -41,6 +43,33 @@ function studyPanel() {
       value: store.settings.maxPerDay,
       onChange: (maxPerDay) => updateSettings({ maxPerDay }),
     }),
+  ]);
+}
+
+/**
+ * Learning: the handwriting track, and a way back into the introduction (Phase 7 §1).
+ *
+ * Toggling handwriting changes which cards exist, so the copy says so plainly — the
+ * event log is untouched either way, which is what makes it safe to change your mind.
+ */
+function learningPanel(ctx) {
+  const on = store.settings.writingTrack !== false;
+
+  const toggle = button(on ? strings.common?.on ?? 'On' : strings.common?.off ?? 'Off', async () => {
+    await updateSettings({ writingTrack: !on });
+    ctx.navigate('#settings');
+  }, { variant: `btn-quiet${on ? ' active' : ''}`, role: 'switch', 'aria-checked': String(on) });
+
+  return panel(s.learning, [
+    el('div', { class: 'field' }, [
+      el('span', { class: 'field-label', text: s.writingTrack }),
+      toggle,
+    ]),
+    p(s.writingTrackNote, 'muted'),
+    div({ class: 'row' }, [
+      button(s.toneGym, () => ctx.navigate('#tones'), { variant: 'btn-quiet' }),
+      button(s.replayWelcome, () => ctx.navigate('#welcome'), { variant: 'btn-quiet' }),
+    ]),
   ]);
 }
 

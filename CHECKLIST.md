@@ -180,3 +180,23 @@ These need a real deployment:
 - [ ] Browse with nothing typed shows the HSK bands; opening one lists its words.
 - [ ] You found Practice writing without being told where it was.
 
+## Learn mode (Phase 7) — maintainer sign-off
+
+Use a **fresh guest profile** for the first five; your own account should see none of it.
+
+- [ ] First launch lands on the welcome flow, and it teaches tones before showing a single
+      card. Every step can be skipped.
+- [ ] The tone drills play audio, accept an answer, and say immediately whether it was
+      right. With two or more zh voices installed, the voice changes between drills.
+- [ ] The first five words are 你 好 我 是 不 — each arriving with a teach screen showing a
+      sentence you can actually read, and a component breakdown where one exists.
+- [ ] Day one offers 5 new cards, not 10. Moving the Settings slider overrides that
+      immediately and permanently.
+- [ ] Answering "not for now" to handwriting means no writing cards ever appear; turning
+      it on in Settings makes them appear for words already learned, and off again removes
+      them — with review history and Stats totals unchanged both ways.
+- [ ] Tone gym is reachable from Home, works endlessly, and its accuracy panel fills in.
+- [ ] **Your own account**: no onboarding, WRITE cards still there, a dismissible banner
+      offering the walkthrough once. Dismissing it sticks.
+- [ ] `packs/zh/data/report.txt` shows the n+1 metrics and "card ids preserved".
+

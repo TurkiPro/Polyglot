@@ -8,7 +8,7 @@
 import { config } from '../../../config/app.config.js';
 import { cardId as makeCardId } from './deck.js';
 
-const { newCardsPerDay, maxReviewsPerDay } = config.study;
+const { newCardsPerDay, maxReviewsPerDay, newCardsRamp } = config.study;
 
 /** A new card is slotted in after roughly this many reviews (§8). */
 const NEW_EVERY = 5;
@@ -52,19 +52,43 @@ export function newCardCandidates(deck, states, priorities = new Map()) {
       cardId: id,
       wordId: word.id,
       band: word.band ?? 0,
+      // Dependency order (Phase 7 §2): a word debuts in a sentence you can already read.
+      // Pre-v2 packs have no introRank, so they fall back to band + deck order.
+      introRank: word.introRank ?? Number.MAX_SAFE_INTEGER,
       priority: priorityOf(word, priorities),
       index,
     });
   }
   candidates.sort(
     (a, b) =>
-      // Prioritized words lead, most recent first; everything else is curriculum order.
+      // Prioritized words lead, most recent first — autonomy outranks curriculum.
       Number(b.priority > 0) - Number(a.priority > 0) ||
       b.priority - a.priority ||
+      a.introRank - b.introRank ||
       a.band - b.band ||
       a.index - b.index,
   );
   return candidates;
+}
+
+/**
+ * How many new cards a learner should meet today (Phase 7 §1.5).
+ *
+ * A beginner's first week is where dropout happens, and ten unfamiliar words a day is
+ * more than working memory wants while everything is still novel. The ramp only ever
+ * lowers the cap, and only for a new account's first active days — an explicit setting
+ * always wins, because it is the learner saying what they want.
+ *
+ * @param {number} activeDays days on which this learner has actually reviewed
+ * @param {number} configured the setting, whether default or chosen
+ * @param {boolean} explicit true when the learner moved the slider themselves
+ */
+export function rampedNewCards(activeDays, configured = newCardsPerDay, explicit = false) {
+  if (explicit) return configured;
+  for (const step of newCardsRamp) {
+    if (activeDays <= step.throughDay) return Math.min(step.cards, configured);
+  }
+  return configured;
 }
 
 /**

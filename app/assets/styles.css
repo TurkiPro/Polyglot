@@ -1631,3 +1631,196 @@ body {
 .voice-tip {
   margin-top: var(--space-2);
 }
+
+/* ── Onboarding and tone drills (Phase 7 §1) ────────────── */
+
+.welcome,
+.tones {
+  max-width: 560px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.welcome-mark {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-3);
+  color: var(--accent);
+}
+
+.welcome-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--text-xl);
+  margin: 0 0 var(--space-3);
+}
+
+.welcome-lead {
+  font-size: var(--text-lg);
+  line-height: 1.5;
+  margin: 0 0 var(--space-4);
+}
+
+.welcome-choices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-4) 0;
+}
+
+.welcome-skip {
+  margin-top: var(--space-4);
+  color: var(--fg-dim);
+}
+
+/* The archetype: mā má mǎ mà · ma. */
+.tone-samples {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: var(--space-2);
+  margin: var(--space-4) 0;
+}
+
+.tone-sample {
+  flex-direction: column;
+  gap: var(--space-1);
+  min-height: 96px;
+  padding: var(--space-2);
+}
+
+.tone-sample-mark {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.tone-sample-pinyin {
+  font-size: var(--text-lg);
+}
+
+.tone-sample-gloss {
+  font-size: var(--text-xs);
+  color: var(--fg-dim);
+}
+
+.tone-answers {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--space-1);
+  margin: var(--space-3) 0;
+}
+
+.tone-answer {
+  flex-direction: column;
+  gap: 2px;
+  min-height: 72px;
+  padding: var(--space-2) var(--space-1);
+}
+
+.tone-answer-num {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.tone-answer-name {
+  font-size: var(--text-xs);
+  color: var(--fg-dim);
+}
+
+.pinyin-letters {
+  font-family: var(--font-display);
+  font-size: var(--display);
+  margin: var(--space-3) 0;
+}
+
+.pinyin-example {
+  font-family: var(--font-han);
+  font-size: var(--text-lg);
+  color: var(--fg-dim);
+  margin-bottom: var(--space-3);
+}
+
+.home-secondary {
+  margin-top: var(--space-3);
+}
+
+.tone-gym {
+  width: 100%;
+}
+
+/* ── Teach screen (Phase 7 §3) ──────────────────────────── */
+
+.teach {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+  width: 100%;
+}
+
+.teach-pinyin {
+  font-size: var(--text-xl);
+  margin: 0;
+}
+
+.teach-defs {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.teach-sentence,
+.teach-components {
+  width: 100%;
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-3);
+}
+
+.component-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-2);
+}
+
+.component-char {
+  font-family: var(--font-han);
+  font-size: var(--text-xl);
+}
+
+.component-equals {
+  color: var(--fg-dim);
+}
+
+.component-parts {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.component-part {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.component-part-char {
+  font-family: var(--font-han);
+  font-size: var(--text-lg);
+}
+
+.component-part-meaning {
+  font-size: var(--text-xs);
+  color: var(--fg-dim);
+}
+
+.teach-done {
+  margin-top: var(--space-3);
+}
+
+.teach-controls {
+  min-height: 1px;
+}

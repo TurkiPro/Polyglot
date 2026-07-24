@@ -10,6 +10,7 @@ import { httpApi, syncNow } from '../sync/client.js';
 import { banner, button, div, el, emptyState, formatInterval, h, p, replace } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { renderBack, renderFront } from './card.js';
+import { renderTeach } from './teach.js';
 import * as tts from '../zh/tts.js';
 
 const s = strings.review;
@@ -53,6 +54,8 @@ export function renderReview(root, ctx) {
     flipping: false,
     /** Cleanup for whatever the current front mounted (writer, audio). */
     teardown: null,
+    /** Words already taught this session, so the screen shows once per word. */
+    taught: new Set(),
   };
 
   // The sheet: everything the card is lives inside it, including the grade bar on
@@ -107,6 +110,18 @@ export function renderReview(root, ctx) {
       // The deck no longer has this word; skip rather than strand the session.
       session.index += 1;
       return showFront();
+    }
+
+    /*
+     * A word the learner has never met gets its teach screen first (Phase 7 §3) — the
+     * card is a retrieval attempt, and there is nothing yet to retrieve. Shown once, in
+     * the same session as the card, so encoding stays blocked (§4).
+     */
+    if (mode === 'REC' && !store.states.has(cardId) && !session.taught.has(word.id)) {
+      session.taught.add(word.id);
+      replace(stage, renderTeach(word, () => showFront()));
+      replace(controls, div({ class: 'teach-controls' }));
+      return;
     }
 
     session.flipped = false;

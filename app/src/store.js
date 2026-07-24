@@ -11,7 +11,7 @@ import * as db from './engine/db.js';
 import { createDeck, loadPack } from './engine/deck.js';
 import { createEvent, mergeEvents, toWire } from './engine/events.js';
 import { computeGamify } from './engine/gamify.js';
-import { buildQueue } from './engine/queue.js';
+import { buildQueue, rampedNewCards } from './engine/queue.js';
 import { applyEvent, localDayKey, rebuildFromEvents, stateHash } from './engine/replay.js';
 
 const LANG = config.pack.langPackV1;
@@ -21,15 +21,32 @@ const CURSOR_KEY = 'syncCursor';
 const WORD_CURSOR_KEY = 'syncWordCursor';
 const LAST_SYNC_KEY = 'lastSyncAt';
 const PRIORITIES_KEY = 'studyNext';
+const TONE_STATS_KEY = 'toneStats';
 
 /** Settings a user can change; defaults come from config (§0). */
 export const DEFAULT_SETTINGS = Object.freeze({
   newPerDay: config.study.newCardsPerDay,
   maxPerDay: config.study.maxReviewsPerDay,
+  /**
+   * True once the learner moves the new-cards slider themselves. Until then the Phase 7
+   * ramp may lower the cap for a new account's first fortnight; an explicit choice always
+   * wins over it.
+   */
+  newPerDayExplicit: false,
   theme: 'light',
   /** Chosen zh voice, by voiceURI; null lets tts pick (§3.4.4). */
   voiceUri: null,
   audioBannerDismissed: false,
+  /**
+   * Handwriting track (Phase 7 §1.4). Undefined means "never asked" — `init` resolves it
+   * to true for an account with history (that choice was already made) and to the config
+   * default for a genuinely new one.
+   */
+  writingTrack: undefined,
+  /** Set once the welcome flow has been seen or skipped. */
+  onboarded: false,
+  /** Set when the Home banner offering onboarding has been dismissed. */
+  welcomeBannerDismissed: false,
 });
 
 export const store = {
@@ -48,6 +65,8 @@ export const store = {
   lastSyncAt: null,
   /** wordId → when "Study next" was pressed (§3.4.1). Local intent, not synced. */
   priorities: new Map(),
+  /** Tone-drill history (Phase 7 §1.2): stats in `meta`, never FSRS cards. */
+  toneStats: null,
   listeners: new Set(),
 };
 
@@ -75,7 +94,24 @@ export async function init() {
   store.pack = pack;
   store.deck = createDeck(pack, customWords);
   store.events = events;
-  store.states = rebuildFromEvents(store.deck, events).states;
+
+  /*
+   * Migration (Phase 7 §1.4): an account with history chose writing by using the app as
+   * it was, so it keeps WRITE cards. Only a genuinely empty account takes the new
+   * default — and it will be asked during onboarding regardless.
+   */
+  if (store.settings.writingTrack === undefined) {
+    store.settings = {
+      ...store.settings,
+      writingTrack: events.length > 0 ? true : config.learn.writingTrackDefault,
+      // History also means onboarding is not forced on someone mid-course.
+      onboarded: events.length > 0 ? true : store.settings.onboarded,
+    };
+    await db.setMeta(store.db, SETTINGS_KEY, store.settings);
+  }
+
+  store.states = rebuildFromEvents(store.deck, events, replayOptions()).states;
+  store.toneStats = await db.getMeta(store.db, TONE_STATS_KEY, null);
   store.lastSyncAt = await db.getMeta(store.db, LAST_SYNC_KEY, null);
   store.priorities = new Map(Object.entries(await db.getMeta(store.db, PRIORITIES_KEY, {})));
   await refreshGamify();
@@ -83,6 +119,9 @@ export async function init() {
   notify();
   return store;
 }
+
+/** The options replay needs, so every rebuild sees the same card set. */
+export const replayOptions = () => ({ writingTrack: store.settings.writingTrack !== false });
 
 /**
  * Recompute XP, level, streak and badges from the log, and cache the result.
@@ -102,12 +141,23 @@ export async function refreshGamify(now = Date.now()) {
 export function queue(now = Date.now()) {
   return buildQueue(store.deck, store.states, {
     now,
-    maxNew: store.settings.newPerDay,
+    maxNew: rampedNewCards(
+      activeDays(),
+      store.settings.newPerDay,
+      store.settings.newPerDayExplicit === true,
+    ),
     maxReviews: store.settings.maxPerDay,
     reviewsDoneToday: countReviewsToday(now),
     newDoneToday: countNewToday(now),
     priorities: store.priorities,
   });
+}
+
+/** Local days on which this learner has actually reviewed — what the ramp counts. */
+export function activeDays() {
+  const days = new Set();
+  for (const event of store.events) days.add(localDayKey(event.ts));
+  return days.size;
 }
 
 /** Reviews already recorded during the current local day. */
@@ -138,7 +188,7 @@ export function countNewToday(now = Date.now()) {
  */
 export async function recordReview({ cardId, rating, durMs, now = Date.now() }) {
   const event = createEvent({ cardId, rating, ts: now, durMs });
-  applyEvent(store.deck, store.states, event);
+  applyEvent(store.deck, store.states, event, replayOptions());
   store.events.push(event);
 
   const touched = [...store.states.values()].filter((s) => s.wordId === wordIdOf(cardId));
@@ -225,12 +275,54 @@ async function refreshDeck() {
   return store.deck;
 }
 
-/** Persist changed settings. */
+/**
+ * Persist changed settings.
+ *
+ * Toggling the writing track changes which cards exist, so state is replayed rather than
+ * patched — turning it on introduces WRITE siblings for every started word, and turning
+ * it off drops them. The event log is untouched either way (§2), so the decision is
+ * reversible and nothing is lost.
+ */
 export async function updateSettings(patch) {
+  const before = store.settings.writingTrack;
   store.settings = { ...store.settings, ...patch };
   await db.setMeta(store.db, SETTINGS_KEY, store.settings);
+
+  if (patch.writingTrack !== undefined && patch.writingTrack !== before) {
+    store.states = rebuildFromEvents(store.deck, store.events, replayOptions()).states;
+    await db.clearStores(store.db, db.STORES.cards);
+    await persistAllCards();
+    await refreshGamify();
+  }
+
   notify();
   return store.settings;
+}
+
+/**
+ * Tone-drill results (Phase 7 §1.2).
+ *
+ * Kept as counters in `meta`, deliberately not as FSRS cards: a tone drill is a
+ * perceptual skill with no spacing schedule, and minting cards for it would pollute the
+ * review queue and the XP that derives from it.
+ */
+export async function recordToneResult({ tone, correct, pair = false }) {
+  const stats = store.toneStats ?? { attempts: 0, correct: 0, byTone: {}, byPair: {} };
+  const bucket = pair ? stats.byPair : stats.byTone;
+  const key = String(tone);
+
+  bucket[key] = bucket[key] ?? { attempts: 0, correct: 0 };
+  bucket[key].attempts += 1;
+  stats.attempts += 1;
+  if (correct) {
+    bucket[key].correct += 1;
+    stats.correct += 1;
+  }
+
+  store.toneStats = stats;
+  await db.setMeta(store.db, TONE_STATS_KEY, stats);
+  notify();
+  return stats;
 }
 
 /** The export payload (§1.5) — guest mode included. */
@@ -270,7 +362,7 @@ export async function importData(payload) {
 
   store.events = merged;
   store.deck = createDeck(store.pack, await db.getAll(store.db, db.STORES.customWords));
-  store.states = rebuildFromEvents(store.deck, merged).states;
+  store.states = rebuildFromEvents(store.deck, merged, replayOptions()).states;
   await persistAllCards();
   await refreshGamify();
 
@@ -295,6 +387,7 @@ export async function wipeLocal() {
   store.states = new Map();
   store.settings = { ...DEFAULT_SETTINGS };
   store.priorities = new Map();
+  store.toneStats = null;
   store.deck = createDeck(store.pack, []);
   store.gamify = null;
   await refreshGamify();
@@ -356,7 +449,7 @@ export function syncPort() {
 
     rebuild: async () => {
       store.deck = createDeck(store.pack, await db.getAll(store.db, db.STORES.customWords));
-      store.states = rebuildFromEvents(store.deck, store.events).states;
+      store.states = rebuildFromEvents(store.deck, store.events, replayOptions()).states;
       await persistAllCards();
       await refreshGamify();
       notify();

@@ -8,7 +8,11 @@
  * from good to barely intelligible, so §3.4.4 lets the learner choose and remember one.
  */
 
+import { config } from '../../../config/app.config.js';
+
 export const RATE_NORMAL = 0.9;
+/** Rotate installed zh voices per play; multiple talkers aid tone-category learning. */
+let rotationIndex = 0;
 /** Slow replay, for catching a tone or a syllable boundary (§3.4.4). */
 export const RATE_SLOW = 0.6;
 
@@ -105,8 +109,14 @@ export function stop() {
  * @param {{ rate?: number, voice?: SpeechSynthesisVoice }} [options]
  * @returns {Promise<boolean>} false when no voice is available
  */
-export async function speak(text, { rate = RATE_NORMAL, voice } = {}) {
-  const chosen = voice ?? (await ready());
+export async function speak(text, { rate = RATE_NORMAL, voice, rotate = false } = {}) {
+  /*
+   * Multi-talker input (Phase 7 §5): hearing one word in several voices builds a tone
+   * category rather than a memory of one speaker. Used by the drills and teach screens;
+   * ordinary review keeps the chosen voice, so it stays predictable. One voice installed
+   * degrades to exactly the old behaviour.
+   */
+  const chosen = voice ?? (rotate && config.learn.multiVoice ? nextVoice() : null) ?? (await ready());
   if (!chosen || !text) return false;
 
   stop();
@@ -118,6 +128,13 @@ export async function speak(text, { rate = RATE_NORMAL, voice } = {}) {
   return true;
 }
 
+/** The next voice in rotation, or null when there is nothing to rotate. */
+export function nextVoice(voices = chineseVoices()) {
+  if (voices.length < 2) return null;
+  rotationIndex = (rotationIndex + 1) % voices.length;
+  return voices[rotationIndex];
+}
+
 /** Speak slowly — the 🐢 half of every audio control (§3.4.4). */
 export const speakSlow = (text, options = {}) => speak(text, { ...options, rate: RATE_SLOW });
 
@@ -126,4 +143,5 @@ export function reset() {
   cachedVoice = undefined;
   voicesResolved = false;
   preferredUri = null;
+  rotationIndex = 0;
 }

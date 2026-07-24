@@ -14,7 +14,9 @@ import { parseCedict, pickPrimary } from './lib/cedict.js';
 import { buildCredits, renderCreditsMarkdown } from './lib/credits.js';
 import { DATA_DIR, download, readSource, readSourceText } from './lib/download.js';
 import { collectCharacters, subsetWeights } from './lib/fonts.js';
+import { attachComponents, parseDecomposition } from './lib/decomp.js';
 import { parseHsk } from './lib/hsk.js';
+import { earlyBandMetrics, orderByIntroduction } from './lib/intro.js';
 import { numToMarks } from './lib/pinyin.js';
 import { writeReport } from './lib/report.js';
 import { applyOverrides, attachAltReadings, markSplitGroups, resolveWords } from './lib/words.js';
@@ -48,12 +50,13 @@ function packVersion(date) {
 }
 
 async function fetchSources() {
-  log('\n[1/8] sources');
+  log('\n[1/9] sources');
   await download(sources.cedictUrl, 'cedict.txt.gz', { log });
   await download(sources.notoSerifScUrl, 'NotoSerifSC-VF.ttf', { log });
   await download(sources.tatoebaLinks, 'cmn-eng_links.tsv.bz2', { log });
   await download(sources.tatoebaSentencesCmn, 'cmn_sentences.tsv.bz2', { log });
   await download(sources.tatoebaSentencesEng, 'eng_sentences.tsv.bz2', { log });
+  await download(sources.decompUrl, 'decomposition.txt', { log });
   for (const file of sources.hsk30Files) {
     await download(sources.hsk30Base + file, file, { log });
   }
@@ -79,7 +82,7 @@ async function loadOverrides() {
 
 /** Attach up to SENTENCES_PER_WORD examples to each word. */
 async function attachSentences(words, bySimp) {
-  log('\n[4/8] sentences');
+  log('\n[4/9] sentences');
 
   const maxWordLen = words.reduce((m, w) => Math.max(m, charLength(w.simp)), 1);
   const wordSet = new Set(words.map((w) => w.simp));
@@ -217,6 +220,36 @@ function markWriteAvailability(words, missingChars) {
   return affected;
 }
 
+/**
+ * Card ids are permanent (§5.1). A reordering pass must never mint or lose one, so the
+ * build refuses to write a deck whose ids differ from the one already committed.
+ */
+async function assertIdsUnchanged(words) {
+  let previous;
+  try {
+    previous = JSON.parse(await readFile(new URL(`deck.${LANG}.json`, OUT_DIR), 'utf8'));
+  } catch {
+    log('  no previous deck to compare ids against (first build)');
+    return { checked: 0 };
+  }
+
+  const before = new Set(previous.words.map((word) => word.id));
+  const after = new Set(words.map((word) => word.id));
+
+  const lost = [...before].filter((id) => !after.has(id));
+  const added = [...after].filter((id) => !before.has(id));
+
+  if (lost.length) {
+    throw new Error(
+      `${lost.length} card id(s) would disappear, which orphans review history: ` +
+        `${lost.slice(0, 5).join(', ')}${lost.length > 5 ? '…' : ''}`,
+    );
+  }
+
+  log(`  ${before.size} ids preserved${added.length ? `, ${added.length} new` : ''}`);
+  return { checked: before.size, added: added.length };
+}
+
 async function writeArtifacts({ words, cedict, version, generatedAt }) {
   log('\n[7/8] artifacts');
   await mkdir(OUT_DIR, { recursive: true });
@@ -276,12 +309,12 @@ async function main() {
   log(`building ${identity.projectName} ${LANG} pack ${version}`);
   await fetchSources();
 
-  log('\n[2/8] dictionary');
+  log('\n[2/9] dictionary');
   const cedict = parseCedict(await readSourceText('cedict.txt.gz'));
   log(`  ${cedict.entries.length} entries (${cedict.skipped} lines skipped)`);
   if (cedict.entries.length < 100000) throw new Error('CEDICT parse looks wrong: < 100,000 entries');
 
-  log('\n[3/8] HSK bands');
+  log('\n[3/9] HSK bands');
   const hsk = await loadHsk();
   log(`  ${hsk.listed} list entries`);
 
@@ -302,10 +335,26 @@ async function main() {
   if (missing.length) warn(`${missing.length} HSK words are not in CC-CEDICT — see the list below`);
 
   const sentenceStats = await attachSentences(words, cedict.bySimp);
+  // Dependency-ordered introduction, and the component breakdowns the teach screen
+  // shows (Phase 7 §2, §3). Both need the sentences, so they run after them.
+  log('\n[5/9] learn mode');
+  const seedOrder = overridesFile.seedOrder ?? [];
+  const intro = orderByIntroduction(words, seedOrder);
+  const introMetrics = earlyBandMetrics(words);
+  log(`  intro order: ${intro.stats.seeded} seeded, ${intro.stats.clean} clean, ` +
+      `${intro.stats.relaxed} relaxed, ${intro.stats.none} bare`);
+  log(`  bands 1-3: ${introMetrics.cleanPct}% clean, ${introMetrics.relaxedPct}% relaxed, ` +
+      `${introMetrics.nonePct}% without a sentence`);
+
+  const decomposition = parseDecomposition(await readSourceText('decomposition.txt'));
+  const componentStats = attachComponents(words, decomposition);
+  log(`  components on ${componentStats.withComponents} words (${componentStats.charsCovered} characters)`);
+
   const strokes = await copyStrokes(words);
   const noWrite = markWriteAvailability(words, strokes.missing);
   const fonts = await buildFonts(words);
 
+  const idCheck = await assertIdsUnchanged(words);
   await writeArtifacts({ words, cedict, version, generatedAt });
 
   const bandCounts = new Map();
@@ -324,6 +373,10 @@ async function main() {
     overrides,
     withAlts,
     splits,
+    intro: intro.stats,
+    introMetrics,
+    components: componentStats,
+    idCheck,
     declinedSplits: overridesFile.declinedSplits ?? {},
     deckWords: words.length,
     missing,

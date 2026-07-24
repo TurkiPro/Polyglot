@@ -17,9 +17,14 @@ import { renderSettings } from './views/settings.js';
 import { renderStats } from './views/stats.js';
 import { renderWord } from './views/word.js';
 import { renderWords } from './views/words.js';
+import { renderWelcome } from './views/welcome.js';
+import { renderToneGym } from './views/tonegym.js';
 
 /** Routes are `#name` or `#name/:arg`. */
-const ROUTES = ['home', 'review', 'browse', 'words', 'word', 'stats', 'settings', 'credits'];
+const ROUTES = [
+  'home', 'review', 'browse', 'words', 'word', 'stats', 'settings', 'credits',
+  'welcome', 'tones',
+];
 const DEFAULT_ROUTE = 'home';
 
 /** Routes shown in the nav bar, in order. */
@@ -32,6 +37,8 @@ const VIEWS = {
   browse: renderBrowse,
   words: renderWords,
   word: renderWord,
+  welcome: renderWelcome,
+  tones: renderToneGym,
   stats: renderStats,
   settings: renderSettings,
   credits: renderCredits,
@@ -144,6 +151,10 @@ function boot() {
         const route = parseHash(location.hash);
         if (['home', 'stats', 'words'].includes(route.name)) paint();
       });
+      // A brand-new account starts with tones, not with a card it cannot answer (§7.1).
+      if (!store.settings.onboarded && store.events.length === 0 && !location.hash) {
+        location.hash = '#welcome';
+      }
       paint();
       registerServiceWorker();
       backgroundSync();
