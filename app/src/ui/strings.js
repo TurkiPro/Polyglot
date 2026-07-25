@@ -294,6 +294,34 @@ export const strings = Object.freeze({
     moreAhead: (n) => `${n} more units ahead`,
   },
 
+  /** The syllabus: the whole course as a legible tree (Phase 10 A). */
+  syllabus: {
+    title: 'Syllabus',
+    overall: (pct) => `${pct}% of the course`,
+    unitProgress: (pct) => `${pct}%`,
+    stepOf: (unitTitle, x, y) => `${unitTitle} · step ${x} of ${y}`,
+    openTree: 'Open the syllabus',
+    // Step kinds — the short label beside each step's marker.
+    kinds: {
+      WORD: 'Word',
+      PHRASE: 'Phrase',
+      PRACTICE: 'Practice',
+      CHECKPOINT: 'Checkpoint',
+    },
+    // Accessible names for a step's state.
+    states: {
+      done: 'done',
+      current: 'current',
+      skipped: 'skipped',
+      upcoming: 'upcoming',
+      locked: 'locked',
+    },
+    wordStep: (word) => word,
+    phraseStep: 'New phrase',
+    practiceStep: 'Practice set',
+    checkpointStep: 'Unit checkpoint',
+  },
+
   lesson: {
     leave: 'Leave',
     patternLabel: 'Pattern in this unit',

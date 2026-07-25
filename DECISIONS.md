@@ -803,3 +803,20 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   `clearedSets` could never match `unit.id` — the path would never register a clear. Fixed the
   call and added a `createPracticeEvent` invariant (`unitId`/`wordId` must be non-empty strings)
   so the class can't recur silently.
+
+- Phase 10 A2: the course became legible end to end. `#course` is now the full syllabus — a
+  collapsible tree of every unit (native `<details>`, keyboard-operable, steps built lazily on
+  expand so hundreds of units stay light), overall % on top, per-unit % on each header, the
+  current step marked, every step a link. On desktop the same tree is a sticky rail beside the
+  lesson and checkpoint (`.lesson-layout` two-column ≥900px); on a phone it folds to a "Unit N ·
+  step X of Y" strip that opens the tree. The lesson runner was rewritten to walk the unit's
+  `steps[]` — the same list the syllabus renders, so there is exactly one sequence — handling
+  WORD (teach + a real REC review), PHRASE (reorder/cloze over the spotlighted sentence),
+  PRACTICE (a short mixed set over met words), and CHECKPOINT (hand-off to the quiz). Navigation
+  is free: a step link starts the runner at that step (`#lesson/:unit/:index`); jumping past
+  undone steps just leaves them `skipped` in the derived view (§A3), never gated. The cap is
+  never bypassed — a WORD step for an unmet word still checks the daily new-card budget and ends
+  the sitting warmly when it is spent (proven in `tests/syllabus.test.js`). The old
+  hero+signboard `#course` (`views/course.js`) was removed; the Home CTA still points at
+  `#course`. `neonIgnite` on the checkpoint sign and the current-step marker's glow are the only
+  new glows (added to the §D3 registry).

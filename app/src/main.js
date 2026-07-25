@@ -21,7 +21,7 @@ import { renderWord } from './views/word.js';
 import { renderWords } from './views/words.js';
 import { renderWelcome } from './views/welcome.js';
 import { renderToneGym } from './views/tonegym.js';
-import { renderCourse } from './views/course.js';
+import { renderSyllabusPage } from './views/syllabus.js';
 import { renderLesson } from './views/lesson.js';
 import { renderQuiz } from './views/quiz.js';
 
@@ -44,7 +44,7 @@ const VIEWS = {
   word: renderWord,
   welcome: renderWelcome,
   tones: renderToneGym,
-  course: renderCourse,
+  course: renderSyllabusPage,
   lesson: renderLesson,
   quiz: renderQuiz,
   stats: renderStats,

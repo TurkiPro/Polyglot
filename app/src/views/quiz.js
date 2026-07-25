@@ -17,6 +17,7 @@ import { stage } from '../ui/arcade.js';
 import { strings } from '../ui/strings.js';
 import { neonIgnite } from '../zh/writer.js';
 import { renderExercise } from './exercise.js';
+import { syllabusRail, stepStrip } from './syllabus.js';
 
 const s = strings.quiz;
 const { quizLength, quizPass } = config.course;
@@ -51,13 +52,20 @@ export function renderQuiz(root, ctx, unitArg) {
 function runQuiz(root, ctx, unit, items) {
   const host = div({ class: 'quiz' });
   const progress = div({ class: 'quiz-progress' });
+  const checkpointStep = Math.max(0, unit.steps.length - 1);
   replace(root, stage('quiz', [
-    div({ class: 'lesson-head' }, [
-      button(s.leave, () => ctx.navigate('#course'), { variant: 'btn-quiet lesson-leave' }),
-      h(1, s.title(unit.title), 'lesson-title'),
+    div({ class: 'lesson-layout' }, [
+      syllabusRail(ctx, unit.id),
+      div({ class: 'lesson-main' }, [
+        stepStrip(ctx, unit, checkpointStep),
+        div({ class: 'lesson-head' }, [
+          button(s.leave, () => ctx.navigate('#course'), { variant: 'btn-quiet lesson-leave' }),
+          h(1, s.title(unit.title), 'lesson-title'),
+        ]),
+        progress,
+        host,
+      ]),
     ]),
-    progress,
-    host,
   ]));
 
   let index = 0;
