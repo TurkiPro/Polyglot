@@ -902,3 +902,11 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   appear once stay clean; the earlier standalone position number was dropped as redundant. Done
   in the display layer (no course-data regen), so single-unit contexts (lesson header, Home CTA)
   keep the plain topic name where there is no adjacent duplicate to disambiguate.
+
+- Gloss tooltip hang (recurring): the popup only hid when the pointer ENTERED another element,
+  so leaving a character into a gap, off the window edge, or having the character re-rendered
+  away left it stranded (the 4s safety made it feel like a hang). Hardened `initGloss`: a
+  `mousemove` whose target is no longer the anchor — or an anchor that is no longer connected —
+  hides immediately; `mouseout` with a null relatedTarget (left the window) and window `blur`
+  also hide; the last-resort timer dropped to 1.5s. `popup()` re-attaches itself if ever
+  detached. jsdom tests cover move-off, node-torn-out, window-exit, and blur.

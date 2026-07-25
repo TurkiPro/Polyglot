@@ -31,11 +31,13 @@ export function glossOf(simp) {
 let pop = null;
 
 function popup() {
-  if (pop) return pop;
-  pop = document.createElement('div');
-  pop.className = 'gloss-pop';
-  pop.hidden = true;
-  document.body.append(pop);
+  if (!pop) {
+    pop = document.createElement('div');
+    pop.className = 'gloss-pop';
+    pop.hidden = true;
+  }
+  // Re-attach if anything detached it (defensive; the popup lives on <body>, not inside a view).
+  if (!pop.isConnected) document.body.append(pop);
   return pop;
 }
 
@@ -67,23 +69,35 @@ function hide() {
 }
 
 function reveal(target) {
+  if (target === anchor) return; // already showing this one
   anchor = target;
   show(target);
-  // Safety net: if the character is removed from the DOM while shown (a view re-render), no
-  // mouseout ever fires, so the popup would stick — this guarantees it clears.
+  // Last-resort net for the one case the pointer events below cannot see: the character is
+  // ripped out by a re-render while the cursor sits perfectly still, so no mouse event follows.
   if (safety) clearTimeout(safety);
-  safety = setTimeout(hide, 4000);
+  safety = setTimeout(hide, 1500);
 }
 
 /** Wire the delegated hover/tap once, at boot. */
 export function initGloss(root = document) {
   const targetOf = (event) => event.target.closest?.('[data-gloss]');
 
-  // Moving onto a gloss shows it; moving onto anything else hides it — so it never sticks.
+  // Moving onto a gloss shows it; onto anything else hides it.
   root.addEventListener('mouseover', (event) => {
     const target = targetOf(event);
     if (target) reveal(target);
     else if (anchor) hide();
+  });
+
+  // The pointer can leave a character WITHOUT entering another element — into a gap, or off the
+  // window edge — and then `mouseover` never fires and the popup used to hang. Two catches:
+  // any move whose target is no longer the anchor clears it, and so does the anchor being
+  // detached by a re-render. Cheap: it early-returns whenever nothing is shown.
+  root.addEventListener('mousemove', (event) => {
+    if (anchor && (!anchor.isConnected || !anchor.contains(event.target))) hide();
+  });
+  root.addEventListener('mouseout', (event) => {
+    if (anchor && !event.relatedTarget) hide(); // left the document/window entirely
   });
 
   // Touch has no hover: tap a character to reveal, tap elsewhere to dismiss.
@@ -98,6 +112,7 @@ export function initGloss(root = document) {
 
   root.addEventListener('scroll', hide, true);
   window.addEventListener('hashchange', hide);
+  window.addEventListener('blur', hide); // tab/window loses focus → never leave one hanging
 }
 
 /** Wrap each CJK character of `text` in a hoverable gloss span; other text passes through. */
