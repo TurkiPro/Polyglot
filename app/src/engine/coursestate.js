@@ -63,6 +63,18 @@ export function clearedSets(practiceEvents) {
   return { cleared, gold };
 }
 
+/** How many times this unit's checkpoint has been attempted — seeds a retake's regeneration. */
+export function attemptCount(practiceEvents, unitId) {
+  return (practiceEvents ?? []).filter(
+    (event) => event.unitId === unitId && String(event.type).startsWith('CHECKPOINT'),
+  ).length;
+}
+
+/** The best checkpoint fraction is not stored; cleared/gold are enough. This just reads them. */
+export function unitStatus(rows, unitId) {
+  return rows.find((row) => row.id === unitId)?.status ?? 'locked';
+}
+
 /** A unit's still-unintroduced words, in the deck's introRank order (its wordIds order). */
 export function unintroduced(unit, introduced) {
   return unit.wordIds.filter((id) => !introduced.has(id));

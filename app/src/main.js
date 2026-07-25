@@ -22,6 +22,7 @@ import { renderWelcome } from './views/welcome.js';
 import { renderToneGym } from './views/tonegym.js';
 import { renderCourse } from './views/course.js';
 import { renderLesson } from './views/lesson.js';
+import { renderQuiz } from './views/quiz.js';
 
 /** Routes are `#name` or `#name/:arg`. */
 const ROUTES = [
@@ -44,6 +45,7 @@ const VIEWS = {
   tones: renderToneGym,
   course: renderCourse,
   lesson: renderLesson,
+  quiz: renderQuiz,
   stats: renderStats,
   settings: renderSettings,
   credits: renderCredits,

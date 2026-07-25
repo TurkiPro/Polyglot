@@ -269,6 +269,25 @@ export function grade(item, response) {
 }
 
 /**
+ * A checkpoint's items (§4): `length` mixed-type items over `words` (the unit's weakest,
+ * weighted by the caller), each type tried then fallen back through so a word that cannot
+ * make, say, a REORDER still yields an item. Pure and seeded, so a retake at a given attempt
+ * count reproduces exactly — which is how "retakes regenerate from the seed + attempt count".
+ */
+export function buildQuizItems({ words, ctx, rng, known = new Set(), length, types = EXERCISE_TYPES }) {
+  const items = [];
+  const order = shuffle(types, rng);
+  for (let i = 0; i < length; i++) {
+    let item = null;
+    for (let t = 0; t < order.length && !item; t++) {
+      item = generate(order[(i + t) % order.length], { candidates: words, ctx, rng, known });
+    }
+    if (item) items.push(item);
+  }
+  return items;
+}
+
+/**
  * Index a word list for the generators: lookup by id, by band, by spelling, and the longest
  * headword length for the segmenter. Built once by the caller, reused across items.
  */

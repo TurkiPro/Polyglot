@@ -168,17 +168,19 @@ export async function recordPractice({ unitId, type, wordId, correct, now = Date
 }
 
 /**
- * Record a checkpoint outcome as append-only practice events (Phase 9 §4), so "cleared" and
- * "gold" derive from the log and survive export/import and sync. Monotonic: a later, worse
- * attempt never removes a badge.
+ * Record a checkpoint outcome as an append-only practice event (Phase 9 §4), so "cleared",
+ * "gold" and the attempt count all derive from the log and survive export/import and sync.
+ * Every attempt is logged — GOLD ≥ quizGold, CHECKPOINT ≥ quizPass, FAIL below — so a retake
+ * can reseed from the attempt count; cleared/gold stay monotonic because they are never removed.
  */
 export async function recordCheckpoint(unitId, fraction, now = Date.now()) {
-  if (fraction >= config.course.quizGold) {
-    await recordPractice({ unitId, type: 'CHECKPOINT_GOLD', wordId: unitId, correct: 1, now });
-  } else if (fraction >= config.course.quizPass) {
-    await recordPractice({ unitId, type: 'CHECKPOINT', wordId: unitId, correct: 1, now });
-  }
-  return fraction;
+  const type = fraction >= config.course.quizGold
+    ? 'CHECKPOINT_GOLD'
+    : fraction >= config.course.quizPass
+      ? 'CHECKPOINT'
+      : 'CHECKPOINT_FAIL';
+  await recordPractice({ unitId, type, wordId: unitId, correct: fraction >= config.course.quizPass ? 1 : 0, now });
+  return { fraction, cleared: fraction >= config.course.quizPass, gold: fraction >= config.course.quizGold };
 }
 
 /** Rebuild the practice tallies after a sync pulled new practice events. */

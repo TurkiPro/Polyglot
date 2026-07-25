@@ -297,3 +297,17 @@ Then, on device:
       **Checkpoint ready** and the hero action becomes **Take the checkpoint**.
 - [ ] The six exercise types all render and grade with immediate feedback: MCQ (meaning &
       audio), type-the-pinyin, match, reorder, cloze.
+
+## The Course — checkpoints and mastery (Phase 9c) — manual checks
+
+- [ ] With Unit 1 fully introduced, **Take the checkpoint** runs 12 mixed items, no timer.
+- [ ] Score ≥ 80%: the result screen ignites 过 stroke by stroke, the unit's sign on the
+      path is now lit/cleared, and the current unit advances to the next.
+- [ ] Score ≥ 95%: the medallion (★) shows on the unit's sign.
+- [ ] Score < 80%: it says so kindly and offers a **Retake** — and the retake is a
+      *different* set of items, not the same twelve.
+- [ ] Clear every unit of band 1: the last one's result shows the **Band 1 complete**
+      flourish.
+- [ ] Export → wipe → import: cleared units and medallions come back — they are replayed
+      from the practice log, not stored.
+- [ ] A gold, then a later merely-passing retake, still shows gold (badges are monotonic).

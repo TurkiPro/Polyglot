@@ -300,6 +300,26 @@ export const strings = Object.freeze({
     doReviews: 'Do my reviews',
   },
 
+  quiz: {
+    title: (unit) => `Checkpoint · ${unit}`,
+    leave: 'Leave',
+    progress: (n, total) => `${n} of ${total}`,
+    score: (pct, correct, total) => `${pct}% · ${correct} of ${total}`,
+    clearedTitle: 'Unit cleared',
+    goldTitle: 'Gold!',
+    tryAgainTitle: 'Not cleared — yet',
+    clearedBody: 'The unit is cleared and its sign is lit. Onward.',
+    goldBody: 'A gold run — the medallion is yours. Beautifully done.',
+    tryAgainBody: (pct) => `You need ${pct}% to clear it. Every retake is a fresh set — go again when you like.`,
+    retake: 'Retake',
+    backToPath: 'Back to the path',
+    bandCleared: (band) => `Band ${band} complete`,
+    bandClearedBody: 'Every unit in the band is cleared.',
+    notReadyTitle: 'Not yet',
+    notReadyBody: 'Meet every word in this unit first, then its checkpoint opens.',
+    finishUnit: 'Finish the unit',
+  },
+
   exercise: {
     correct: 'Correct',
     wrong: 'Not quite',

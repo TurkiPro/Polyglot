@@ -741,7 +741,20 @@ in `tests/practice.test.js`). New files: `engine/practice.js`, `worker/src/api/p
   REC card is graded; a unit is cleared/gold from `CHECKPOINT`/`CHECKPOINT_GOLD` practice
   events (§4). No course state is stored, so the path survives export → wipe → import and sync.
 
-### 15.5 Not this (scope law holds)
+### 15.5 Checkpoints and mastery (9c)
+- `#quiz/:unit` — `QUIZ_LENGTH` mixed items weighted toward the unit's weakest words
+  (practice accuracy, unseen-first, so a word only reviewed but never practised is covered).
+  No timer. `≥ QUIZ_PASS` clears the unit and ignites its sign (reuse `neonIgnite`);
+  `≥ QUIZ_GOLD` earns the medallion. Retakes are unlimited and regenerate from
+  `hashSeed(unitId + attemptCount)`, so a paper cannot be memorised.
+- Every attempt appends one checkpoint practice event — `CHECKPOINT_GOLD` / `CHECKPOINT` /
+  `CHECKPOINT_FAIL` — which is what `attemptCount` counts and what `clearedSets` reads;
+  cleared and gold are therefore monotonic and derived from the log, never stored. Clearing
+  the last unit of a band raises the existing band-clear badge at that milestone, with the
+  arcade flourish. The replay-determinism test is extended to splice practice events through
+  a review log and assert card state does not move — the firewall under load.
+
+### 15.6 Not this (scope law holds)
 No runtime AI generation (generators are deterministic data transforms). No hearts / lives /
 paywall theatre. No speaking assessment. No grammar course — the six exercise types over the
 n+1 sentences are the grammar instruction.

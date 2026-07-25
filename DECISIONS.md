@@ -633,4 +633,22 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   in, reviews are still one tap away. When nothing is due for review the course CTA still shows.
 - Phase 9b: DB bumped to v2 already carried the practice store; `wipeLocal`, export and import
   now all include the practice stream so a cleared unit is erased and restored with everything else.
+- Phase 9c: a checkpoint's items are weighted toward the unit's weakest words via
+  `weakestFirst` (practice accuracy, unseen-first) — a word that was reviewed but never
+  practised sorts as maximally weak, which is how "practice_events + review history" folds
+  in without a second scoring path. Items are `buildQuizItems`, pure and seeded by
+  `hashSeed(unitId + attemptCount)`, so a retake regenerates a genuinely different paper
+  while a given attempt reproduces exactly in tests.
+- Phase 9c: every checkpoint attempt appends one summary event — `CHECKPOINT_GOLD`,
+  `CHECKPOINT`, or `CHECKPOINT_FAIL` — so the attempt count (for the retake seed) and the
+  cleared/gold sets all derive from the practice log. FAIL is recorded but ignored by
+  `clearedSets`, and because events are only ever appended, cleared and gold are monotonic:
+  a later worse retake never removes a badge.
+- Phase 9c: the unit's sign ignites (`neonIgnite` on 过) only when the run actually clears
+  it — the flourish is earned, not automatic. A band's completion reuses the existing
+  band-clear badge, shown at the checkpoint milestone with the arcade treatment rather than
+  minted anew, keeping one definition of "band cleared".
+- Phase 9c: the replay-determinism test now splices ~60 practice events through the 150-review
+  log and asserts the FSRS state hash is unchanged — the §2 firewall proven under the same
+  determinism guarantee that protects sync and import, not only in isolation.
 

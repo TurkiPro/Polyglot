@@ -254,6 +254,19 @@ describe('replay', () => {
     // And a round trip through JSON (the export/import path) must agree too.
     const viaJson = rebuildFromEvents(deck, JSON.parse(JSON.stringify(log))).states;
     expect(stateHash(viaJson)).toBe(stateHash(fromScratch));
+
+    // Phase 9 §4: practice events share the log's shape but must not perturb FSRS. Splice a
+    // pile of them through the review log and the card states must not budge — the firewall
+    // holds under the determinism test, not just in isolation.
+    const withPractice = [...log];
+    for (let i = 0; i < 60; i++) {
+      const w = words[Math.floor(rand() * words.length)];
+      withPractice.push({
+        id: `p${i}`, unitId: 'u001', type: 'MCQ_MEANING', wordId: w.id,
+        correct: Math.floor(rand() * 2), ts: T0 + Math.floor(rand() * 1e9),
+      });
+    }
+    expect(stateHash(rebuildFromEvents(deck, withPractice).states)).toBe(stateHash(fromScratch));
   });
 
   it('detects drift — the hash is not vacuously equal', () => {

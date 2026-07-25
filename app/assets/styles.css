@@ -2293,3 +2293,22 @@ body {
 .cloze-sentence { font-size: var(--text-lg); display: flex; flex-wrap: wrap; gap: 0.15em; justify-content: center; }
 .cloze-blank { color: var(--accent); border-bottom: 2px solid var(--accent); min-width: 1.5em; text-align: center; }
 .cloze-blank.filled { color: var(--ok); border-color: var(--ok); }
+
+/* ── Checkpoint (Phase 9c) ────────────────────────────────────────── */
+
+.quiz-progress { text-align: center; margin-bottom: var(--space-3); }
+.quiz-result { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); text-align: center; padding: var(--space-4) 0; }
+.quiz-sign { min-height: 140px; display: flex; align-items: center; justify-content: center; }
+.quiz-sign-flat { font-size: 120px; color: var(--fg-dim); line-height: 1; }
+.quiz-score { width: 100%; max-width: 22rem; }
+.quiz-band-clear {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--neon-yellow);
+  border-radius: var(--radius);
+  box-shadow: var(--glow-sm);
+  width: 100%;
+}
