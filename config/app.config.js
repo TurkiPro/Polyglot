@@ -86,6 +86,18 @@ export const config = deepFreeze({
     toneGymSetSize: 10,
   },
 
+  // ── The Course (Phase 9) ──────────────────────────────────
+  course: {
+    unitSize: 22, // words per unit; seams nudge ±3 to land on topic boundaries
+    /** Bands with an authored course (titles + notes); bands 4+ auto-generate numbered units. */
+    courseBands: [1, 2, 3],
+    lessonWords: 6, // new words introduced per lesson sitting
+    quizPass: 0.8, // fraction correct to clear a unit
+    quizGold: 0.95, // fraction correct for the unit's medallion
+    quizLength: 12, // items per checkpoint, mixed types
+    mcqChoices: 4,
+  },
+
   // ── Audio pack (Phase 8) ──────────────────────────────────
   audio: {
     /**

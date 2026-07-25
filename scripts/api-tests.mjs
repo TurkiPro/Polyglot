@@ -152,6 +152,26 @@ r = await req('GET', '/api/sync/words?since=0');
 check('pull words', r.status, 200);
 check('last write won', r.body.words.length === 1 ? r.body.words[0].defs[0] : `?${r.body.words.length}`, 'FRESH');
 
+// ── practice events (Phase 9 §2), the same round-trip on the separate stream ──
+const PRACTICE = {
+  events: [
+    { id: 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa', unitId: 'u001', type: 'MCQ_MEANING', wordId: 'zh:好:hao3', correct: 1, ts: 1721556000000 },
+    { id: 'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb', unitId: 'u001', type: 'CLOZE', wordId: 'zh:学习:xue2_xi2', correct: 0, ts: 1721556001000 },
+  ],
+};
+r = await req('POST', '/api/sync/practice', PRACTICE);
+check('push 2 practice events', r.status, 200);
+check('practice push reports 2 stored', r.body.stored, 2);
+check('push the same practice again', (await req('POST', '/api/sync/practice', PRACTICE)).status, 200);
+r = await req('GET', '/api/sync/practice?since=0');
+check('pull practice since 0', r.status, 200);
+check('still exactly 2 practice events', r.body.events.length, 2);
+check('practice round-trips the correct flag', r.body.events.find((e) => e.type === 'MCQ_MEANING')?.correct, 1);
+const pCursor = r.body.cursor;
+check('nothing new after the practice cursor', (await req('GET', `/api/sync/practice?since=${pCursor}`)).body.events.length, 0);
+check('garbage practice is rejected without failing the batch',
+  (await req('POST', '/api/sync/practice', { events: [{ id: 'z', unitId: '', type: 'X', wordId: '', correct: 2, ts: -1 }] })).body.rejected, 1);
+
 // ── export ───────────────────────────────────────────────────
 r = await req('GET', '/api/export');
 check('export responds', r.status, 200);

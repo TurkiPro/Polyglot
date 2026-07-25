@@ -5,12 +5,13 @@
  * objects, which is what lets the queue, replay and scheduling logic run headless under
  * vitest (§8).
  *
- * Stores (§5.6): cards, events, customWords, dict, meta.
+ * Stores (§5.6): cards, events, customWords, dict, meta, and practice (Phase 9 §2 — the
+ * course's exercise-result stream, kept wholly apart from the review event log).
  */
 import { config } from '../../../config/app.config.js';
 
 export const DB_NAME = config.identity.projectName;
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 
 export const STORES = Object.freeze({
   cards: 'cards',
@@ -18,6 +19,7 @@ export const STORES = Object.freeze({
   customWords: 'customWords',
   dict: 'dict',
   meta: 'meta',
+  practice: 'practice',
 });
 
 /** Promise wrapper for an IDBRequest. */
@@ -52,6 +54,11 @@ export function openDb(indexedDbImpl = globalThis.indexedDB) {
       }
       if (!db.objectStoreNames.contains(STORES.meta)) {
         db.createObjectStore(STORES.meta, { keyPath: 'k' });
+      }
+      // v2: the course's practice stream — its own store, so it can never touch cards.
+      if (!db.objectStoreNames.contains(STORES.practice)) {
+        const practice = db.createObjectStore(STORES.practice, { keyPath: 'id' });
+        practice.createIndex('synced', 'synced');
       }
     };
     req.onsuccess = () => resolve(req.result);

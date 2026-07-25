@@ -1,0 +1,33 @@
+{
+  "$schema": "Unit title and note overrides for course.zh.json (Phase 9 §1). Reviewable data, hand-edited like topics.json and overrides.json; the build merges it over the generated draft.",
+  "$notes": [
+    "titles: unitId -> replacement title, when the drafted dominant-topic title reads wrong.",
+    "notes:  unitId -> one-sentence pattern observation shown on the unit. Authored only for",
+    "        units that introduce a word whose pattern is worth naming; topical vocab units",
+    "        (Food, Places, People) genuinely have no single pattern and get none.",
+    "Unit ids are stable once shipped (Phase 9 §1), so keying by id is safe."
+  ],
+  "titles": {},
+  "notes": {
+    "u001": "吗 at the end of a statement turns it into a yes/no question.",
+    "u002": "会 is a learned ability; 能 is a circumstantial possibility.",
+    "u003": "呢 bounces a question back (你呢?) or marks \"what about…\".",
+    "u004": "有 is \"to have\" and \"there is\" — negate it with 没有, never 不有.",
+    "u005": "这 \"this\" and 那 \"that\" take a measure word before the noun: 这本书.",
+    "u008": "着 after a verb marks an ongoing state: 开着门.",
+    "u015": "应该 \"should\" goes before the verb: 你应该去.",
+    "u066": "个 is the default measure word — use it when unsure which one a noun takes.",
+    "u067": "了 after a verb marks a completed or changed action.",
+    "u068": "能 asks or grants possibility: 能帮我吗?",
+    "u069": "想 is \"would like to\"; 要 is a firmer \"want to / will\".",
+    "u070": "还 is \"still / also\"; 再 is \"again\", for an action not yet repeated.",
+    "u071": "比 compares: A 比 B + adjective — 我比你高.",
+    "u072": "就 says something happens sooner or easily; 才 that it takes longer.",
+    "u073": "让 \"to let / make someone do\" takes a person, then a verb: 让我看看.",
+    "u074": "最 marks the superlative: 最好 \"best\".",
+    "u157": "几 asks \"how many\" for small counts, 多少 for larger or open ones.",
+    "u158": "请 before a verb makes a polite request: 请坐.",
+    "u160": "虽然… 但是… keeps both halves of \"although… still…\".",
+    "u243": "从… 到… traces \"from… to…\" in space or time."
+  }
+}

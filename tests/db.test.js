@@ -38,11 +38,11 @@ beforeEach(async () => {
 const event = (id, ts, synced = 0) => ({ id, cardId: 'a#REC', rating: 3, ts, synced });
 
 describe('schema', () => {
-  it('creates the five §5.6 stores at version 1', () => {
+  it('creates the §5.6 stores plus the Phase 9 practice store', () => {
     expect(db.name).toBe(DB_NAME);
     expect(db.version).toBe(DB_VERSION);
     expect([...db.objectStoreNames].sort()).toEqual(
-      ['cards', 'customWords', 'dict', 'events', 'meta'].sort(),
+      ['cards', 'customWords', 'dict', 'events', 'meta', 'practice'].sort(),
     );
   });
 

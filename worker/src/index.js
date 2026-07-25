@@ -7,6 +7,7 @@
  */
 import { exportAll, exportFilename } from './api/export.js';
 import { deleteMe, getMe, logout } from './api/me.js';
+import { pullPractice, pushPractice } from './api/practice.js';
 import { HttpError, pullEvents, pullWords, pushEvents, pushWords } from './api/sync.js';
 import { completeLogin, enabledProviders, isConfigured, providerFor, startLogin } from './auth/oauth.js';
 import {
@@ -149,6 +150,18 @@ async function handleAuthenticated(request, env, pathname, user) {
     }
     if (request.method === 'GET') {
       return json(await pullWords(env, user.id, url.searchParams.get('since') ?? 0));
+    }
+    return json({ error: 'method_not_allowed' }, 405);
+  }
+
+  // The course's practice stream (Phase 9 §2) — same pattern, separate table, never FSRS.
+  if (pathname === '/api/sync/practice') {
+    if (request.method === 'POST') {
+      const body = await readJson(request);
+      return json(await pushPractice(env, user.id, body?.events));
+    }
+    if (request.method === 'GET') {
+      return json(await pullPractice(env, user.id, url.searchParams.get('since') ?? 0));
     }
     return json({ error: 'method_not_allowed' }, 405);
   }

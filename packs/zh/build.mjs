@@ -11,6 +11,7 @@
 import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { config } from '../../config/app.config.js';
 import { parseCedict, pickPrimary } from './lib/cedict.js';
+import { buildCourse } from './lib/course.js';
 import { buildCredits, renderCreditsMarkdown } from './lib/credits.js';
 import { DATA_DIR, download, readSource, readSourceText } from './lib/download.js';
 import { collectCharacters, subsetWeights } from './lib/fonts.js';
@@ -313,6 +314,8 @@ async function writeArtifacts({ words, cedict, version, generatedAt }) {
   await writeFile(new URL(`dict.${LANG}.json`, OUT_DIR), JSON.stringify(dict));
   log(`  dict.${LANG}.json — ${dict.length} entries`);
 
+  await writeCourse(words, version, generatedAt);
+
   const credits = buildCredits(sources, { packVersion: version, generatedAt });
   await writeFile(new URL('credits.json', OUT_DIR), JSON.stringify(credits, null, 2));
   await writeFile(
@@ -320,6 +323,38 @@ async function writeArtifacts({ words, cedict, version, generatedAt }) {
     renderCreditsMarkdown(credits, identity.projectName),
   );
   log('  credits.json + CREDITS.md');
+}
+
+let courseInfo = null;
+
+/**
+ * The Course (Phase 9 §1): units carved from the introRank spine, titled from topics and
+ * annotated from `course-overrides.json`. Written as a committed artifact like the deck.
+ */
+async function writeCourse(words, version, generatedAt) {
+  const topics = JSON.parse(await readFile(new URL('topics.json', import.meta.url), 'utf8'));
+  const overrides = JSON.parse(
+    await readFile(new URL('course-overrides.json', import.meta.url), 'utf8'),
+  );
+
+  const { units, stats } = buildCourse(words, topics, {
+    titles: overrides.titles,
+    notes: overrides.notes,
+    courseBands: config.course.courseBands,
+    unitSize: config.course.unitSize,
+  });
+
+  const course = {
+    schemaVersion: pack.deckSchemaVersion,
+    language: LANG,
+    packVersion: version, // the course tracks the deck's pack version
+    generatedAt,
+    units,
+  };
+  await writeFile(new URL(`course.${LANG}.json`, OUT_DIR), JSON.stringify(course));
+  log(`  course.${LANG}.json — ${units.length} units (${stats.authored} authored, ` +
+      `${stats.withNote} noted, sizes ${stats.sizes.min}-${stats.sizes.max})`);
+  courseInfo = { units, stats };
 }
 
 /**
@@ -427,6 +462,7 @@ async function main() {
     components: componentStats,
     idCheck,
     topics,
+    course: courseInfo,
     declinedSplits: overridesFile.declinedSplits ?? {},
     deckWords: words.length,
     missing,

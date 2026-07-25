@@ -31,7 +31,10 @@ export function chunk(items, size = CHUNK) {
  *                     wordsPushed: number, wordsPulled: number, at: number }>}
  */
 export async function syncNow(local, api, now = Date.now()) {
-  const idle = { pushed: 0, pulled: 0, wordsPushed: 0, wordsPulled: 0, at: now };
+  const idle = {
+    pushed: 0, pulled: 0, wordsPushed: 0, wordsPulled: 0,
+    practicePushed: 0, practicePulled: 0, at: now,
+  };
 
   const session = await api.me().catch(() => null);
   if (!session?.user) return { ok: false, reason: 'signed_out', ...idle };
@@ -76,8 +79,30 @@ export async function syncNow(local, api, now = Date.now()) {
     if (!page.more) break;
   }
 
+  // ── practice events (Phase 9 §2) ──────────────────────────
+  // A separate stream, same shape. It never feeds `rebuild` (the FSRS oracle); the store
+  // refreshes course mastery from it on its own, so the firewall holds even here.
+  if (local.unsyncedPractice) {
+    const practice = await local.unsyncedPractice();
+    for (const batch of chunk(practice)) {
+      await api.pushPractice(batch);
+      await local.markPracticeSynced(batch.map((event) => event.id));
+      result.practicePushed += batch.length;
+    }
+
+    let practiceCursor = await local.practiceCursor();
+    for (;;) {
+      const page = await api.pullPractice(practiceCursor);
+      if (page.events.length) result.practicePulled += await local.addRemotePractice(page.events);
+      practiceCursor = page.cursor;
+      await local.setPracticeCursor(practiceCursor);
+      if (!page.more) break;
+    }
+  }
+
   // One rebuild at the end: replaying per page would be wasted work.
   if (result.pulled > 0 || result.wordsPulled > 0) await local.rebuild();
+  if (result.practicePulled > 0) await local.refreshPractice?.();
 
   result.at = now;
   return result;
@@ -112,6 +137,9 @@ export function httpApi(fetchImpl = fetch) {
     pushWords: (words) =>
       send('/api/sync/words', { method: 'POST', body: JSON.stringify({ words }) }),
     pullWords: (since) => send(`/api/sync/words?since=${encodeURIComponent(since ?? 0)}`),
+    pushPractice: (events) =>
+      send('/api/sync/practice', { method: 'POST', body: JSON.stringify({ events }) }),
+    pullPractice: (since) => send(`/api/sync/practice?since=${encodeURIComponent(since ?? 0)}`),
   };
 }
 

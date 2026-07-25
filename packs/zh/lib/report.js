@@ -78,6 +78,25 @@ function topicReport(topics) {
   return lines;
 }
 
+/** Every unit with its title and word count, for the maintainer's skim (Phase 9 §1). */
+function courseReport(course) {
+  if (!course) return [];
+  const { units, stats } = course;
+  const lines = [
+    `the course (Phase 9 §1): ${stats.units} units, ${stats.authored} authored (bands ≤3), ` +
+      `${stats.withNote} with a pattern note, sizes ${stats.sizes.min}-${stats.sizes.max}`,
+    '',
+  ];
+  for (const unit of units) {
+    lines.push(
+      `  ${unit.id}  band ${unit.band}  ${String(unit.wordIds.length).padStart(2)}w  ${unit.title}` +
+        (unit.note ? `\n         note: ${unit.note}` : ''),
+    );
+  }
+  lines.push('');
+  return lines;
+}
+
 export async function writeReport(stats, warnings = []) {
   const lines = [
     `${identity.projectName} — ${LANG} pack build report`,
@@ -124,6 +143,7 @@ export async function writeReport(stats, warnings = []) {
     ...stats.missing.map((w) => `  - ${w}`),
     '',
     ...topicReport(stats.topics),
+    ...courseReport(stats.course),
     ...homographReport(stats.homographs, stats.words, stats.declinedSplits),
   ];
   await writeFile(new URL('../data/report.txt', import.meta.url), lines.join('\n'));

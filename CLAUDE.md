@@ -58,6 +58,15 @@ WRITING_TRACK         = choice at onboarding; default off (new), on (migrated)
 MULTI_VOICE           = on
 TONE_GYM_SET_SIZE     = 10
 
+# ── The Course (Phase 9) ──────────────────────────────────
+UNIT_SIZE            = 22        # words per unit (seams nudge ±3 to topic boundaries)
+COURSE_BANDS         = 1,2,3     # authored course; bands 4+ auto-generate numbered units
+LESSON_WORDS         = 6         # new words introduced per lesson sitting
+QUIZ_PASS            = 0.80      # unit clear threshold
+QUIZ_GOLD            = 0.95      # medallion threshold
+QUIZ_LENGTH          = 12        # items per checkpoint, mixed types
+MCQ_CHOICES          = 4
+
 # ── Gamification ──────────────────────────────────────────
 XP_SHOWUP             = 20         # first review of the local day
 XP_PER_REVIEW         = 2
@@ -683,3 +692,42 @@ sources.
       Network tab).
 - [ ] `npm test` and `api-tests.mjs` green; CREDITS complete; README accurate.
 - [ ] AGPL LICENSE present; no secrets anywhere in git history.
+
+---
+
+## §15 Phase 9 — The Course
+
+A guided curriculum layered **on top of** the SRS, never replacing it. Free-recall review on
+the FSRS schedule is the retention engine; the course introduces words and adds varied
+practice. Built in three gated stages (9a data + engine → 9b lessons/path → 9c checkpoints).
+
+### 15.1 Data — `app/assets/packs/zh/course.zh.json` (committed artifact)
+Units are contiguous slices of the existing `introRank` order (the n+1 spine stays the
+sequencer), `UNIT_SIZE` each, seams nudged ±3 to keep topics.json clusters whole. Per unit:
+`{ id: "u007", title, wordIds[], note?, band }`. Titles draft from a unit's dominant topic
+(bands ≤ `COURSE_BANDS` max) or `"Band N · Unit M"` (higher bands); titles and one-sentence
+pattern `note`s are overridable in committed `packs/zh/course-overrides.json`, the same
+reviewable-data pattern as topics.json. Built by `packs/zh/lib/course.js`, deterministic;
+unit ids are stable once shipped (id-stability test, like the deck's).
+
+### 15.2 Exercise engine — `app/src/engine/exercises.js` (headless, pure)
+Six types, each a pure generator `(candidates, ctx) → item|null` and grader
+`(item, response) → {correct}`: MATCH, MCQ_MEANING, MCQ_AUDIO, TYPE_PINYIN (reuses the PROD
+normalizer verbatim), REORDER, CLOZE (the last two only over intro sentences whose every word
+is known). Distractors are drawn by similarity — same band, shared component, close pinyin,
+same tone pattern. Seeded RNG (`makeRng`/`hashSeed`) so a quiz attempt reproduces exactly.
+
+### 15.3 The scheduler firewall (binding)
+Exercise results log to a **separate append-only `practice_events` stream** —
+`{ id, unitId, type, wordId, correct, ts }` — synced with the same `received_at` cursor as
+review_events (own D1 table `practice_events`, own IndexedDB store, `/api/sync/practice`
+mirroring `/api/sync/events`). They feed XP, mastery and adaptivity and **never touch FSRS**:
+cued recognition is easier than free recall, and grading the scheduler on it inflates
+stability and rots retention. The firewall is structural — `rebuildFromEvents` never reads
+the stream, and a practice event has no `cardId`, so a leaked one is a replay no-op (proven
+in `tests/practice.test.js`). New files: `engine/practice.js`, `worker/src/api/practice.js`.
+
+### 15.4 Not this (scope law holds)
+No runtime AI generation (generators are deterministic data transforms). No hearts / lives /
+paywall theatre. No speaking assessment. No grammar course — the six exercise types over the
+n+1 sentences are the grammar instruction.

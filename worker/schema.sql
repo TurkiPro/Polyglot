@@ -42,6 +42,24 @@ CREATE TABLE IF NOT EXISTS custom_words (
   PRIMARY KEY (user_id, id)
 );
 
+-- The Course (Phase 9 §2). Exercise results — a SEPARATE append-only stream that feeds XP,
+-- mastery and adaptivity but NEVER FSRS: cued recognition (MCQ, matching) is easier than the
+-- free recall FSRS schedules on, so grading the scheduler on it inflates stability and rots
+-- retention. The firewall is structural — nothing joins this table to card state.
+CREATE TABLE IF NOT EXISTS practice_events (
+  id TEXT NOT NULL,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  unit_id TEXT NOT NULL,
+  type TEXT NOT NULL,
+  word_id TEXT NOT NULL,
+  correct INTEGER NOT NULL CHECK (correct IN (0, 1)),
+  ts INTEGER NOT NULL,
+  received_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_practice_cursor ON practice_events (user_id, received_at);
+
 CREATE TABLE IF NOT EXISTS rate_limits (
   k TEXT PRIMARY KEY,
   count INTEGER NOT NULL,

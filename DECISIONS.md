@@ -585,4 +585,33 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   activation of a tap-to-speak character, and the LIS card front — now keyed to the word
   and to the sentence src respectively. Only the Settings voice preview stays keyless, by
   design: it is previewing a browser voice, so it must not use the pack.
+- Phase 9a: course units are contiguous slices of the `introRank` spine, not a new ordering
+  — the n+1 dependency order stays the single sequencer. 496 units of 19-24 words each
+  (UNIT_SIZE ±3), seams nudged up to 3 words to land on a topics.json boundary. Unit ids are
+  `u001`… (3-digit, zero-padded) so they sort lexically and stay stable once shipped; a test
+  reproduces the committed ids from the deck, the same id-stability guard the deck has.
+- Phase 9a: 45 units fall in the authored bands (1-3); the rest are auto-titled
+  `Band N · Unit M`. Only **20** carry a grammar `note`, not the spec's aspirational ~45:
+  the function words a note is about (了, 吗, 不, 的…) cluster into a handful of early units,
+  and it is one note per unit, so the rest are topical-vocab units (Food, People, Places)
+  that genuinely have no single pattern — which the spec says get none. Notes are keyed by
+  unit id in `course-overrides.json`, reviewable data like topics.json.
+- Phase 9a: the exercise engine is pure — six generators `(candidates, ctx) → item|null`
+  and graders `(item, response) → {correct}`, a seeded mulberry32 RNG so a quiz attempt
+  reproduces exactly, and distractors ranked by a similarity score (same band + shared
+  component + close pinyin + same tone pattern) then sampled. REORDER/CLOZE segment the
+  intro sentence by greedy longest match and only run when every word is already known.
+  TYPE_PINYIN calls `gradeProduction` verbatim rather than forking the normalizer.
+- **Phase 9a: the scheduler firewall is structural, not a rule to remember.** Practice
+  results are a wholly separate append-only stream (`practice_events` table, own IndexedDB
+  store at DB v2, `/api/sync/practice` mirroring the review endpoints). `rebuildFromEvents`
+  — the FSRS oracle — never reads it, and a practice event carries no `cardId`, so even a
+  leaked one is a replay no-op (`parseCardId(undefined)` → a word the deck lacks → skipped).
+  Proven both ways in tests. The reason it must never feed FSRS: cued recognition (MCQ,
+  matching) is far easier than the free recall the scheduler grades on, so a correct MCQ
+  bumping stability would inflate intervals and quietly rot retention. This will be
+  questioned forever; the answer is here.
+- Phase 9a: `packs/zh/lib/course.js` and `app/src/engine/exercises.js` read their §0 values
+  (UNIT_SIZE, COURSE_BANDS, MCQ_CHOICES) from config like `queue.js` does, rather than
+  inlining literals, so the config-discipline grep stays clean.
 
