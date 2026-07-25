@@ -4,17 +4,16 @@
  * Streak, XP and level are read from the gamification cache when it exists; Phase 4
  * fills it in. Until then the tiles simply do not appear.
  */
-import { courseView, queue, store, updateSettings } from '../store.js';
-import { MODES, modesForWord } from '../engine/deck.js';
-import { banner, button, div, h, icon, p, replace, sealMark, span, stat } from '../ui/components.js';
+import { courseView, queue, store } from '../store.js';
+import { modesForWord } from '../engine/deck.js';
+import { button, div, h, icon, p, replace, sealMark, span, stat } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { comboCounter, odometer, stage } from '../ui/arcade.js';
-import { neonIgnite } from '../zh/writer.js';
+import { mountGate } from '../ui/gate.js';
 
 const s = strings.home;
 
-/** Once per app launch (§2.1), and the last score we showed, for the odometer. */
-let heroIgnited = false;
+/** The last score we showed, for the odometer roll. */
 let lastScore = 0;
 
 /**
@@ -46,27 +45,6 @@ function comboTile(gamify) {
   ]);
 }
 
-/**
- * The 语 mark, lit stroke by stroke — once per app launch (§2.1).
- *
- * Once, not once per visit to Home: a sign that re-ignites every time you glance at it is
- * a flicker, not an arrival.
- */
-function heroSign() {
-  const host = div({ class: 'home-hero' });
-  const mark = div({ class: 'hero-sign' });
-  host.append(mark);
-
-  if (heroIgnited) {
-    mark.classList.add('neon-sign', 'lit', 'hero-static');
-    mark.append(div({ class: 'neon-stage' }, [div({ class: 'neon-fallback', text: '语' })]));
-  } else {
-    heroIgnited = true;
-    neonIgnite(mark, '语', { color: 'var(--accent)', size: 140 });
-  }
-  return host;
-}
-
 function toneGymTile(ctx) {
   const tile = button('', () => ctx.navigate('#tones'), { variant: 'collection tone-gym' });
   tile.append(
@@ -80,18 +58,6 @@ function toneGymSubtitle() {
   const stats = store.toneStats;
   if (!stats?.attempts) return s.toneGymNew;
   return s.toneGymScore(Math.round((stats.correct / stats.attempts) * 100));
-}
-
-/**
- * Existing accounts are never dropped into onboarding — it is offered once, quietly, and
- * stays dismissed (§7.6).
- */
-function welcomeBanner(ctx) {
-  const { onboarded, welcomeBannerDismissed } = store.settings;
-  if (onboarded || welcomeBannerDismissed || store.events.length === 0) return null;
-  return banner(s.welcomeTitle, s.welcomeBody, s.welcomeDismiss, () =>
-    updateSettings({ welcomeBannerDismissed: true }),
-  );
 }
 
 function lockedNote() {
@@ -191,14 +157,22 @@ export function renderHome(root, ctx) {
     ? div({ class: 'home-caught-up' }, [sealMark(36), span({ text: s.allDone })])
     : null;
 
-  replace(root, stage('home', [
-    welcomeBanner(ctx),
-    heroSign(),
+  const content = div({ class: 'home-content' }, [
     h(1, s.greeting, 'greeting'),
     homeActions(ctx, total),
     caughtUp,
     tiles,
     toneGymTile(ctx),
     total > 0 ? lockedNote() : null,
-  ].filter(Boolean)));
+  ].filter(Boolean));
+
+  // The 3D gate stands in its own column on the right; it is the home's centrepiece now,
+  // in place of the old stroke-lit 语 (which flickered out from time to time).
+  const gateSlot = div({ class: 'home-gate' });
+
+  replace(root, stage('home', [
+    div({ class: 'home-grid' }, [content, gateSlot]),
+  ]));
+
+  mountGate(gateSlot);
 }

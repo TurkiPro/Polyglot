@@ -104,39 +104,42 @@ function createGate() {
   canvas.className = 'gate-canvas';
   canvas.setAttribute('aria-hidden', 'true');
   const gl = canvas.getContext('webgl', { antialias: true, alpha: true, premultipliedAlpha: false });
-  if (!gl) return { destroy() {} };
+  if (!gl) return { canvas, destroy() {} };
 
-  document.body.append(canvas);
+  const BASE_SPIN = 0.28; // radians/second — the resting drift
 
   let raf = 0;
   let disposed = false;
-  let yaw = -0.5;
-  let pitch = 0.12;
-  let spin = reduceMotion() ? 0 : 0.15; // radians/second
+  let yaw = -0.6;
+  let pitch = 0.1;
+  let spin = reduceMotion() ? 0 : BASE_SPIN;
+  let velocity = 0; // yaw velocity from the last drag, for a little fling
   let last = performance.now();
 
-  // ── Orbit by dragging anywhere that is not a control ──────
+  // ── Orbit by dragging the gate itself; it keeps turning on release ──
   let dragging = false;
   let px = 0;
-  let py = 0;
-  const isControl = (target) => target?.closest?.('button, a, input, textarea, select, [role="button"], .gloss, .slider');
-
   const onDown = (event) => {
-    if (isControl(event.target)) return;
     dragging = true;
-    spin = 0; // a hand on it stops the drift
+    velocity = 0;
     px = event.clientX;
-    py = event.clientY;
+    canvas.setPointerCapture?.(event.pointerId);
   };
   const onMove = (event) => {
     if (!dragging) return;
-    yaw += (event.clientX - px) * 0.01;
-    pitch = Math.max(-0.9, Math.min(0.9, pitch + (event.clientY - py) * 0.01));
+    const dx = (event.clientX - px) * 0.01;
+    yaw += dx;
+    velocity = dx; // remember the throw
+    pitch = Math.max(-0.7, Math.min(0.7, pitch + (event.movementY || 0) * 0.006));
     px = event.clientX;
-    py = event.clientY;
   };
-  const onUp = () => { dragging = false; };
-  window.addEventListener('pointerdown', onDown);
+  const onUp = () => {
+    if (!dragging) return;
+    dragging = false;
+    // Carry the throw into the drift, so releasing keeps it turning, then it eases back.
+    spin = reduceMotion() ? 0 : velocity * 45 || BASE_SPIN;
+  };
+  canvas.addEventListener('pointerdown', onDown);
   window.addEventListener('pointermove', onMove);
   window.addEventListener('pointerup', onUp);
   window.addEventListener('pointercancel', onUp);
@@ -188,8 +191,9 @@ function createGate() {
 
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = Math.floor(window.innerWidth * dpr);
-    const h = Math.floor(window.innerHeight * dpr);
+    const w = Math.floor(canvas.clientWidth * dpr);
+    const h = Math.floor(canvas.clientHeight * dpr);
+    if (!w || !h) return;
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w;
       canvas.height = h;
@@ -201,7 +205,11 @@ function createGate() {
     if (disposed) return;
     const dt = Math.min((now - last) / 1000, 0.05);
     last = now;
-    if (!dragging) yaw += spin * dt;
+    if (!dragging) {
+      yaw += spin * dt;
+      // A thrown gate eases back to its resting drift rather than stopping dead.
+      if (!reduceMotion()) spin += (BASE_SPIN - spin) * Math.min(1, dt * 1.2);
+    }
 
     resize();
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -223,10 +231,11 @@ function createGate() {
   }
 
   return {
+    canvas,
     destroy() {
       disposed = true;
       cancelAnimationFrame(raf);
-      window.removeEventListener('pointerdown', onDown);
+      canvas.removeEventListener('pointerdown', onDown);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);
@@ -237,12 +246,14 @@ function createGate() {
   };
 }
 
-// The gate is a single instance owned by the router (main.js): mounted on Home, gone
-// elsewhere. Idempotent, so repainting Home never stacks a second canvas.
+// A single instance, created once. Home mounts it into its own right-column slot (moving the
+// persistent canvas there on each repaint, so nothing is recreated); the router tears it down
+// when you leave Home.
 let instance = null;
 
-export function mountGate() {
+export function mountGate(slot) {
   if (!instance) instance = createGate();
+  if (slot && instance.canvas.parentNode !== slot) slot.append(instance.canvas);
 }
 
 export function unmountGate() {

@@ -7,7 +7,7 @@ import { httpApi, syncNow } from './sync/client.js';
 import { setPreferredVoice } from './zh/tts.js';
 import { applyEffects } from './ui/arcade.js';
 import { initGloss } from './ui/tooltip.js';
-import { mountGate, unmountGate } from './ui/gate.js';
+import { unmountGate } from './ui/gate.js';
 import { div, el, empty, p, replace, sealMark } from './ui/components.js';
 import { iconFor } from './ui/icons.js';
 import { applyTheme, applyToneColors } from './ui/theme.js';
@@ -131,10 +131,9 @@ function boot() {
     teardown = null;
 
     renderNav(nav, tabbar, actions, route.name, navigate);
-    // The 3D gate lives behind Home only; the router owns its lifecycle so repaints of Home
-    // never stack a second canvas, and it is torn down the moment you leave.
-    if (route.name === 'home') mountGate();
-    else unmountGate();
+    // The 3D gate lives on Home only, in its own right-column slot (mounted by the view).
+    // The router tears it down the moment you leave, so it never lingers on another page.
+    if (route.name !== 'home') unmountGate();
     // Review hides the tab bar on mobile so the grade bar owns the thumb zone.
     document.documentElement.dataset.route = route.name;
     document.title = `${strings.nav[route.name] ?? strings.appName} · ${strings.appName}`;
@@ -167,10 +166,8 @@ function boot() {
         const route = parseHash(location.hash);
         if (['home', 'stats', 'words'].includes(route.name)) paint();
       });
-      // A brand-new account starts with tones, not with a card it cannot answer (§7.1).
-      if (!store.settings.onboarded && store.events.length === 0 && !location.hash) {
-        location.hash = '#welcome';
-      }
+      // Onboarding is disabled for now (removed pending a redesign): new accounts land on
+      // Home rather than being sent to #welcome.
       paint();
       registerServiceWorker();
       backgroundSync();

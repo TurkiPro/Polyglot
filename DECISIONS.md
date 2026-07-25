@@ -652,3 +652,10 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   log and asserts the FSRS state hash is unchanged — the §2 firewall proven under the same
   determinism guarantee that protects sync and import, not only in isolation.
 
+
+- Home redesign: the stroke-lit 语 hero was removed (it flickered out intermittently and
+  the animated HanziWriter render was never reliable) in favour of the 3D gate as the
+  centrepiece, which sits in its own right-hand column on desktop and above the content on a
+  phone. Onboarding (#welcome) is disabled for now at the maintainer's request pending a
+  redesign: new accounts land on Home rather than being routed to it, and the Home welcome
+  banner is gone. The route and view code remain, just unreferenced by the auto-flow.
