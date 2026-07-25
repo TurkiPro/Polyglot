@@ -553,4 +553,18 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   trim, F0 measurement) and `carrier.py` (the single-char crop), so `bakeoff.py`,
   `generate.py` and `isolated.py` agree on one definition of each and every file stays
   under the ~300-line cap.
+- **Phase 8 §3: the pack is uploaded over R2's S3 API, not `wrangler r2 object put`.** Two
+  things surfaced when the maintainer ran the original wrangler-based uploader and saw
+  nothing appear in the bucket. First, `wrangler r2 object put` in Wrangler 4.x defaults to
+  `--local` — it was writing to the local miniflare simulation, never to Cloudflare; it
+  needs an explicit `--remote`. Second, passing `--config worker/wrangler.toml` made a
+  simple object put hang (>2 min) — the object commands do not need the Worker config, only
+  global auth. But even fixed, wrangler boots once per file (~4 s measured), so a
+  16,217-file pack would take ~18 hours. Rewritten to sign requests in-process (SigV4 via
+  `node:crypto`, no dependency, verified against AWS's published test vectors) and upload
+  ~24 at a time, which does the whole pack in minutes. Needs R2 S3 credentials
+  (R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY) rather than the wrangler OAuth
+  session; documented in the script header, README and CHECKLIST.
+- Phase 8 §3: SELF_HOSTING.md still has no R2 / audio-pack section — a pre-existing gap
+  from when Phase 8 added the bucket. Worth filling when the operator docs are next revised.
 

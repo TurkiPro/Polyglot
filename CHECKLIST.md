@@ -247,7 +247,16 @@ are installed and working in `.venv/`, so step 1 is done unless you are on anoth
        manifest-contract tests pass and a decode sample found nothing silent. Single-char
        words use the `请说_。` carrier (see below); this needs `onnx` (already in `.venv/`),
        without which those words fall back to a bare, toneless render.
-7. [ ] `npx wrangler r2 bucket create polyglot-audio`, then `node packs/zh/audio/upload.mjs`.
+7. [ ] Create the bucket: `npx wrangler r2 bucket create polyglot-audio`. Then upload with
+       the **S3 API** (not `wrangler r2 object put`, which boots wrangler per file — ~18 h
+       for 16k files; the S3 path takes minutes). Create an R2 API token (dashboard → R2 →
+       Manage R2 API Tokens → Object Read & Write) and export it, then run the uploader:
+       ```sh
+       export R2_ACCOUNT_ID=<account id>
+       export R2_ACCESS_KEY_ID=<from the token>
+       export R2_SECRET_ACCESS_KEY=<from the token>
+       node packs/zh/audio/upload.mjs        # idempotent; resumes; --dry-run to preview
+       ```
 8. [ ] Spot-check five `/audio/<hash>.ogg` URLs on the deployed origin — include at least
        one single-character word (好, 女) and confirm its tone is present, not flat.
 

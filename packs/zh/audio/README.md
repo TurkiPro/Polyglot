@@ -105,8 +105,26 @@ Once an engine is chosen:
 
 ```sh
 python packs/zh/audio/generate.py     # renders every deck word + intro sentence
-node packs/zh/audio/upload.mjs        # uploads to R2, idempotent by hash
+node packs/zh/audio/upload.mjs        # uploads to R2 over the S3 API, idempotent by hash
 ```
+
+The upload uses R2's **S3-compatible API**, not `wrangler r2 object put`. Wrangler boots
+once per file (~4 s), so a 16k-file pack would take ~18 hours; the S3 API signs requests
+in-process (SigV4 via `node:crypto`, no dependency) and uploads them concurrently, doing
+the whole pack in minutes. It needs R2 S3 credentials — Cloudflare dashboard → R2 → **Manage
+R2 API Tokens** → Create API Token → **Object Read & Write** — exported as environment
+variables before running:
+
+```sh
+export R2_ACCOUNT_ID=<your account id>
+export R2_ACCESS_KEY_ID=<from the R2 API token>
+export R2_SECRET_ACCESS_KEY=<from the R2 API token>
+```
+
+The bucket itself is still created with `npx wrangler r2 bucket create polyglot-audio`
+(that command *is* remote by default; the object commands are not, which is why the S3 API
+is cleaner here). The upload lists the bucket once and skips what is already there, so an
+interrupted run resumes; `--dry-run` reports what it would do, `--force` re-uploads all.
 
 `audio-manifest.json` **is** committed; the `.ogg` files are **not** — that is the one
 sanctioned exception to committed build artifacts (Phase 8 §2), because the pack runs to
