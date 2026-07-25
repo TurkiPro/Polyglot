@@ -342,6 +342,7 @@ async function writeCourse(words, version, generatedAt) {
     notes: overrides.notes,
     courseBands: config.course.courseBands,
     unitSize: config.course.unitSize,
+    lessonWords: config.course.lessonWords,
   });
 
   const course = {
@@ -353,7 +354,8 @@ async function writeCourse(words, version, generatedAt) {
   };
   await writeFile(new URL(`course.${LANG}.json`, OUT_DIR), JSON.stringify(course));
   log(`  course.${LANG}.json — ${units.length} units (${stats.authored} authored, ` +
-      `${stats.withNote} noted, sizes ${stats.sizes.min}-${stats.sizes.max})`);
+      `${stats.withNote} noted, sizes ${stats.sizes.min}-${stats.sizes.max}); steps: ` +
+      `${stats.steps.WORD}w ${stats.steps.PHRASE}p ${stats.steps.PRACTICE}x ${stats.steps.CHECKPOINT}c`);
   courseInfo = { units, stats };
 }
 

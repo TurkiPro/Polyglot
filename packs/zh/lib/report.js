@@ -82,14 +82,20 @@ function topicReport(topics) {
 function courseReport(course) {
   if (!course) return [];
   const { units, stats } = course;
+  const st = stats.steps ?? { WORD: 0, PHRASE: 0, PRACTICE: 0, CHECKPOINT: 0 };
   const lines = [
     `the course (Phase 9 §1): ${stats.units} units, ${stats.authored} authored (bands ≤3), ` +
       `${stats.withNote} with a pattern note, sizes ${stats.sizes.min}-${stats.sizes.max}`,
+    `steps (Phase 10 A1): ${st.WORD} word, ${st.PHRASE} phrase, ${st.PRACTICE} practice, ` +
+      `${st.CHECKPOINT} checkpoint`,
     '',
   ];
   for (const unit of units) {
+    const counts = (unit.steps ?? []).reduce((acc, s) => ((acc[s.kind] = (acc[s.kind] ?? 0) + 1), acc), {});
+    const stepLabel = `${counts.WORD ?? 0}w ${counts.PHRASE ?? 0}p ${counts.PRACTICE ?? 0}x ${counts.CHECKPOINT ?? 0}c`;
     lines.push(
-      `  ${unit.id}  band ${unit.band}  ${String(unit.wordIds.length).padStart(2)}w  ${unit.title}` +
+      `  ${unit.id}  band ${unit.band}  ${String(unit.wordIds.length).padStart(2)}w  ` +
+        `[${stepLabel}]  ${unit.title}` +
         (unit.note ? `\n         note: ${unit.note}` : ''),
     );
   }

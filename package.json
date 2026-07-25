@@ -11,6 +11,7 @@
     "test": "vitest run",
     "lint": "eslint .",
     "deck": "node packs/zh/build.mjs",
+    "regen-course": "node scripts/regen-course.mjs",
     "api-test": "node scripts/api-tests.mjs",
     "db:local": "wrangler d1 execute polyglot-db --local --file worker/schema.sql --config worker/wrangler.toml"
   },

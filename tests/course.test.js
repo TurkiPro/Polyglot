@@ -83,6 +83,61 @@ describe('buildCourse (§9.1)', () => {
   });
 });
 
+/* ── steps[]: the one sequence path and runner share (Phase 10 A1) ── */
+
+describe('deriveSteps via buildCourse (§10 A1)', () => {
+  it('emits one WORD per word in order, a CHECKPOINT last, PRACTICE on the cadence', () => {
+    const words = makeWords(50); // synthetic, no sentences ⇒ no PHRASE beats
+    const { units } = buildCourse(words, {}, { unitSize: 22, lessonWords: 6 });
+
+    for (const unit of units) {
+      const kinds = unit.steps.map((s) => s.kind);
+      expect(kinds.at(-1)).toBe('CHECKPOINT');
+      expect(kinds.filter((k) => k === 'CHECKPOINT')).toHaveLength(1);
+
+      const wordSteps = unit.steps.filter((s) => s.kind === 'WORD');
+      expect(wordSteps.map((s) => s.wordId)).toEqual(unit.wordIds); // order untouched
+
+      // A practice set after each full LESSON_WORDS, never as the step just before checkpoint.
+      const practice = kinds.filter((k) => k === 'PRACTICE').length;
+      expect(practice).toBe(Math.floor((unit.wordIds.length - 1) / 6));
+      expect(unit.steps.at(-2).kind).not.toBe('PRACTICE');
+    }
+  });
+
+  it('adds structure without resequencing — ids and word membership are untouched', () => {
+    const words = makeWords(50);
+    const withSteps = buildCourse(words, {}, { unitSize: 22 });
+    // Word membership matches a run that ignores steps entirely.
+    const placed = withSteps.units.flatMap((u) => u.wordIds);
+    expect(new Set(placed)).toEqual(new Set(words.map((w) => w.id)));
+  });
+
+  it('spotlights a phrase once every one of its words is known', () => {
+    // Three words, then a fourth whose sentence is all four — known only at word 4.
+    const words = [
+      { id: 'w1', simp: '我', introRank: 1, band: 1, sentences: [] },
+      { id: 'w2', simp: '爱', introRank: 2, band: 1, sentences: [] },
+      { id: 'w3', simp: '你', introRank: 3, band: 1, sentences: [] },
+      { id: 'w4', simp: '们', introRank: 4, band: 1,
+        sentences: [{ zh: '我爱你们', en: 'I love you all', src: 't#1' }] },
+    ];
+    const { units } = buildCourse(words, {}, { unitSize: 4, lessonWords: 6 });
+    const phrase = units[0].steps.find((s) => s.kind === 'PHRASE');
+    expect(phrase).toEqual({ kind: 'PHRASE', wordId: 'w4', src: 't#1' });
+    // The phrase step follows its word, never precedes it.
+    const wIdx = units[0].steps.findIndex((s) => s.wordId === 'w4' && s.kind === 'WORD');
+    const pIdx = units[0].steps.findIndex((s) => s.kind === 'PHRASE');
+    expect(pIdx).toBeGreaterThan(wIdx);
+  });
+
+  it('reports step totals', () => {
+    const { stats } = buildCourse(makeWords(50), {}, { unitSize: 22 });
+    expect(stats.steps.WORD).toBe(150);
+    expect(stats.steps.CHECKPOINT).toBe(stats.units);
+  });
+});
+
 /* ── The real committed course ──────────────────────────── */
 
 describe('committed course.zh.json (§9.1)', () => {
@@ -116,5 +171,21 @@ describe('committed course.zh.json (§9.1)', () => {
     });
     expect(units.map((u) => u.id)).toEqual(course.units.map((u) => u.id));
     expect(units.map((u) => u.wordIds.join(','))).toEqual(course.units.map((u) => u.wordIds.join(',')));
+    // steps[] is derived data too — the committed course must match a fresh rebuild exactly.
+    expect(units.map((u) => JSON.stringify(u.steps))).toEqual(course.units.map((u) => JSON.stringify(u.steps)));
+  });
+
+  it.skipIf(!has(path))('gives every committed unit a WORD-per-word run ending in one CHECKPOINT', () => {
+    for (const unit of read(path).units) {
+      expect(Array.isArray(unit.steps)).toBe(true);
+      expect(unit.steps.at(-1).kind).toBe('CHECKPOINT');
+      expect(unit.steps.filter((s) => s.kind === 'CHECKPOINT')).toHaveLength(1);
+      expect(unit.steps.filter((s) => s.kind === 'WORD').map((s) => s.wordId)).toEqual(unit.wordIds);
+      // Every PHRASE names a word in this unit and carries a sentence source.
+      for (const step of unit.steps.filter((s) => s.kind === 'PHRASE')) {
+        expect(unit.wordIds).toContain(step.wordId);
+        expect(typeof step.src).toBe('string');
+      }
+    }
   });
 });

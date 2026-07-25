@@ -14,6 +14,93 @@ import { config } from '../../../config/app.config.js';
 /** How far a unit seam may slide to land on a topic boundary (§1) — the ±3 of UNIT_SIZE ±3. */
 const SEAM_NUDGE = 3;
 
+/** A "new phrase" beat is offered no sooner than this many words after the last one (§10 A1). */
+const PHRASE_GAP = 2;
+
+/** Punctuation the segmenter skips — matches the client segmenter in exercises.js. */
+const PUNCT = /[\s，。！？、；：""''（）,.!?]/;
+
+/**
+ * Greedy longest-match segmentation against a set of headwords (Phase 10 A1, build-time).
+ * Deliberately mirrors `segment()` in `app/src/engine/exercises.js` so a PHRASE the pipeline
+ * emits is exactly one the runtime can build — the segmentation is not the sequencer, only the
+ * eligibility check for a step the single `steps[]` list then drives.
+ */
+function segmentDeckWords(text, bySimp, maxLen) {
+  const chars = [...text];
+  const tiles = [];
+  let i = 0;
+  while (i < chars.length) {
+    if (PUNCT.test(chars[i])) { i += 1; continue; }
+    let matched = null;
+    for (let len = Math.min(maxLen, chars.length - i); len >= 1; len--) {
+      const candidate = chars.slice(i, i + len).join('');
+      if (bySimp.has(candidate)) { matched = candidate; break; }
+    }
+    if (matched) { tiles.push({ simp: matched, deck: true }); i += [...matched].length; }
+    else { tiles.push({ simp: chars[i], deck: false }); i += 1; }
+  }
+  return tiles;
+}
+
+/**
+ * The `src` of a sentence of `word` every one of whose deck-words is already known, if any —
+ * the sentence a PHRASE step spotlights. "Known" is structural (introRank position), never a
+ * user's history, so the derivation stays a pure function of the pack.
+ */
+function phraseSrc(word, bySimp, maxLen, knownSimp) {
+  for (const sentence of word.sentences ?? []) {
+    const deckTiles = segmentDeckWords(sentence.zh, bySimp, maxLen).filter((t) => t.deck);
+    if (deckTiles.length >= 3 && deckTiles.length <= 8 &&
+        deckTiles.every((t) => knownSimp.has(t.simp)) &&
+        deckTiles.some((t) => t.simp === word.simp)) {
+      return sentence.src ?? sentence.zh;
+    }
+  }
+  return null;
+}
+
+/**
+ * A unit's ordered `steps[]` — the ONE sequence the syllabus and the lesson runner both read
+ * (Phase 10 A1). Kinds: WORD (teach + first practice, in introRank order), PHRASE (a sentence
+ * spotlight when one is now buildable, a beat every 2–3 words), PRACTICE (a mixed set every
+ * LESSON_WORDS words), and CHECKPOINT (always last). Derived, deterministic, resequences
+ * nothing — it only names structure over the unchanged word order.
+ *
+ * @param {object[]} unitWords the unit's words, in order
+ * @param {Set<string>} knownSimp simp of every word introduced up to this unit (mutated as we go)
+ * @param {Map<string, object>} bySimp deck lookup by spelling
+ * @param {number} maxLen longest headword, for the segmenter
+ * @param {number} lessonWords LESSON_WORDS
+ */
+function deriveSteps(unitWords, knownSimp, bySimp, maxLen, lessonWords) {
+  const steps = [];
+  let sincePhrase = 0;
+  let sincePractice = 0;
+  unitWords.forEach((word, index) => {
+    steps.push({ kind: 'WORD', wordId: word.id });
+    knownSimp.add(word.simp);
+    sincePhrase += 1;
+    sincePractice += 1;
+
+    if (sincePhrase >= PHRASE_GAP) {
+      const src = phraseSrc(word, bySimp, maxLen, knownSimp);
+      if (src) {
+        steps.push({ kind: 'PHRASE', wordId: word.id, src });
+        sincePhrase = 0;
+      }
+    }
+    // A mixed practice set after each full LESSON_WORDS, but never immediately before the
+    // checkpoint (the last word's set would duplicate it).
+    if (sincePractice >= lessonWords && index < unitWords.length - 1) {
+      steps.push({ kind: 'PRACTICE' });
+      sincePractice = 0;
+    }
+  });
+  steps.push({ kind: 'CHECKPOINT' });
+  return steps;
+}
+
 /** `u007` — zero-padded so ids sort lexically and stay stable once shipped (§1). */
 export const unitId = (index) => `u${String(index + 1).padStart(3, '0')}`;
 
@@ -99,12 +186,22 @@ export function buildCourse(words, topicsFile = {}, options = {}) {
     notes = {},
     courseBands = config.course.courseBands,
     unitSize = config.course.unitSize,
+    lessonWords = config.course.lessonWords,
   } = options;
   const topics = topicsFile.topics ?? {};
   const labels = topicsFile.labels ?? {};
   const topicOrder = Object.keys(topics);
   const index = topicIndex(topics);
   const topicsOf = (id) => index.get(id) ?? new Set();
+
+  // One deck lookup for the PHRASE segmenter, over every word (not just this unit's).
+  const bySimp = new Map();
+  let maxLen = 1;
+  for (const word of words) {
+    if (!bySimp.has(word.simp)) bySimp.set(word.simp, word);
+    maxLen = Math.max(maxLen, [...word.simp].length);
+  }
+  const knownSimp = new Set(); // grows across units, in introRank order
 
   const ordered = [...words].sort((a, b) => a.introRank - b.introRank);
   const unitCount = Math.max(1, Math.round(ordered.length / unitSize));
@@ -133,8 +230,12 @@ export function buildCourse(words, topicsFile = {}, options = {}) {
     const unit = { id, title: titles[id] ?? title, wordIds: slice.map((w) => w.id), band };
     const note = notes[id];
     if (note) unit.note = note;
+    unit.steps = deriveSteps(slice, knownSimp, bySimp, maxLen, lessonWords);
     units.push(unit);
   }
+
+  const stepTotals = { WORD: 0, PHRASE: 0, PRACTICE: 0, CHECKPOINT: 0 };
+  for (const unit of units) for (const step of unit.steps) stepTotals[step.kind] += 1;
 
   return {
     units,
@@ -143,6 +244,7 @@ export function buildCourse(words, topicsFile = {}, options = {}) {
       authored: units.filter((u) => u.band <= maxAuthored).length,
       withNote: units.filter((u) => u.note).length,
       sizes: { min: Math.min(...units.map((u) => u.wordIds.length)), max: Math.max(...units.map((u) => u.wordIds.length)) },
+      steps: stepTotals,
     },
   };
 }

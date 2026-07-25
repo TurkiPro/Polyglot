@@ -772,3 +772,18 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   (sign tiles, action cards) to confirm every focusable element shows a ring. Coverage:
   `tests/a11y.test.js` pins the `activatable` contract; `course-view.test.js` asserts the MCQ
   choices are a labelled group of real buttons.
+
+- Phase 10 A1: course units gained a generated `steps[]` — the single ordered sequence the
+  syllabus and the lesson runner both read, so there is no second sequencing logic. Kinds:
+  `WORD` (one per word, in the untouched introRank order), `PHRASE` (a sentence spotlight,
+  `{wordId, src}`, emitted a beat every 2–3 words wherever the current word has a sentence all
+  of whose deck-words are structurally known by that point), `PRACTICE` (a mixed set after each
+  full LESSON_WORDS, never the step just before the checkpoint), and `CHECKPOINT` (always last).
+  Derivation is pure and deterministic; "known" is structural (introRank position), never user
+  history, so the same pack yields byte-identical steps. It adds structure and resequences
+  nothing: unit ids and word membership are unchanged (the id-stability test now also asserts
+  `steps[]` reproduces from the committed deck). The committed `course.zh.json` was regenerated
+  by `scripts/regen-course.mjs` (`npm run regen-course`), which rebuilds ONLY the course from
+  the committed deck/topics/overrides so deck bytes and card ids stay untouched — 10,904 word /
+  3,087 phrase / 1,488 practice / 496 checkpoint steps. `report.txt` now prints per-unit step
+  counts and the totals.
