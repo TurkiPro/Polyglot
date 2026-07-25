@@ -2266,6 +2266,8 @@ body {
 }
 .syllabus-band[open] > .syllabus-band-head::after { transform: rotate(90deg); }
 .syllabus-band .band-title { font-size: var(--text-lg); }
+.syllabus-band .band-meta { display: flex; align-items: baseline; gap: var(--space-2); }
+.syllabus-band .band-count { color: var(--fg-dim); font-size: var(--text-xs); }
 .syllabus-band .band-pct { color: var(--fg-dim); font-variant-numeric: tabular-nums; font-size: var(--text-sm); }
 .syllabus-band-units {
   display: flex;
@@ -2297,7 +2299,14 @@ body {
   transition: transform var(--dur) var(--ease);
 }
 .syllabus-unit[open] > .syllabus-unit-head::after { transform: rotate(90deg); }
-.syllabus-unit .unit-title { font-weight: 600; }
+.syllabus-unit .unit-num {
+  flex: none;
+  min-width: 1.6em;
+  color: var(--fg-dim);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-sm);
+}
+.syllabus-unit .unit-title { font-weight: 600; flex: 1; }
 .syllabus-unit .unit-pct { color: var(--fg-dim); font-variant-numeric: tabular-nums; font-size: var(--text-sm); }
 .syllabus-unit.status-cleared .unit-pct { color: var(--ok); }
 .syllabus-unit.status-gold .unit-pct { color: var(--neon-yellow); }

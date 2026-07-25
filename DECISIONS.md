@@ -878,3 +878,12 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   its steps. The band in play opens by default and its units build lazily; the rest stay one
   line, so the default view is a short, scannable list rather than 497 rows. Nothing was removed
   from the course — the whole journey is still reachable, just no longer an endless scroll.
+
+- Phase 10 follow-up (2): the band grouping still repeated "HSK 1", "HSK 2"… because a band is
+  not a contiguous run — the n+1 intro order sprinkles easy words throughout, so each band
+  recurred up to 8 times. `bandGroups` now gathers ALL of a band's units into ONE section
+  (bands ordered by first appearance, units kept in course order within), giving exactly 8
+  sections: The Sounds, HSK 1–6, HSK 7–9. Within a band, topic titles recur (a theme spans
+  several units), so each unit row now shows a within-band number and each band header its unit
+  count, keeping otherwise-identical rows distinct. A test asserts interleaved bands still yield
+  one section each.

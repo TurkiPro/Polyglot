@@ -56,12 +56,15 @@ function stepRow(unit, index, step, ctx) {
  * A unit as a collapsible section — native `<details>`, so it is keyboard-operable and needs
  * no JS. The unit that holds the current step opens by default; the rest fold to their header.
  */
-function unitSection(row, ctx, { openId }) {
+function unitSection(row, ctx, { openId, ordinal }) {
   const details = el('details', { class: `syllabus-unit status-${row.status}` });
   const summary = el('summary', { class: 'syllabus-unit-head' }, [
+    // Topic titles recur across a band (a theme spans several units), so the within-band
+    // number keeps each row distinct and gives a sense of position.
+    ordinal ? span({ class: 'unit-num', text: String(ordinal) }) : null,
     span({ class: 'unit-title', text: row.title }),
     span({ class: 'unit-pct', text: s.unitProgress(row.percent) }),
-  ]);
+  ].filter(Boolean));
   const steps = el('ol', { class: 'syllabus-steps' });
 
   // The course has hundreds of units; build a unit's step rows only when it is open, so the
@@ -76,15 +79,23 @@ function unitSection(row, ctx, { openId }) {
   return details;
 }
 
-/** Contiguous runs of units sharing a band, in course order — the outer grouping. */
+/**
+ * All units of a band, gathered into one section — the outer grouping.
+ *
+ * The n+1 intro order weaves difficulty, so a band is NOT one contiguous run: HSK 1 units are
+ * sprinkled through the whole spine as easy words keep arriving. Grouping by contiguous run
+ * therefore listed "HSK 1", "HSK 2" … many times over. Gathering every unit of a band into a
+ * single section — bands ordered by first appearance (0,1,2,…7), units kept in course order
+ * within — gives one section per band, which is how a learner thinks about the course anyway.
+ */
 function bandGroups(rows) {
-  const groups = [];
+  const order = [];
+  const byBand = new Map();
   for (const row of rows) {
-    const last = groups.at(-1);
-    if (last && last.band === row.band) last.rows.push(row);
-    else groups.push({ band: row.band, rows: [row] });
+    if (!byBand.has(row.band)) { byBand.set(row.band, []); order.push(row.band); }
+    byBand.get(row.band).push(row);
   }
-  return groups;
+  return order.map((band) => ({ band, rows: byBand.get(band) }));
 }
 
 /**
@@ -101,12 +112,17 @@ function bandSection(group, ctx, { openBand, openId }) {
   const details = el('details', { class: `syllabus-band band-${group.band}` });
   const summary = el('summary', { class: 'syllabus-band-head' }, [
     span({ class: 'band-title', text: s.bandTitle(group.band) }),
-    span({ class: 'band-pct', text: s.unitProgress(percent) }),
+    span({ class: 'band-meta' }, [
+      span({ class: 'band-count', text: s.unitCount(group.rows.length) }),
+      span({ class: 'band-pct', text: s.unitProgress(percent) }),
+    ]),
   ]);
   const units = div({ class: 'syllabus-band-units' });
 
   const fill = () => {
-    if (!units.childElementCount) units.append(...group.rows.map((row) => unitSection(row, ctx, { openId })));
+    if (!units.childElementCount) {
+      units.append(...group.rows.map((row, i) => unitSection(row, ctx, { openId, ordinal: i + 1 })));
+    }
   };
   if (group.band === openBand) { details.open = true; fill(); }
   details.addEventListener('toggle', () => { if (details.open) fill(); });

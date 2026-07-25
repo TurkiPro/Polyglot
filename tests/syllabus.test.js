@@ -109,25 +109,24 @@ describe('syllabus + runner (A2)', () => {
     expect(text()).toContain('乙'); // jumped straight to the second word
   });
 
-  it('groups units by band so the top level stays small (not one row per unit)', () => {
-    // A course spanning three bands: the tree's top level is three band sections, and only
-    // the current band's units are built — the rest stay collapsed, so the list is bounded.
+  it('gives one section per band even when bands are interleaved (not repeated runs)', () => {
+    // The n+1 order weaves bands: 1, 2, 1, 3, 2 … Grouping must yield ONE section per band
+    // (3 here), each gathering all its units — never a fresh "HSK 1" every time the band recurs.
     const mk = (id, band) => ({
       id, title: id, band, wordIds: [`${id}:w`],
       steps: [{ kind: 'WORD', wordId: `${id}:w` }, { kind: 'CHECKPOINT' }],
     });
-    store.store.course = { units: [mk('u001', 1), mk('u002', 1), mk('u003', 2), mk('u004', 7)] };
+    store.store.course = {
+      units: [mk('u001', 1), mk('u002', 2), mk('u003', 1), mk('u004', 3), mk('u005', 2)],
+    };
 
     renderSyllabusPage(root, { navigate: vi.fn() });
-    // One section per band (1, 2, 7) — three, not four units.
-    expect(root.querySelectorAll('.syllabus-band').length).toBe(3);
-    // Nothing done yet ⇒ current is band 1; only its units are in the DOM.
+    const bands = [...root.querySelectorAll('.syllabus-band .band-title')].map((n) => n.textContent);
+    expect(bands).toEqual(['HSK 1', 'HSK 2', 'HSK 3']); // three sections, in first-appearance order
+    // The current band (HSK 1) gathers BOTH its units (u001 and the interleaved u003).
     const openBand = root.querySelector('.syllabus-band[open]');
     expect(openBand.querySelector('.band-title').textContent).toBe('HSK 1');
-    expect(root.querySelectorAll('.syllabus-band[open] .syllabus-unit').length).toBe(2); // u001, u002
-    // Band 7 is collapsed, so its unit is not rendered yet.
-    expect(root.textContent).toContain('HSK 7–9');
-    expect(root.querySelectorAll('.syllabus-unit').length).toBe(2);
+    expect(openBand.querySelectorAll('.syllabus-unit').length).toBe(2);
   });
 
   it('runs Unit 0 "The Sounds" as ordinary course content', () => {
