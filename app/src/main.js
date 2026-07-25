@@ -20,11 +20,13 @@ import { renderWord } from './views/word.js';
 import { renderWords } from './views/words.js';
 import { renderWelcome } from './views/welcome.js';
 import { renderToneGym } from './views/tonegym.js';
+import { renderCourse } from './views/course.js';
+import { renderLesson } from './views/lesson.js';
 
 /** Routes are `#name` or `#name/:arg`. */
 const ROUTES = [
   'home', 'review', 'browse', 'words', 'word', 'stats', 'settings', 'credits',
-  'welcome', 'tones',
+  'welcome', 'tones', 'course', 'lesson', 'quiz',
 ];
 const DEFAULT_ROUTE = 'home';
 
@@ -40,6 +42,8 @@ const VIEWS = {
   word: renderWord,
   welcome: renderWelcome,
   tones: renderToneGym,
+  course: renderCourse,
+  lesson: renderLesson,
   stats: renderStats,
   settings: renderSettings,
   credits: renderCredits,

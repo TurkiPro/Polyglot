@@ -4,7 +4,7 @@
  * Streak, XP and level are read from the gamification cache when it exists; Phase 4
  * fills it in. Until then the tiles simply do not appear.
  */
-import { queue, store, updateSettings } from '../store.js';
+import { courseView, queue, store, updateSettings } from '../store.js';
 import { MODES, modesForWord } from '../engine/deck.js';
 import { banner, button, div, h, p, replace, sealMark, stat } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
@@ -110,6 +110,21 @@ function lockedNote() {
   return anyLocked ? p(s.locked, 'muted locked-note') : null;
 }
 
+/**
+ * The course's "Continue · Unit N — Title" — the Home CTA for an account mid-course (§9.3).
+ * Reviews keep their own equal CTA below; this only leads the way in.
+ */
+function courseCta(ctx) {
+  if (!store.course) return null;
+  const { rows, currentId } = courseView();
+  const current = rows.find((r) => r.id === currentId);
+  if (!current) return null; // the whole course is cleared — nothing to continue
+  const number = Number(String(current.id).replace(/\D/g, ''));
+  return button(s.continueCourse(number, current.title), () => ctx.navigate('#course'), {
+    variant: 'btn-primary btn-cta',
+  });
+}
+
 export function renderHome(root, ctx) {
   const { cards, dueCount, newCount } = queue();
   const gamify = store.gamify;
@@ -123,13 +138,14 @@ export function renderHome(root, ctx) {
 
   const total = cards.length;
 
+  const course = courseCta(ctx);
+
   if (total > 0) {
-    // One primary action, above everything else.
-    const cta = div({ class: 'home-cta' }, [
-      button(s.startWith(total), () => ctx.navigate('#review'), {
-        variant: 'btn-primary btn-cta',
-      }),
-    ]);
+    // The course leads; reviews keep their own equal CTA (§9.3).
+    const reviewBtn = button(s.startWith(total), () => ctx.navigate('#review'), {
+      variant: course ? 'btn-quiet btn-cta' : 'btn-primary btn-cta',
+    });
+    const cta = div({ class: 'home-cta' }, [course, reviewBtn].filter(Boolean));
     replace(
       root,
       stage('home', [
@@ -145,7 +161,7 @@ export function renderHome(root, ctx) {
     return;
   }
 
-  // Nothing due: the stamp is the reward, not another box.
+  // Nothing due for review: the course can still go on, and the stamp is the reward.
   const started = store.events.length > 0;
   const done = div({ class: 'done-stamp' }, [
     sealMark(96, { title: strings.appName }),
@@ -155,5 +171,12 @@ export function renderHome(root, ctx) {
     button(strings.browse.title, () => ctx.navigate('#browse'), { variant: 'btn-quiet' }),
   ].filter(Boolean));
 
-  replace(root, stage('home', [welcomeBanner(ctx), heroSign(), tiles, done, toneGymTile(ctx)].filter(Boolean)));
+  replace(root, stage('home', [
+    welcomeBanner(ctx),
+    heroSign(),
+    course ? div({ class: 'home-cta' }, [course]) : null,
+    tiles,
+    done,
+    toneGymTile(ctx),
+  ].filter(Boolean)));
 }

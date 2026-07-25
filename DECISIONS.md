@@ -614,4 +614,23 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
 - Phase 9a: `packs/zh/lib/course.js` and `app/src/engine/exercises.js` read their §0 values
   (UNIT_SIZE, COURSE_BANDS, MCQ_CHOICES) from config like `queue.js` does, rather than
   inlining literals, so the config-discipline grep stays clean.
+- Phase 9b: course progress is derived, never stored (`engine/coursestate.js`) — a word is
+  introduced once its REC card has been graded (reps > 0), and a unit is cleared/gold from
+  `CHECKPOINT` / `CHECKPOINT_GOLD` practice events in the log. So the path survives export →
+  wipe → import and sync with no separate course-state table to drift, exactly as §4 requires.
+  Both the client export/import and the worker export carry the practice stream for this.
+- Phase 9b: a lesson introduces a word through a **real REC review** (the same `recordReview`
+  the review loop uses), not a side channel, so it counts against the daily new-card cap and
+  ramp automatically. `remainingNewToday = ramp(activeDays) − countNewToday`, and the lesson
+  takes `min(LESSON_WORDS, unintroduced, remaining)`; when that is 0 the sitting shows the
+  cap-spent screen rather than pacing past the limit.
+- Phase 9b: the exercise views live in `views/exercise.js`, one small renderer per type over
+  the pure items from `engine/exercises.js`; the lesson (`views/lesson.js`) is a step machine
+  that interleaves teach → intro card → exercise. MATCH dropped its audio axis (that is what
+  MCQ_AUDIO is for), leaving hanzi↔meaning / hanzi↔pinyin which pair cleanly by tap.
+- Phase 9b: the Home CTA leads with `Continue · Unit N — Title` (→ `#course`) when a course
+  is unfinished, with Review kept as an equal, quieter CTA beside it — the course is the way
+  in, reviews are still one tap away. When nothing is due for review the course CTA still shows.
+- Phase 9b: DB bumped to v2 already carried the practice store; `wipeLocal`, export and import
+  now all include the practice stream so a cleared unit is erased and restored with everything else.
 

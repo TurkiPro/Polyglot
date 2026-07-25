@@ -13,6 +13,8 @@ import { createEvent, mergeEvents, toWire } from './engine/events.js';
 import { computeGamify } from './engine/gamify.js';
 import { buildQueue, rampedNewCards } from './engine/queue.js';
 import { applyEvent, localDayKey, rebuildFromEvents, stateHash } from './engine/replay.js';
+import { createPracticeEvent, rebuildPractice, toWirePractice } from './engine/practice.js';
+import { clearedSets, courseProgress, introducedSet } from './engine/coursestate.js';
 
 const LANG = config.pack.langPackV1;
 const SETTINGS_KEY = 'settings';
@@ -22,6 +24,7 @@ const WORD_CURSOR_KEY = 'syncWordCursor';
 const LAST_SYNC_KEY = 'lastSyncAt';
 const PRIORITIES_KEY = 'studyNext';
 const TONE_STATS_KEY = 'toneStats';
+const PRACTICE_CURSOR_KEY = 'syncPracticeCursor';
 
 /** Settings a user can change; defaults come from config (§0). */
 export const DEFAULT_SETTINGS = Object.freeze({
@@ -71,6 +74,11 @@ export const store = {
   toneStats: null,
   /** Committed topic collections for the Browse signboard (v3 §5.1). */
   topics: null,
+  /** The committed course (Phase 9 §1): units over the introRank spine. */
+  course: null,
+  /** The course's practice-event log and its derived tallies (Phase 9 §2). */
+  practice: [],
+  practiceState: { byWord: new Map(), byUnit: new Map() },
   listeners: new Set(),
 };
 
@@ -117,9 +125,10 @@ export async function init() {
   store.states = rebuildFromEvents(store.deck, events, replayOptions()).states;
   store.toneStats = await db.getMeta(store.db, TONE_STATS_KEY, null);
   // Committed data, cached by the service worker like the deck — a miss is not fatal.
-  store.topics = await fetch(`/assets/packs/${LANG}/topics.json`)
-    .then((res) => (res.ok ? res.json() : null))
-    .catch(() => null);
+  store.topics = await fetchPack('topics.json');
+  store.course = await fetchPack(`course.${LANG}.json`);
+  store.practice = await db.getAll(store.db, db.STORES.practice);
+  store.practiceState = rebuildPractice(store.practice);
   store.lastSyncAt = await db.getMeta(store.db, LAST_SYNC_KEY, null);
   store.priorities = new Map(Object.entries(await db.getMeta(store.db, PRIORITIES_KEY, {})));
   await refreshGamify();
@@ -128,8 +137,56 @@ export async function init() {
   return store;
 }
 
+/** A committed pack artifact, cached by the service worker like the deck — a miss is not fatal. */
+const fetchPack = (name) =>
+  fetch(`/assets/packs/${LANG}/${name}`)
+    .then((res) => (res.ok ? res.json() : null))
+    .catch(() => null);
+
 /** The options replay needs, so every rebuild sees the same card set. */
 export const replayOptions = () => ({ writingTrack: store.settings.writingTrack !== false });
+
+/**
+ * The course path with a live status per unit (Phase 9 §3–4). Derived, never stored: which
+ * words the review log has introduced, which units the checkpoint cache has cleared.
+ */
+export function courseView() {
+  if (!store.course) return { rows: [], currentId: null };
+  const introduced = introducedSet(store.states);
+  const { cleared, gold } = clearedSets(store.practice);
+  return courseProgress(store.course.units, { introduced, cleared, gold });
+}
+
+/** Append an exercise result to the practice stream (Phase 9 §2) — never touches FSRS. */
+export async function recordPractice({ unitId, type, wordId, correct, now = Date.now() }) {
+  const event = createPracticeEvent({ unitId, type, wordId, correct, ts: now });
+  store.practice.push(event);
+  store.practiceState = rebuildPractice(store.practice);
+  await db.put(store.db, db.STORES.practice, event);
+  notify();
+  return event;
+}
+
+/**
+ * Record a checkpoint outcome as append-only practice events (Phase 9 §4), so "cleared" and
+ * "gold" derive from the log and survive export/import and sync. Monotonic: a later, worse
+ * attempt never removes a badge.
+ */
+export async function recordCheckpoint(unitId, fraction, now = Date.now()) {
+  if (fraction >= config.course.quizGold) {
+    await recordPractice({ unitId, type: 'CHECKPOINT_GOLD', wordId: unitId, correct: 1, now });
+  } else if (fraction >= config.course.quizPass) {
+    await recordPractice({ unitId, type: 'CHECKPOINT', wordId: unitId, correct: 1, now });
+  }
+  return fraction;
+}
+
+/** Rebuild the practice tallies after a sync pulled new practice events. */
+export async function refreshPractice() {
+  store.practice = await db.getAll(store.db, db.STORES.practice);
+  store.practiceState = rebuildPractice(store.practice);
+  notify();
+}
 
 /**
  * Recompute XP, level, streak and badges from the log, and cache the result.
@@ -344,6 +401,7 @@ export async function exportData() {
     packVersion: store.pack?.packVersion,
     settings: store.settings,
     events: store.events.map(toWire),
+    practice: store.practice.map(toWirePractice),
     customWords,
     stateHash: stateHash(store.states),
   };
@@ -360,15 +418,21 @@ export async function importData(payload) {
   const before = store.events.length;
   const merged = mergeEvents(store.events, payload.events);
   const customWords = payload.customWords ?? [];
+  // Practice is a set union by id too, so a cleared unit survives export → wipe → import.
+  const practice = mergeEvents(store.practice, payload.practice ?? []);
 
-  await db.tx(store.db, [db.STORES.events, db.STORES.customWords], 'readwrite', (t) => {
+  await db.tx(store.db, [db.STORES.events, db.STORES.customWords, db.STORES.practice], 'readwrite', (t) => {
     const events = t.objectStore(db.STORES.events);
     for (const event of merged) events.put({ ...event, synced: event.synced ?? 0 });
     const words = t.objectStore(db.STORES.customWords);
     for (const word of customWords) words.put(word);
+    const practiceStore = t.objectStore(db.STORES.practice);
+    for (const event of practice) practiceStore.put({ ...event, synced: event.synced ?? 0 });
   });
 
   store.events = merged;
+  store.practice = practice;
+  store.practiceState = rebuildPractice(practice);
   store.deck = createDeck(store.pack, await db.getAll(store.db, db.STORES.customWords));
   store.states = rebuildFromEvents(store.deck, merged, replayOptions()).states;
   await persistAllCards();
@@ -389,10 +453,13 @@ export async function wipeLocal() {
     db.STORES.cards,
     db.STORES.events,
     db.STORES.customWords,
+    db.STORES.practice,
     db.STORES.meta,
   ]);
   store.events = [];
   store.states = new Map();
+  store.practice = [];
+  store.practiceState = rebuildPractice([]);
   store.settings = { ...DEFAULT_SETTINGS };
   store.priorities = new Map();
   store.toneStats = null;
@@ -454,6 +521,30 @@ export function syncPort() {
       await db.putAll(store.db, db.STORES.customWords, winners);
       return winners.length;
     },
+
+    // ── the practice stream (Phase 9 §2), mirroring the event port ──
+    unsyncedPractice: async () => {
+      const rows = await db.getAllByIndex(store.db, db.STORES.practice, 'synced', 0);
+      return rows.map(toWirePractice);
+    },
+    markPracticeSynced: async (ids) => {
+      const known = new Set(ids);
+      const rows = store.practice.filter((event) => known.has(event.id));
+      for (const row of rows) row.synced = 1;
+      await db.putAll(store.db, db.STORES.practice, rows);
+    },
+    addRemotePractice: async (incoming) => {
+      const known = new Set(store.practice.map((event) => event.id));
+      const fresh = incoming.filter((event) => !known.has(event.id));
+      if (fresh.length === 0) return 0;
+      const rows = fresh.map((event) => ({ ...event, synced: 1 }));
+      await db.putAll(store.db, db.STORES.practice, rows);
+      store.practice.push(...rows);
+      return fresh.length;
+    },
+    practiceCursor: () => db.getMeta(store.db, PRACTICE_CURSOR_KEY, 0),
+    setPracticeCursor: (value) => db.setMeta(store.db, PRACTICE_CURSOR_KEY, value),
+    refreshPractice,
 
     rebuild: async () => {
       store.deck = createDeck(store.pack, await db.getAll(store.db, db.STORES.customWords));

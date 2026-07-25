@@ -727,7 +727,21 @@ stability and rots retention. The firewall is structural — `rebuildFromEvents`
 the stream, and a practice event has no `cardId`, so a leaked one is a replay no-op (proven
 in `tests/practice.test.js`). New files: `engine/practice.js`, `worker/src/api/practice.js`.
 
-### 15.4 Not this (scope law holds)
+### 15.4 Lessons and the path (9b)
+- `#course` — the units as a signboard (Browse's neon language), current unit prominent with
+  its one next action, cleared units lit, the road ahead dimmed until reached. This is the
+  Home CTA's target for a mid-course account (`Continue · Unit N — Title`); Review keeps an
+  equal CTA beside it.
+- `#lesson/:unit` — teach the unit's next `LESSON_WORDS` unintroduced words (the unchanged
+  Phase 7 teach flow) interleaved with a couple of exercises over words already met.
+  Introducing a word is a **real REC review**, so it counts against the daily new-card cap
+  and ramp — the course paces *through* the limits, never around them. A spent cap ends the
+  sitting warmly and offers practice or reviews. A unit fully introduced unlocks its checkpoint.
+- Progress derives from the streams (`engine/coursestate.js`): a word is introduced once its
+  REC card is graded; a unit is cleared/gold from `CHECKPOINT`/`CHECKPOINT_GOLD` practice
+  events (§4). No course state is stored, so the path survives export → wipe → import and sync.
+
+### 15.5 Not this (scope law holds)
 No runtime AI generation (generators are deterministic data transforms). No hearts / lives /
 paywall theatre. No speaking assessment. No grammar course — the six exercise types over the
 n+1 sentences are the grammar instruction.

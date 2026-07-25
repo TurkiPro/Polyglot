@@ -142,18 +142,14 @@ export function segment(text, ctx) {
 
 const firstDef = (word) => word.defs?.[0] ?? word.simp;
 
-/** MATCH — five pairs to connect; the pairing axis is chosen by rng (§2.1). */
+/** MATCH — five hanzi to connect to their meaning or pinyin; the axis is chosen by rng. */
 function genMatch(candidates, ctx, rng) {
   const picks = candidates.slice(0, 5);
   if (picks.length < 3) return null; // too few to make a matching worthwhile
-  const axis = ['meaning', 'pinyin', 'audio'][Math.floor(rng() * 3)];
-  const pairs = picks.map((word) => ({
-    id: word.id,
-    left: word.simp,
-    right: axis === 'meaning' ? firstDef(word) : axis === 'pinyin' ? word.pinyin : word.simp,
-    audioKey: axis === 'audio' ? word.id : undefined,
-  }));
-  return { type: 'MATCH', axis, pairs: shuffle(pairs, rng), answer: picks.map((w) => w.id) };
+  const axis = ['meaning', 'pinyin'][Math.floor(rng() * 2)];
+  const left = picks.map((word) => ({ id: word.id, simp: word.simp }));
+  const right = picks.map((word) => ({ id: word.id, text: axis === 'meaning' ? firstDef(word) : word.pinyin }));
+  return { type: 'MATCH', axis, left, right: shuffle(right, rng), answer: picks.map((w) => w.id) };
 }
 
 /** A four-way MCQ: the target plus three similar distractors, options shuffled. */

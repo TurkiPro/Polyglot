@@ -280,3 +280,20 @@ Then, on device:
 - [ ] Turn the audio pack off by pointing at a nonexistent bucket: the app falls back to
       browser speech rather than going silent.
 
+
+## The Course — lessons and the path (Phase 9b) — manual checks
+
+- [ ] A fresh guest's Home leads with **Continue · Unit 1 — <title>**; Review sits beside
+      it as an equal, not the only, way in. Day one reads as "begin the course", not "here
+      is a queue".
+- [ ] `#course` shows Unit 1 prominent with **Start unit**; the road ahead is dimmed and
+      locked; tapping a locked sign does nothing.
+- [ ] A lesson sitting teaches ~6 new words (teach screen → rate yourself) with an exercise
+      or two mixed in; each new word counts against **New words** on Home.
+- [ ] Set new-cards/day low in Settings, spend it, then open a lesson: it says the daily
+      new-word limit is reached and offers **Practise this unit** / **Do my reviews** —
+      it never introduces past the cap.
+- [ ] Introduce every word in Unit 1 (over one or more days): the unit's sign flips to
+      **Checkpoint ready** and the hero action becomes **Take the checkpoint**.
+- [ ] The six exercise types all render and grade with immediate feedback: MCQ (meaning &
+      audio), type-the-pinyin, match, reorder, cloze.

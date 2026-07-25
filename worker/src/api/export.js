@@ -7,7 +7,7 @@
 import { config } from '../../../config/app.config.js';
 
 export async function exportAll(env, user) {
-  const [events, words] = await Promise.all([
+  const [events, words, practice] = await Promise.all([
     env.DB.prepare(
       `SELECT id, card_id, rating, ts, dur_ms FROM review_events
         WHERE user_id = ? ORDER BY received_at ASC`,
@@ -17,6 +17,12 @@ export async function exportAll(env, user) {
     env.DB.prepare(
       `SELECT payload, updated_at, deleted FROM custom_words
         WHERE user_id = ? ORDER BY updated_at ASC`,
+    )
+      .bind(user.id)
+      .all(),
+    env.DB.prepare(
+      `SELECT id, unit_id, type, word_id, correct, ts FROM practice_events
+        WHERE user_id = ? ORDER BY received_at ASC`,
     )
       .bind(user.id)
       .all(),
@@ -33,6 +39,9 @@ export async function exportAll(env, user) {
       if (row.dur_ms !== null && row.dur_ms !== undefined) event.durMs = row.dur_ms;
       return event;
     }),
+    practice: (practice.results ?? []).map((row) => ({
+      id: row.id, unitId: row.unit_id, type: row.type, wordId: row.word_id, correct: row.correct, ts: row.ts,
+    })),
     customWords: (words.results ?? []).map((row) => ({
       ...JSON.parse(row.payload),
       updatedAt: row.updated_at,
