@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   clearedSets,
   courseProgress,
+  introducedFromEvents,
   introducedSet,
   metWords,
   unintroduced,
@@ -15,11 +16,12 @@ import {
 import { generate, prepareExercises } from '../app/src/engine/exercises.js';
 import { renderExercise } from '../app/src/views/exercise.js';
 
-const units = [
-  { id: 'u001', title: 'One', band: 1, wordIds: ['a', 'b', 'c'] },
-  { id: 'u002', title: 'Two', band: 1, wordIds: ['d', 'e'] },
-  { id: 'u003', title: 'Three', band: 4, wordIds: ['f', 'g'] },
-];
+/** Units with steps[] like the pipeline emits: a WORD per word, then a CHECKPOINT. */
+function unit(id, band, wordIds) {
+  return { id, title: id, band, wordIds, steps: [...wordIds.map((w) => ({ kind: 'WORD', wordId: w })), { kind: 'CHECKPOINT' }] };
+}
+const units = [unit('u001', 1, ['a', 'b', 'c']), unit('u002', 1, ['d', 'e']), unit('u003', 4, ['f', 'g'])];
+const course = { units };
 
 /** A states map like replay produces: cardId → { wordId, reps }. */
 function states(recWords) {
@@ -30,30 +32,68 @@ function states(recWords) {
   return map;
 }
 
+/** REC events for a set of words, like the review log holds. */
+const recEvents = (...wordIds) => wordIds.map((w) => ({ cardId: `${w}#REC`, rating: 3, ts: 1 }));
+
 describe('introducedSet (§9.3)', () => {
   it('counts a word met only once its REC card has been graded', () => {
     const set = introducedSet(states({ a: 3, b: 0, c: 1 }));
     expect(set).toEqual(new Set(['a', 'c'])); // b has reps 0 — taught screen but never graded
   });
+
+  it('reads the same introductions straight from the event log (A3)', () => {
+    expect(introducedFromEvents(recEvents('a', 'c'))).toEqual(new Set(['a', 'c']));
+    // A practice event has no cardId, so it can never be mistaken for an introduction.
+    expect(introducedFromEvents([{ unitId: 'u001', type: 'MCQ_MEANING' }])).toEqual(new Set());
+  });
 });
 
-describe('courseProgress (§9.3)', () => {
-  it('assigns a status per unit and points at the earliest unfinished one', () => {
-    const introduced = new Set(['a', 'b', 'c', 'd']); // u001 all, u002 partial
-    const { rows, currentId } = courseProgress(units, { introduced });
+describe('courseProgress (§10 A3)', () => {
+  it('assigns a status per unit and makes a fully-taught unit\'s checkpoint current', () => {
+    const events = recEvents('a', 'b', 'c'); // all of u001, none beyond
+    const { rows, currentId, current } = courseProgress({}, course, events, []);
     expect(rows[0].status).toBe('checkpoint'); // u001 fully introduced, not yet cleared
-    expect(rows[1].status).toBe('started'); // u002 partial
+    expect(rows[1].status).toBe('locked'); // u002 untouched
     expect(rows[2].status).toBe('locked'); // u003 untouched
-    expect(currentId).toBe('u001'); // earliest not cleared
+    expect(currentId).toBe('u001');
+    expect(current).toEqual({ unitId: 'u001', index: 3 }); // its checkpoint step
+  });
+
+  it('marks a fully-taught but un-taken checkpoint skipped once the next unit is begun', () => {
+    // u001 fully introduced, u002 started — the u001 checkpoint was leapfrogged.
+    const { rows, currentId } = courseProgress({}, course, recEvents('a', 'b', 'c', 'd'), []);
+    expect(rows[0].steps.at(-1).state).toBe('skipped'); // its checkpoint, jumped past
+    expect(rows[1].status).toBe('started');
+    expect(currentId).toBe('u002'); // focus is where the learner actually is
   });
 
   it('advances the current unit past cleared ones', () => {
-    const introduced = new Set(['a', 'b', 'c', 'd', 'e']);
-    const cleared = new Set(['u001']);
-    const gold = new Set(['u001']);
-    const { rows, currentId } = courseProgress(units, { introduced, cleared, gold });
+    const events = recEvents('a', 'b', 'c', 'd', 'e');
+    const practice = [{ type: 'CHECKPOINT_GOLD', unitId: 'u001', wordId: 'u001', correct: 1 }];
+    const { rows, currentId } = courseProgress({}, course, events, practice);
     expect(rows[0].status).toBe('gold');
-    expect(currentId).toBe('u002'); // u001 is cleared, so we move on
+    expect(currentId).toBe('u002'); // u001 cleared, so its checkpoint moves on
+  });
+
+  it('resolves each step to a state, marks jumped-past steps skipped, locks unmet checkpoints', () => {
+    // Introduced a and c but not b — b was jumped past, so the frontier is at c.
+    const { rows, current } = courseProgress({}, course, recEvents('a', 'c'), []);
+    // steps: WORD a, WORD b, WORD c, CHECKPOINT
+    expect(rows[0].steps.map((s) => s.state)).toEqual(['done', 'skipped', 'done', 'locked']);
+    // The checkpoint can't be current (b unmet ⇒ locked), so current advances to u002's first word.
+    expect(current).toEqual({ unitId: 'u002', index: 0 });
+    expect(rows[1].steps.map((s) => s.state)).toEqual(['current', 'upcoming', 'locked']);
+  });
+
+  it('reports per-unit and overall percentages from the step states', () => {
+    // u001 fully introduced + cleared → all 4 steps done; nothing else.
+    const events = recEvents('a', 'b', 'c');
+    const practice = [{ type: 'CHECKPOINT', unitId: 'u001', wordId: 'u001', correct: 1 }];
+    const { rows, overall } = courseProgress({}, course, events, practice);
+    expect(rows[0].percent).toBe(100);
+    expect(rows[1].percent).toBe(0);
+    // 4 of (4 + 3 + 3) steps done.
+    expect(overall).toEqual({ percent: Math.round((4 / 10) * 100), done: 4, total: 10 });
   });
 
   it('reads cleared/gold from checkpoint practice events (§9.4)', () => {

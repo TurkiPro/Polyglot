@@ -787,3 +787,19 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   the committed deck/topics/overrides so deck bytes and card ids stay untouched — 10,904 word /
   3,087 phrase / 1,488 practice / 496 checkpoint steps. `report.txt` now prints per-unit step
   counts and the totals.
+
+- Phase 10 A3: `courseProgress` was rebuilt into the single source of course-position truth —
+  `courseProgress(deck, course, events, practiceEvents)`, pure, in the engine. It reads the two
+  streams directly (a REC event = an introduction, via the new `introducedFromEvents`; cleared/
+  gold via `clearedSets`) and returns per-step states, per-unit %, and an overall %. Step state
+  walks one frontier — the furthest anchor (a WORD introduced or a CHECKPOINT cleared) reached:
+  `done` behind it, `current` the first actionable step ahead, `skipped` for anything not-done
+  that was leapfrogged, `locked` only for a checkpoint whose unit words aren't all introduced,
+  `upcoming` otherwise. `courseView()` now calls it; the rail, the Home CTA and the checkpoint
+  gate share it. Because it is a pure function of the streams, the replay-determinism suite was
+  extended to assert its output is identical across stream reordering and a JSON round-trip.
+  While wiring it, fixed a latent bug: `quiz.js` passed the whole `unit` object to
+  `recordCheckpoint(unitId, …)`, so checkpoint events stored an object as `unitId` and
+  `clearedSets` could never match `unit.id` — the path would never register a clear. Fixed the
+  call and added a `createPracticeEvent` invariant (`unitId`/`wordId` must be non-empty strings)
+  so the class can't recur silently.

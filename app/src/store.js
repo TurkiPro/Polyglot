@@ -14,7 +14,7 @@ import { computeGamify } from './engine/gamify.js';
 import { buildQueue, rampedNewCards } from './engine/queue.js';
 import { applyEvent, localDayKey, rebuildFromEvents, stateHash } from './engine/replay.js';
 import { createPracticeEvent, rebuildPractice, toWirePractice } from './engine/practice.js';
-import { clearedSets, courseProgress, introducedSet } from './engine/coursestate.js';
+import { courseProgress } from './engine/coursestate.js';
 
 const LANG = config.pack.langPackV1;
 const SETTINGS_KEY = 'settings';
@@ -151,10 +151,8 @@ export const replayOptions = () => ({ writingTrack: store.settings.writingTrack 
  * words the review log has introduced, which units the checkpoint cache has cleared.
  */
 export function courseView() {
-  if (!store.course) return { rows: [], currentId: null };
-  const introduced = introducedSet(store.states);
-  const { cleared, gold } = clearedSets(store.practice);
-  return courseProgress(store.course.units, { introduced, cleared, gold });
+  if (!store.course) return { rows: [], currentId: null, current: null, overall: { percent: 0, done: 0, total: 0 } };
+  return courseProgress(store.deck, store.course, store.events, store.practice);
 }
 
 /** Append an exercise result to the practice stream (Phase 9 §2) — never touches FSRS. */

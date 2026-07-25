@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { config } from '../config/app.config.js';
 import { cardId, cardIdsForWord, createDeck, modesForWord, parseCardId } from '../app/src/engine/deck.js';
+import { courseProgress } from '../app/src/engine/coursestate.js';
 import { createEvent, mergeEvents, sortEvents, toWire, uuidv4 } from '../app/src/engine/events.js';
 import { buildQueue, interleave, isDue, newCardCandidates } from '../app/src/engine/queue.js';
 import {
@@ -267,6 +268,18 @@ describe('replay', () => {
       });
     }
     expect(stateHash(rebuildFromEvents(deck, withPractice).states)).toBe(stateHash(fromScratch));
+
+    // Phase 10 A3: courseProgress reads the same two streams, so it is deterministic too —
+    // stream order and a JSON round-trip must not change a single step state or percentage.
+    const course = { units: [{
+      id: 'u001', title: 'U', band: 1, wordIds: words.map((w) => w.id),
+      steps: [...words.map((w) => ({ kind: 'WORD', wordId: w.id })), { kind: 'CHECKPOINT' }],
+    }] };
+    const practice = withPractice.filter((e) => e.type); // just the practice events
+    const shuffledPractice = [...practice].reverse();
+    const canonical = JSON.stringify(courseProgress(deck, course, log, practice));
+    expect(JSON.stringify(courseProgress(deck, course, shuffled, shuffledPractice))).toBe(canonical);
+    expect(JSON.stringify(courseProgress(deck, course, JSON.parse(JSON.stringify(log)), practice))).toBe(canonical);
   });
 
   it('detects drift — the hash is not vacuously equal', () => {

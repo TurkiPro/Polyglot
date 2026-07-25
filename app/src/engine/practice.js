@@ -19,9 +19,11 @@ import { uuidv4 } from './events.js';
  * @returns {PracticeEvent & { synced: 0 }}
  */
 export function createPracticeEvent({ unitId, type, wordId, correct, ts = Date.now() }) {
-  if (!unitId) throw new Error('practice: unitId is required');
+  // String ids, not objects: a unit or word passed whole would poison `clearedSets` (which
+  // matches on `unit.id`) and silently stop the path ever lighting up.
+  if (typeof unitId !== 'string' || !unitId) throw new Error('practice: unitId must be a non-empty string');
   if (!type) throw new Error('practice: type is required');
-  if (!wordId) throw new Error('practice: wordId is required');
+  if (typeof wordId !== 'string' || !wordId) throw new Error('practice: wordId must be a non-empty string');
   return { id: uuidv4(), unitId, type, wordId, correct: correct ? 1 : 0, ts, synced: 0 };
 }
 

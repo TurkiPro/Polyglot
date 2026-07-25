@@ -80,7 +80,7 @@ function runQuiz(root, ctx, unit, items) {
 async function finish(root, ctx, unit, correct, total) {
   const fraction = total ? correct / total : 0;
   const bandBefore = bandCleared(unit.band);
-  const { cleared, gold } = await recordCheckpoint(unit, fraction);
+  const { cleared, gold } = await recordCheckpoint(unit.id, fraction);
   const bandNow = bandCleared(unit.band);
   const bandJustCleared = !bandBefore && bandNow;
 
