@@ -7,6 +7,7 @@ import { httpApi, syncNow } from './sync/client.js';
 import { setPreferredVoice } from './zh/tts.js';
 import { applyEffects } from './ui/arcade.js';
 import { initGloss } from './ui/tooltip.js';
+import { mountGate, unmountGate } from './ui/gate.js';
 import { div, el, empty, p, replace, sealMark } from './ui/components.js';
 import { iconFor } from './ui/icons.js';
 import { applyTheme, applyToneColors } from './ui/theme.js';
@@ -130,6 +131,10 @@ function boot() {
     teardown = null;
 
     renderNav(nav, tabbar, actions, route.name, navigate);
+    // The 3D gate lives behind Home only; the router owns its lifecycle so repaints of Home
+    // never stack a second canvas, and it is torn down the moment you leave.
+    if (route.name === 'home') mountGate();
+    else unmountGate();
     // Review hides the tab bar on mobile so the grade bar owns the thumb zone.
     document.documentElement.dataset.route = route.name;
     document.title = `${strings.nav[route.name] ?? strings.appName} · ${strings.appName}`;

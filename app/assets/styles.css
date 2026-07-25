@@ -2597,3 +2597,19 @@ body {
 .course-sign.is-current {
   background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 10%, var(--surface)), var(--surface));
 }
+
+/* ── The 3D gate behind Home (app/src/ui/gate.js) ─────────────────── */
+
+.gate-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: -1;               /* above the page background, below all content */
+  width: 100%;
+  height: 100%;
+  pointer-events: none;      /* dragging is handled on the window, never blocks the UI */
+  opacity: 0.5;
+  /* Fade toward the edges so the cards in the centre column always read cleanly. */
+  -webkit-mask-image: radial-gradient(ellipse 78% 68% at 50% 42%, #000 45%, transparent 100%);
+  mask-image: radial-gradient(ellipse 78% 68% at 50% 42%, #000 45%, transparent 100%);
+}
+:root[data-theme="light"] .gate-canvas { opacity: 0.3; }

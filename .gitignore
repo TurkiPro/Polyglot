@@ -15,3 +15,8 @@ g2pW/
 # The TTS engines are build-machine tools, not project dependencies (Phase 8 §1).
 .venv/
 __pycache__/
+
+# 3D gate: raw model is build-time source; only the baked gate.mesh ships (scripts/gate-mesh.mjs).
+app/assets/3d-model/*.obj
+app/assets/3d-model/*.glb
+app/assets/3d-model/*.mtl

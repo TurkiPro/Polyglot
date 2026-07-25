@@ -52,6 +52,8 @@ const RUNTIME_PATHS = [
   // ~1.8 MB of subset serif. font-display: swap means the app is usable before it
   // arrives, so it does not belong in the install-time precache.
   '/assets/fonts/',
+  // The decorative 3D gate mesh (Home background) — fetched on first Home paint, then kept.
+  '/assets/3d-model/',
 ];
 
 self.addEventListener('install', (event) => {
