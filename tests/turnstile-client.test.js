@@ -17,7 +17,7 @@ beforeEach(() => {
 describe('turnstile loading', () => {
   it('loads nothing at import time, whether or not an operator configured a key', () => {
     // The invariant is the mechanism (opt-in loading), never the operator's value:
-    // pinning siteKey === '' made configuring the app (SELF_HOSTING step 5) break CI.
+    // pinning siteKey === '' made configuring the app (setting a Turnstile key) break CI.
     expect(document.querySelectorAll('script')).toHaveLength(0);
     expect(typeof config.auth.turnstile.siteKey).toBe('string');
   });

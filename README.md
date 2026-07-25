@@ -19,8 +19,9 @@ A local-first PWA with an FSRS spaced-repetition engine. v1 ships a Mandarin Chi
 
 ## Status
 
-All six build phases are complete. What remains is the human setup in SELF_HOSTING.md
-(D1, OAuth apps, Turnstile) and the device checks in CHECKLIST.md. See CHECKLIST.md for the manual browser checks Phase 3 needs.
+All six build phases are complete. What remains is the operator setup (D1, OAuth apps,
+Turnstile) and the device checks in CHECKLIST.md. See CHECKLIST.md for the manual browser
+checks Phase 3 needs.
 See `CLAUDE.md` for the full build plan and `DECISIONS.md` for choices made along the way.
 
 - [x] Phase 0 — scaffold
@@ -82,10 +83,10 @@ The client is the source of truth. Sync is an append-only log of immutable revie
 events; card state is a pure function of that log, so device merges are a set union and
 conflicts cannot exist.
 
-## Self-hosting
+## Deploying
 
-See [SELF_HOSTING.md](SELF_HOSTING.md) — one Worker, one D1 database, and a deploy is
-`wrangler deploy`. Contributions: [CONTRIBUTING.md](CONTRIBUTING.md).
+One Worker, one D1 database, and a deploy is `wrangler deploy`. Contributions:
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

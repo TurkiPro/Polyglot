@@ -147,8 +147,8 @@ Automated: `npm test` covers the client's orchestration, two devices converging 
 state hash, and guest → account migration. `scripts/api-tests.sh` covers the server.
 These need a real deployment:
 
-- [ ] Register the OAuth apps and a Turnstile widget (SELF_HOSTING steps 4-5), deploy,
-      then sign in with GitHub and with Google. The callback URLs cannot be tested locally.
+- [ ] Register the OAuth apps and a Turnstile widget, deploy, then sign in with GitHub and
+      with Google. The callback URLs cannot be tested locally.
 - [ ] **Two profiles**: sign in on browser profile A and B as the same account. Review on
       A, press Sync now on A, then on B. B shows A's progress; Stats totals match.
 - [ ] Guest migration: study as a guest, then sign in. Everything you did offline appears

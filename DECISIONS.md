@@ -565,6 +565,6 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   ~24 at a time, which does the whole pack in minutes. Needs R2 S3 credentials
   (R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY) rather than the wrangler OAuth
   session; documented in the script header, README and CHECKLIST.
-- Phase 8 §3: SELF_HOSTING.md still has no R2 / audio-pack section — a pre-existing gap
-  from when Phase 8 added the bucket. Worth filling when the operator docs are next revised.
+- The deploy/operator steps (D1, OAuth apps, Turnstile, secrets) live in the README and
+  CHECKLIST; there is no separate self-hosting document.
 

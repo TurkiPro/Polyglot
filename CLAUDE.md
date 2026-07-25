@@ -191,7 +191,7 @@ polyglot/
 │                                 # Everything in package.json scripts must run identically
 │                                 # in PowerShell, cmd, and POSIX shells; bash is banned.
 ├─ .github/workflows/deploy.yml
-├─ LICENSE  README.md  SELF_HOSTING.md  DECISIONS.md  CREDITS.md (generated)
+├─ LICENSE  README.md  DECISIONS.md  CREDITS.md (generated)
 └─ package.json  package-lock.json
 ```
 
@@ -642,13 +642,11 @@ sources.
 
 **Docs**
 - `README.md`: mission (§1), features, quick start (clone → `npm ci` → `npm run dev`),
-  architecture sketch, link to SELF_HOSTING.
-- `SELF_HOSTING.md`: **its own config block at the top** (account id, worker name, D1
-  name, URLs) that every numbered step references. Steps: create D1 → apply schema →
-  register GitHub + Google OAuth apps (callback = PROD_URL +
-  `/api/auth/<provider>/callback`) → create Turnstile widget → `wrangler secret put`
-  each of `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GOOGLE_CLIENT_ID`,
-  `GOOGLE_CLIENT_SECRET`, `TURNSTILE_SECRET` → deploy.
+  architecture sketch, and the operator/deploy steps: create D1 → apply schema → register
+  GitHub + Google OAuth apps (callback = PROD_URL + `/api/auth/<provider>/callback`) →
+  create Turnstile widget → `wrangler secret put` each of `GITHUB_CLIENT_ID`,
+  `GITHUB_CLIENT_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TURNSTILE_SECRET` →
+  deploy.
 - `CONTRIBUTING.md` stub: allowlist rule, config rule, phase/test gates.
 
 **Acceptance**
@@ -683,6 +681,5 @@ sources.
 - [ ] Zero third-party requests at runtime except OAuth redirects and, when a site key
       is configured, the Turnstile widget at sign-in (verify in the
       Network tab).
-- [ ] `npm test` and `api-tests.mjs` green; CREDITS complete; README + SELF_HOSTING
-      accurate.
+- [ ] `npm test` and `api-tests.mjs` green; CREDITS complete; README accurate.
 - [ ] AGPL LICENSE present; no secrets anywhere in git history.
