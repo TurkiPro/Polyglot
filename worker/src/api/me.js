@@ -27,6 +27,7 @@ export async function getMe(env, user) {
 export async function deleteMe(env, user) {
   await env.DB.batch([
     env.DB.prepare('DELETE FROM review_events WHERE user_id = ?').bind(user.id),
+    env.DB.prepare('DELETE FROM practice_events WHERE user_id = ?').bind(user.id),
     env.DB.prepare('DELETE FROM custom_words WHERE user_id = ?').bind(user.id),
     env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(user.id),
     env.DB.prepare('DELETE FROM users WHERE id = ?').bind(user.id),

@@ -659,3 +659,10 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   phone. Onboarding (#welcome) is disabled for now at the maintainer's request pending a
   redesign: new accounts land on Home rather than being routed to it, and the Home welcome
   banner is gone. The route and view code remain, just unreferenced by the auto-flow.
+
+- Audit F1: `DELETE /api/me` now also clears `practice_events`; it was left out when the
+  Phase 9 stream landed, and D1 does not enforce foreign keys, so those rows orphaned forever.
+  The fix is guarded structurally: `tests/account-deletion.test.js` reads the user-scoped
+  tables straight from `schema.sql` and asserts `deleteMe` deletes from each, and api-tests
+  counts zero rows in every one against real D1 — a future user-scoped table missing from the
+  batch fails the day its schema lands.

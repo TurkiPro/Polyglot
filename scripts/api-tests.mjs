@@ -11,7 +11,7 @@
  * (`npm run db:local`).
  */
 import { spawnSync } from 'node:child_process';
-import { unlinkSync, writeFileSync } from 'node:fs';
+import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -187,9 +187,26 @@ const live = rows?.[0]?.n;
 if (live === undefined || live === null) fail('could not count sessions');
 else check('sessions per user stay capped (≤ 10)', live <= 10, true);
 
-// ── account deletion removes everything ──────────────────────
+// ── account deletion removes everything (F1) ─────────────────
+// Practice events exist for this user before the delete, so a zero count after proves they
+// were removed, not merely absent.
+check('push practice before deleting', (await req('POST', '/api/sync/practice', {
+  events: [{ id: 'del-1', unitId: 'u001', type: 'MCQ_MEANING', wordId: 'zh:好:hao3', correct: 1, ts: 1721556000000 }],
+})).body.stored, 1);
 check('delete the account', (await req('DELETE', '/api/me')).status, 200);
 check('me is 401 afterwards', (await req('GET', '/api/me')).status, 401);
+
+// Every user-scoped table is empty for the deleted user. The list is read from schema.sql,
+// so a future user-scoped table missing from deleteMe's batch fails here the day it lands.
+const schema = readFileSync('worker/schema.sql', 'utf8');
+const userTables = [...schema.matchAll(/CREATE TABLE IF NOT EXISTS (\w+)\s*\(([\s\S]*?)\n\);/g)]
+  .filter(([, , body]) => /\buser_id\b/.test(body))
+  .map(([, name]) => name);
+if (userTables.length < 4) fail(`expected ≥4 user-scoped tables, parsed ${userTables.length}`);
+for (const table of userTables) {
+  check(`${table} empty after delete`, d1(`SELECT COUNT(*) AS n FROM ${table} WHERE user_id = 'dev:local'`)?.[0]?.n, 0);
+}
+check('users row gone', d1("SELECT COUNT(*) AS n FROM users WHERE id = 'dev:local'")?.[0]?.n, 0);
 
 console.log();
 if (failures === 0) {
