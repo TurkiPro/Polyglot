@@ -14,8 +14,9 @@ import {
 import { rampedNewCards } from '../engine/queue.js';
 import { generate, hashSeed, makeRng, prepareExercises } from '../engine/exercises.js';
 import { introducedSet, metWords, unintroduced } from '../engine/coursestate.js';
-import { button, div, h, p, replace, sealMark } from '../ui/components.js';
+import { button, div, h, p, replace, sealMark, span } from '../ui/components.js';
 import { stage } from '../ui/arcade.js';
+import { glossify } from '../ui/tooltip.js';
 import { strings } from '../ui/strings.js';
 import { renderBack } from './card.js';
 import { renderTeach } from './teach.js';
@@ -60,7 +61,7 @@ function runSitting(root, ctx, unit, words, met) {
     div({ class: 'lesson-head' }, [
       button(s.leave, () => ctx.navigate('#course'), { variant: 'btn-quiet lesson-leave' }),
       h(1, unit.title, 'lesson-title'),
-      unit.note ? p(unit.note, 'lesson-note') : null,
+      unit.note ? noteBlock(unit.note) : null,
     ].filter(Boolean)),
     host,
   ].filter(Boolean)));
@@ -89,6 +90,16 @@ function runSitting(root, ctx, unit, words, met) {
     steps[index++](next);
   };
   next();
+}
+
+/**
+ * The unit's pattern note (feedback #4): labelled so it reads as an observation about this
+ * unit's sentences, not a stray line, and its characters are hoverable for pinyin + meaning.
+ */
+function noteBlock(note) {
+  const body = p('', 'lesson-note-text');
+  body.append(glossify(note));
+  return div({ class: 'lesson-note' }, [span({ class: 'lesson-note-label', text: s.patternLabel }), body]);
 }
 
 /** The teach screen — unchanged Phase 7 flow, its "Got it" advances the sitting. */

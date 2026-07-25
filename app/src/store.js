@@ -290,12 +290,52 @@ export async function studyNext(wordId, now = Date.now()) {
 /** Whether a word is already queued to lead. */
 export const isPrioritized = (wordId) => store.priorities.has(wordId);
 
+/** Whether a word is in the learner's list — a custom word, or a pinned curriculum word. */
+export function inMyWords(wordId) {
+  return store.deck?.word(wordId)?.custom === true || store.priorities.has(wordId);
+}
+
+/**
+ * "My Words" — every word the learner added: their own custom words, plus any curriculum
+ * word they pinned (which is what "Add to my words" does for a deck word, since duplicating
+ * it into the deck would fight the pack). Newest first, by when it was added.
+ */
+export function myWords() {
+  const custom = store.deck?.custom() ?? [];
+  const customIds = new Set(custom.map((w) => w.id));
+  const rows = custom.map((w) => ({ word: w, t: w.updatedAt ?? 0 }));
+  for (const [id, t] of store.priorities) {
+    if (customIds.has(id)) continue;
+    const word = store.deck?.word(id);
+    if (word) rows.push({ word, t });
+  }
+  return rows.sort((a, b) => b.t - a.t).map((r) => r.word);
+}
+
 /** Undo a "Study next". */
 export async function unstudyNext(wordId) {
   if (!store.priorities.delete(wordId)) return false;
   await db.setMeta(store.db, PRIORITIES_KEY, Object.fromEntries(store.priorities));
   notify();
   return true;
+}
+
+/** Remove a word from My Words: unpin a curriculum word, or tombstone a custom one. */
+export async function removeFromMyWords(wordId) {
+  const word = store.deck?.word(wordId);
+  if (word?.custom) return removeCustomWord(wordId);
+  return unstudyNext(wordId);
+}
+
+/**
+ * Add any word to My Words. A curriculum word is pinned (the queue lane "Study next" uses),
+ * so it lists in My Words without being duplicated into the deck; a dictionary word not in
+ * the deck becomes a custom word. Either way it ends up in My Words — every word is addable.
+ */
+export async function addToMyWords(word) {
+  if (store.deck?.word(word.id)?.custom) return; // already a custom word
+  if (store.deck?.has(word.id)) return studyNext(word.id);
+  return addCustomWord(word);
 }
 
 /** Add a word of the user's own, from Browse. */

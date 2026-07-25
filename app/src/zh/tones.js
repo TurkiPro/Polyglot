@@ -61,8 +61,25 @@ export function toneFromMarks(syllable) {
   return /\p{Letter}/u.test(String(syllable)) ? 5 : 0;
 }
 
+/** Wrap each CJK character of a run in a hoverable gloss span; punctuation passes through. */
+function glossRun(text, fragment) {
+  for (const ch of text) {
+    if (/[㐀-鿿]/u.test(ch)) {
+      const span = document.createElement('span');
+      span.className = 'gloss';
+      span.dataset.gloss = ch;
+      span.textContent = ch;
+      fragment.append(span);
+    } else {
+      fragment.append(document.createTextNode(ch));
+    }
+  }
+}
+
 /**
- * A sentence with the target word marked, for SENT fronts (§9).
+ * A sentence with the target word marked, for SENT fronts (§9). Every character is a hover
+ * gloss (feedback #1); the target run is one span so it keeps its highlight and glosses as
+ * the whole word.
  * @returns {DocumentFragment}
  */
 export function highlightWord(sentence, word) {
@@ -71,7 +88,7 @@ export function highlightWord(sentence, word) {
   const needle = String(word ?? '');
 
   if (!needle) {
-    fragment.append(document.createTextNode(text));
+    glossRun(text, fragment);
     return fragment;
   }
 
@@ -79,13 +96,14 @@ export function highlightWord(sentence, word) {
   for (;;) {
     const at = text.indexOf(needle, from);
     if (at === -1) break;
-    if (at > from) fragment.append(document.createTextNode(text.slice(from, at)));
+    if (at > from) glossRun(text.slice(from, at), fragment);
     const mark = document.createElement('span');
-    mark.className = 'target';
+    mark.className = 'target gloss';
+    mark.dataset.gloss = needle;
     mark.textContent = needle;
     fragment.append(mark);
     from = at + needle.length;
   }
-  if (from < text.length) fragment.append(document.createTextNode(text.slice(from)));
+  if (from < text.length) glossRun(text.slice(from), fragment);
   return fragment;
 }

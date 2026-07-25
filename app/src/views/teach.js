@@ -9,6 +9,7 @@
 import { audioControl, button, div, el, p, span, tianzige } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { colorMarkedPinyin, colorPinyin, highlightWord } from '../zh/tones.js';
+import { humanDefs } from '../zh/defs.js';
 import * as tts from '../zh/audio.js';
 
 const s = strings.teach;
@@ -44,7 +45,7 @@ export function renderTeach(word, onDone) {
 
     tianzige([div({ class: 'hanzi', text: word.simp })]),
     pinyin,
-    el('ul', { class: 'defs teach-defs' }, (word.defs ?? []).map((def) => el('li', { text: def }))),
+    el('ul', { class: 'defs teach-defs' }, humanDefs(word.defs).map((def) => el('li', { text: def }))),
     speakable
       ? audioControl(
           () => tts.speak(word.simp, { key: word.id, rotate: true }),

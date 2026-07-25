@@ -5,7 +5,7 @@
  * feature read as broken. This lists them newest first with live scheduling state.
  */
 import { cardId } from '../engine/deck.js';
-import { removeCustomWord, store } from '../store.js';
+import { myWords, removeFromMyWords, store } from '../store.js';
 import { button, div, el, emptyState, h, p, relativeDay, replace, span } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { colorPinyin } from '../zh/tones.js';
@@ -30,7 +30,7 @@ export function renderWords(root, ctx) {
   const list = div({ class: 'word-list' });
 
   function paint() {
-    const words = store.deck?.custom() ?? [];
+    const words = myWords();
 
     if (words.length === 0) {
       replace(
@@ -78,7 +78,7 @@ function row(word, repaint, ctx) {
       p(s.removeConfirm(word.simp), 'muted'),
       button(s.cancel, () => replace(actions, remove), { variant: 'btn-quiet btn-small' }),
       button(s.remove, async () => {
-        await removeCustomWord(word.id);
+        await removeFromMyWords(word.id);
         repaint();
       }, { variant: 'btn-danger btn-small' }),
     );

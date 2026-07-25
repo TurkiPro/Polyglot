@@ -137,7 +137,10 @@ export const strings = Object.freeze({
     measureWords: 'Measure word',
     studyNext: 'Study next',
     queued: 'Up next in your reviews',
+    addToMyWords: 'Add to my words',
+    inMyWords: 'In my words',
     practiceWriting: 'Practice writing',
+    showStrokes: 'Show strokes again',
     practiceDone: 'Done practising',
     practiceBlurb: 'Free practice. Nothing is graded and your schedule does not change.',
     examples: 'Examples',
@@ -283,6 +286,7 @@ export const strings = Object.freeze({
 
   lesson: {
     leave: 'Leave',
+    patternLabel: 'Pattern in this unit',
     recall: 'Do you remember it? Show the answer, then rate yourself.',
     keepGoing: 'Keep going',
     checkpoint: 'Take the checkpoint',

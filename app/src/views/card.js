@@ -12,6 +12,7 @@ import { audioControl, button, div, el, icon, p, span, tianzige } from '../ui/co
 import { iconForMode } from '../ui/icons.js';
 import { strings } from '../ui/strings.js';
 import { colorMarkedPinyin, colorPinyin, highlightWord } from '../zh/tones.js';
+import { humanDefs } from '../zh/defs.js';
 import { mountQuiz } from '../zh/writer.js';
 import * as tts from '../zh/audio.js';
 import { store } from '../store.js';
@@ -84,7 +85,7 @@ function siblingHints(word) {
 
 /** Definitions as a list. */
 const defsList = (word, className = 'defs') =>
-  el('ul', { class: className }, (word.defs ?? []).map((d) => el('li', { text: d })));
+  el('ul', { class: className }, humanDefs(word.defs).map((d) => el('li', { text: d })));
 
 /** Coloured word pinyin. */
 function pinyinLine(word, className = 'pinyin') {

@@ -55,3 +55,24 @@ describe('classifier handling, against the shipped dictionary', () => {
     expect(checked).toBeGreaterThan(100);
   });
 });
+
+/* ── Bracketed readings become tone marks (feedback #2) ── */
+
+import { prettyReadings } from '../app/src/zh/defs.js';
+
+describe('bracketed cross-reference readings (feedback #2)', () => {
+  it('renders numbered pinyin in a gloss as tone marks', () => {
+    expect(prettyReadings('you (as opposed to courteous 您[nin2])')).toBe(
+      'you (as opposed to courteous 您[nín])',
+    );
+    expect(prettyReadings('see 你好[ni3 hao3]')).toBe('see 你好[nǐ hǎo]');
+  });
+
+  it('leaves non-reading brackets alone', () => {
+    expect(prettyReadings('an aside [really]')).toBe('an aside [really]');
+  });
+
+  it('humanDefs both strips classifiers and prettifies readings', () => {
+    expect(humanDefs(['tradition', 'CL:個|个[ge4]', 'cf 您[nin2]'])).toEqual(['tradition', 'cf 您[nín]']);
+  });
+});

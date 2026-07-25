@@ -7,7 +7,7 @@
 import { config } from '../../../config/app.config.js';
 import * as db from '../engine/db.js';
 import { numToMarks } from '../zh/pinyin.js';
-import { addCustomWord, isPrioritized, store, studyNext } from '../store.js';
+import { addCustomWord, addToMyWords, inMyWords, store } from '../store.js';
 import { button, checkStamp, div, el, empty, h, p, replace, span } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { colorPinyin } from '../zh/tones.js';
@@ -236,29 +236,26 @@ function deckRow(word, ctx) {
  * "Add" it and offering nothing else reads as the app being broken. A word already being
  * learned shows where it stands instead.
  */
+function mineChip() {
+  const chip = span({ class: 'chip chip-mine' });
+  chip.append(checkStamp(s.inMyWords));
+  return chip;
+}
+
 function knownChip(word) {
-  if (word.custom) {
-    const chip = span({ class: 'chip chip-mine' });
-    chip.append(checkStamp(s.inMyWords));
-    return chip;
+  // Custom words are already in My Words; curriculum words show their band alongside the
+  // action. Every word can be added (#8) — started or not — and the added state is a stamp.
+  const band = word.custom ? null : span({ class: 'chip', text: s.hskBand(word.band) });
+  if (inMyWords(word.id)) {
+    return div({ class: 'result-actions' }, [band, mineChip()].filter(Boolean));
   }
 
-  const band = span({ class: 'chip', text: s.hskBand(word.band) });
-  const rec = store.states.get(`${word.id}#REC`);
-
-  // Already in progress: its status is the honest answer, not another action.
-  if (rec?.reps > 0) return div({ class: 'result-actions' }, [band]);
-
-  if (isPrioritized(word.id)) {
-    return div({ class: 'result-actions' }, [band, span({ class: 'chip chip-next', text: s.queued })]);
-  }
-
-  const action = button(s.studyNext, async (event) => {
-    await studyNext(word.id);
-    event.target.replaceWith(span({ class: 'chip chip-next', text: s.queued }));
+  const action = button(s.add, async (event) => {
+    await addToMyWords(word);
+    event.target.replaceWith(mineChip());
   }, { variant: 'btn-quiet btn-small' });
 
-  return div({ class: 'result-actions' }, [band, action]);
+  return div({ class: 'result-actions' }, [band, action].filter(Boolean));
 }
 
 /** One search result, with an add or study-next action. */

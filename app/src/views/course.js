@@ -9,6 +9,7 @@
 import { courseView, store } from '../store.js';
 import { button, div, h, p, progressBar, replace, span } from '../ui/components.js';
 import { stage } from '../ui/arcade.js';
+import { glossify } from '../ui/tooltip.js';
 import { strings } from '../ui/strings.js';
 
 const s = strings.course;
@@ -49,10 +50,17 @@ function heroCard(unit, ctx) {
   return div({ class: 'course-hero' }, [
     span({ class: 'course-hero-eyebrow', text: s.currentUnit }),
     h(2, unit.title, 'course-hero-title'),
-    unit.note ? p(unit.note, 'course-hero-note') : null,
+    unit.note ? heroNote(unit.note) : null,
     progressBar(unit.total ? unit.introduced / unit.total : 0, s.introducedOf(unit.introduced, unit.total)),
     action,
   ].filter(Boolean));
+}
+
+/** The current unit's pattern note, characters hoverable (feedback #4). */
+function heroNote(note) {
+  const body = p('', 'course-hero-note');
+  body.append(glossify(note));
+  return body;
 }
 
 /** One unit as a sign; its status decides how it glows and whether it is reachable. */

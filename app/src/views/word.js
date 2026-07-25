@@ -2,8 +2,8 @@
  * A single word: everything the deck knows about it, plus this device's progress.
  */
 import { cardIdsForWord, parseCardId } from '../engine/deck.js';
-import { isPrioritized, store, studyNext } from '../store.js';
-import { audioControl, button, div, el, empty, h, p, relativeDay, replace, span } from '../ui/components.js';
+import { addToMyWords, inMyWords, store } from '../store.js';
+import { audioControl, button, checkStamp, div, el, empty, h, p, relativeDay, replace, span } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { colorMarkedPinyin, colorPinyin } from '../zh/tones.js';
 import { classifiers, humanDefs } from '../zh/defs.js';
@@ -117,15 +117,18 @@ function sentenceBlock(sentence) {
 function actionRow(word) {
   const row = div({ class: 'row word-actions' });
 
-  const started = store.states.get(cardIdsForWord(word)[0])?.reps > 0;
-  if (!started) {
-    const queued = isPrioritized(word.id);
-    const action = button(queued ? s.queued : s.studyNext, async () => {
-      await studyNext(word.id);
-      action.replaceWith(span({ class: 'chip chip-next', text: s.queued }));
-    }, { variant: queued ? 'btn-quiet' : 'btn-primary' });
-    action.disabled = queued;
-    row.append(queued ? span({ class: 'chip chip-next', text: s.queued }) : action);
+  // Every word can go in My Words — a custom word is already there; a curriculum word is
+  // pinned (the same lane "Study next" uses), so it appears in the list without duplicating
+  // the pack. The added state is a clean stamp, not a stretched pill (#9).
+  const mine = () => span({ class: 'chip chip-mine word-added' }, [checkStamp(s.inMyWords)]);
+  if (inMyWords(word.id)) {
+    row.append(mine());
+  } else {
+    const add = button(s.addToMyWords, async () => {
+      await addToMyWords(word);
+      add.replaceWith(mine());
+    }, { variant: 'btn-primary' });
+    row.append(add);
   }
 
   row.append(practiceButton(word));
@@ -143,18 +146,23 @@ function practiceButton(word) {
   const open = button(s.practiceWriting, () => {
     const host = div({ class: 'practice' });
     const canvases = div({ class: 'write-row' });
-    const quizzes = [...word.simp].map((char, index) => {
+    // Practice, not a test: every character shows its outline and demonstrates its stroke
+    // order once, with hints ready after a single miss (#5, #6).
+    const quizzes = [...word.simp].map((char) => {
       const target = div({ class: 'write-target' });
       canvases.append(div({ class: 'tianzige tianzige-write' }, [target]));
-      return mountQuiz(target, char, { showOutline: index === 0 });
+      return mountQuiz(target, char, { showOutline: true, showHintAfterMisses: 1, demo: true });
     });
 
+    const showAgain = button(s.showStrokes, () => {
+      for (const quiz of quizzes) quiz.animate();
+    }, { variant: 'btn-quiet btn-small' });
     const close = button(s.practiceDone, () => {
       for (const quiz of quizzes) quiz.destroy();
       host.replaceWith(open);
     }, { variant: 'btn-quiet' });
 
-    host.append(p(s.practiceBlurb, 'muted'), canvases, close);
+    host.append(p(s.practiceBlurb, 'muted'), canvases, div({ class: 'practice-actions' }, [showAgain, close]));
     open.replaceWith(host);
   }, { variant: 'btn-quiet' });
 

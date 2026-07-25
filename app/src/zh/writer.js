@@ -44,14 +44,18 @@ export async function hasStrokeData(char) {
  * @param {{ showOutline?: boolean, onMistake?: () => void, onComplete?: (m: number) => void }} options
  * @returns {{ writer: object, reveal: () => void, destroy: () => void }}
  */
-export function mountQuiz(target, char, { showOutline = false, onMistake, onComplete } = {}) {
+export function mountQuiz(
+  target,
+  char,
+  { showOutline = false, showHintAfterMisses = 3, demo = false, onMistake, onComplete } = {},
+) {
   const writer = HanziWriter.create(target, char, {
     width: 220,
     height: 220,
     padding: 12,
     showCharacter: false,
     showOutline,
-    showHintAfterMisses: 3,
+    showHintAfterMisses,
     highlightOnComplete: true,
     // Colours come from the stylesheet's variables so themes stay in one place.
     strokeColor: cssVar('--fg', '#e8e8ea'),
@@ -64,17 +68,33 @@ export function mountQuiz(target, char, { showOutline = false, onMistake, onComp
   });
 
   let mistakes = 0;
-  writer.quiz({
-    onMistake: () => {
-      mistakes += 1;
-      onMistake?.(mistakes);
-    },
-    onComplete: (summary) => onComplete?.(summary?.totalMistakes ?? mistakes),
-  });
+  const startQuiz = () =>
+    writer.quiz({
+      showHintAfterMisses,
+      onMistake: () => {
+        mistakes += 1;
+        onMistake?.(mistakes);
+      },
+      onComplete: (summary) => onComplete?.(summary?.totalMistakes ?? mistakes),
+    });
+
+  // Practice mode demonstrates the stroke order once, then hands the pen over (#6). The
+  // graded WRITE card skips the demo and quizzes straight away.
+  if (demo) writer.animateCharacter({ onComplete: startQuiz });
+  else startQuiz();
 
   return {
     writer,
     mistakes: () => mistakes,
+    /** Replay the stroke order, then resume the quiz — the "show me again" affordance (#6). */
+    animate: () => {
+      try {
+        writer.cancelQuiz();
+      } catch {
+        // Nothing was running.
+      }
+      writer.animateCharacter({ onComplete: startQuiz });
+    },
     /** Give up on this character: cancel the quiz and animate the strokes. */
     reveal: () => {
       writer.cancelQuiz();
@@ -191,9 +211,16 @@ export function neonIgnite(host, char, { color = 'var(--accent)', size = 160, du
           }
         },
       });
-      // Hold the finished glow even if the animation never reports back.
+      // Hold the finished glow even if the animation never reports back — and force the
+      // character visible, so a stalled or interrupted animation never leaves it blank (#1).
       setTimeout(() => {
-        if (!cancelled) host.classList.add('lit');
+        if (cancelled) return;
+        host.classList.add('lit');
+        try {
+          writer?.showCharacter();
+        } catch {
+          // Data still loading; the error path draws the fallback.
+        }
       }, duration);
     } else {
       host.classList.add('lit');

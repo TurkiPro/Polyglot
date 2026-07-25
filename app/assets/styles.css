@@ -583,7 +583,8 @@ body {
 
 .slider {
   width: 100%;
-  accent-color: var(--fg);
+  /* Seal red fills the left (chosen) side and the thumb; the rest stays neutral track. */
+  accent-color: var(--accent);
 }
 
 .slider-value {
@@ -2311,4 +2312,100 @@ body {
   border-radius: var(--radius);
   box-shadow: var(--glow-sm);
   width: 100%;
+}
+
+/* ── Hover glosses (feedback #1, #4) ───────────────────────────────── */
+
+.gloss {
+  cursor: help;
+  border-bottom: 1px dotted transparent;
+  transition: border-color var(--dur) var(--ease);
+}
+.gloss:hover { border-bottom-color: color-mix(in srgb, var(--fg) 45%, transparent); }
+.gloss.target:hover { border-bottom-color: var(--accent); }
+.gloss-pop {
+  position: fixed;
+  z-index: 60;
+  transform: translate(-50%, calc(-100% - 8px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-2);
+  pointer-events: none;
+  max-width: 16rem;
+  text-align: center;
+}
+.gloss-pop-pinyin { color: var(--accent); font-weight: 600; }
+.gloss-pop-meaning { font-size: var(--text-sm); color: var(--fg-dim); }
+
+/* Lesson pattern note (feedback #4) */
+.lesson-note-label {
+  display: block;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+}
+.lesson-note-text { margin: 0; }
+
+.practice-actions { display: flex; gap: var(--space-2); justify-content: center; margin-top: var(--space-3); }
+.word-added { display: inline-flex; align-items: center; }
+
+/* ── Buttons: drop shadow always, liquid neon border on hover (feedback #7) ──────── */
+
+@property --btn-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.btn {
+  position: relative;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.28);
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.btn:hover:not(:disabled) { transform: translateY(-1px) scale(1.03); }
+.btn:disabled { box-shadow: none; }
+
+/* The liquid ring: a rotating multi-colour conic gradient, masked to just the border.
+   Gated behind the effects switch so "off" is a full, honest opt-out. */
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  padding: 2px;
+  background: conic-gradient(
+    from var(--btn-angle),
+    var(--neon-cyan), var(--accent), var(--neon-yellow), var(--t4), var(--neon-cyan)
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms var(--ease);
+}
+:root[data-effects="on"] .btn:hover:not(:disabled)::before,
+:root[data-effects="on"] .btn:focus-visible:not(:disabled)::before {
+  opacity: 1;
+  animation: btn-liquid 3s linear infinite;
+}
+:root[data-effects="on"] .btn:hover:not(:disabled) {
+  box-shadow: 0 8px 26px rgb(0 0 0 / 0.4), var(--glow-sm);
+}
+@keyframes btn-liquid {
+  to { --btn-angle: 360deg; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn::before { animation: none !important; }
+  .btn:hover:not(:disabled) { transform: none; }
 }
