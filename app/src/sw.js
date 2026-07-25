@@ -16,15 +16,21 @@ import { config } from '../../config/app.config.js';
 
 const DECK_SCHEMA_VERSION = config.pack.deckSchemaVersion;
 const LANG = config.pack.langPackV1;
-/** Replaced at build time by scripts/build.mjs. */
+/** Injected at build time by scripts/build.mjs. */
 const PACK_VERSION = __PACK_VERSION__;
+const BUILD_ID = __BUILD_ID__;
 
 const PREFIX = `${config.identity.projectName}-`;
-const SHELL_CACHE = `${PREFIX}shell-v${DECK_SCHEMA_VERSION}-${PACK_VERSION}`;
+// The shell (code + UI) is keyed on the build id, so a code change mints a fresh cache and
+// reaches an installed client — the old bug was keying it on the pack version, which never
+// changes for a code-only change, so the stale bundle was served forever. The pack (the multi-
+// megabyte deck) stays keyed on the pack version, so shipping a UI fix never re-downloads it.
+const SHELL_CACHE = `${PREFIX}shell-v${DECK_SCHEMA_VERSION}-${BUILD_ID}`;
+const PACK_CACHE = `${PREFIX}pack-v${DECK_SCHEMA_VERSION}-${PACK_VERSION}`;
 const RUNTIME_CACHE = `${PREFIX}runtime-v${DECK_SCHEMA_VERSION}-${PACK_VERSION}`;
 
-/** The shell, plus the deck — everything needed for a full offline session. */
-const PRECACHE = [
+/** The shell — the code and UI, small and versioned by build id. */
+const SHELL_PRECACHE = [
   '/',
   '/index.html',
   '/assets/bundle.js',
@@ -40,6 +46,10 @@ const PRECACHE = [
   '/assets/icons/icon-512px.png',
   '/assets/icons/icon-maskable-192px.png',
   '/assets/icons/icon-maskable-512px.png',
+];
+
+/** The pack — the committed deck data, big and versioned by pack version, not the build. */
+const PACK_PRECACHE = [
   `/assets/packs/${LANG}/deck.${LANG}.json`,
   `/assets/packs/${LANG}/topics.json`,
   `/assets/packs/${LANG}/course.${LANG}.json`,
@@ -61,21 +71,22 @@ const RUNTIME_PATHS = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches
-      .open(SHELL_CACHE)
-      .then((cache) => cache.addAll(PRECACHE))
-      .then(() => self.skipWaiting()),
+    Promise.all([
+      caches.open(SHELL_CACHE).then((cache) => cache.addAll(SHELL_PRECACHE)),
+      caches.open(PACK_CACHE).then((cache) => cache.addAll(PACK_PRECACHE)),
+    ]).then(() => self.skipWaiting()),
   );
 });
 
 self.addEventListener('activate', (event) => {
+  const keep = new Set([SHELL_CACHE, PACK_CACHE, RUNTIME_CACHE]);
   event.waitUntil(
     caches
       .keys()
       .then((names) =>
         Promise.all(
           names
-            .filter((name) => name.startsWith(PREFIX) && name !== SHELL_CACHE && name !== RUNTIME_CACHE)
+            .filter((name) => name.startsWith(PREFIX) && !keep.has(name))
             .map((name) => caches.delete(name)),
         ),
       )
@@ -95,6 +106,12 @@ self.addEventListener('fetch', (event) => {
 
   if (RUNTIME_PATHS.some((prefix) => url.pathname.startsWith(prefix))) {
     event.respondWith(cacheFirst(request, RUNTIME_CACHE));
+    return;
+  }
+
+  // The committed pack files live in their own version-keyed cache, not the shell's.
+  if (PACK_PRECACHE.includes(url.pathname)) {
+    event.respondWith(cacheFirst(request, PACK_CACHE));
     return;
   }
 

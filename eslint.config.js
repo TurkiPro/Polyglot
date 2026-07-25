@@ -36,9 +36,9 @@ export default [
     ],
   },
   {
-    // The service worker reads a build-time constant esbuild replaces via --define (§9).
+    // The service worker reads build-time constants esbuild replaces via --define (§9).
     files: ['app/src/sw.js'],
-    languageOptions: { globals: { __PACK_VERSION__: 'readonly' } },
+    languageOptions: { globals: { __PACK_VERSION__: 'readonly', __BUILD_ID__: 'readonly' } },
   },
   {
     files: ['**/*.{js,mjs}'],

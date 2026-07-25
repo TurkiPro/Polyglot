@@ -910,3 +910,14 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   hides immediately; `mouseout` with a null relatedTarget (left the window) and window `blur`
   also hide; the last-resort timer dropped to 1.5s. `popup()` re-attaches itself if ever
   detached. jsdom tests cover move-off, node-torn-out, window-exit, and blur.
+
+- Service worker served stale code ("hard refresh but still"): the SHELL cache was keyed on the
+  pack version, which does not change for a code-only build, so `cacheFirst` handed installed
+  clients the old bundle forever — and `sw.js`'s own bytes didn't change either, so the worker
+  never updated. Split the caches: the shell (bundle, dict-worker, styles, icons, index) is now
+  keyed on a `__BUILD_ID__` — a sha256 over the shipped code that `scripts/build.mjs` injects —
+  while the multi-megabyte pack (deck/topics/course) keeps its pack-version cache, so a UI fix
+  mints a fresh shell cache (and changes `sw.js`, forcing the worker to update) without
+  re-downloading the deck. `activate` keeps exactly {shell, pack, runtime} and evicts the rest.
+  `tests/sw.test.js` locks the keying so it can't regress. Note: an already-installed old worker
+  needs one reload to pick up the new worker, then it serves fresh code.
