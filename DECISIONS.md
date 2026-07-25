@@ -887,3 +887,11 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   several units), so each unit row now shows a within-band number and each band header its unit
   count, keeping otherwise-identical rows distinct. A test asserts interleaved bands still yield
   one section each.
+
+- Phase 10 follow-up (3): the lesson/checkpoint/syllabus views were cramped into the app's
+  720px reading column — fine for a single column, terrible for the rail + content two-column
+  layout, which squeezed both into ~340px each. Like Home (already 1080px), the course routes
+  now widen the shell: `#course` to 1000px, `#lesson`/`#quiz` to 1240px, via `data-route`
+  overrides. The rail column grew to 280–340px with a larger gutter, and the content column is
+  capped at a readable 780px centred in the space the rail leaves, so prose keeps a sane measure
+  while tone samples and exercises get room to breathe. The full `#course` tree widened to 880px.

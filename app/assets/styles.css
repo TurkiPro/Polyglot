@@ -2220,7 +2220,7 @@ body {
 .course-hero-note { color: var(--fg-dim); margin: 0; }
 
 /* ── The syllabus (Phase 10 A) ────────────────────────────────────── */
-.syllabus-page { max-width: 760px; margin: 0 auto; }
+.syllabus-page { max-width: 880px; margin: 0 auto; }
 
 .syllabus-overall {
   display: flex;
@@ -2387,14 +2387,23 @@ body {
 .syllabus-strip .strip-cue::after { content: "☰"; color: var(--fg-dim); }
 .syllabus-rail { display: none; }
 
+/* The course routes are two-column (rail + content), so they need far more than the app's
+   720px reading width. Like Home, they widen the shell for their route. */
+:root[data-route="course"] #app { max-width: 1000px; }
+:root[data-route="lesson"] #app,
+:root[data-route="quiz"] #app { max-width: 1240px; }
+
 .lesson-layout { display: block; }
 @media (min-width: 900px) {
   .lesson-layout {
     display: grid;
-    grid-template-columns: minmax(240px, 300px) 1fr;
-    gap: var(--space-4);
+    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+    gap: var(--space-5);
     align-items: start;
   }
+  /* The content column is generous, but prose still reads best at a bounded measure, so the
+     step content sits in a comfortable column centred in the space the rail leaves. */
+  .lesson-main { max-width: 780px; margin-inline: auto; width: 100%; min-width: 0; }
   .syllabus-rail {
     display: block;
     position: sticky;
