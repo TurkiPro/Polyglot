@@ -10,6 +10,19 @@ export const THEMES = Object.freeze(['light', 'dark']);
 /** Night market is the flagship (v3 §1); paper stays as the reading-lamp light theme. */
 export const DEFAULT_THEME = 'dark';
 
+/**
+ * The night-market values a few CSSOM readers fall back to before the stylesheet applies
+ * (audit D1). These MUST track the flagship dark theme in `styles.css`; keeping them in one
+ * named place beside the theme code stops them fossilising into a dead palette again (the old
+ * fallback was v1's `#6ea8fe` blue, long gone). Not the source of truth — the CSS variables
+ * are — only the value used when `getComputedStyle` cannot yet answer.
+ */
+export const NIGHT_MARKET_FALLBACK = Object.freeze({
+  '--fg': '#e9ecf2',
+  '--border': '#2a3244',
+  '--accent': '#ff3d68',
+});
+
 /** Normalize anything to a theme we actually have. */
 export const normalizeTheme = (theme) => (THEMES.includes(theme) ? theme : DEFAULT_THEME);
 

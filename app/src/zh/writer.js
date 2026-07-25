@@ -6,6 +6,7 @@
  */
 import HanziWriter from 'hanzi-writer';
 import { config } from '../../../config/app.config.js';
+import { DEFAULT_THEME, NIGHT_MARKET_FALLBACK } from '../ui/theme.js';
 
 const LANG = config.pack.langPackV1;
 const STROKES_BASE = `/assets/packs/${LANG}/strokes`;
@@ -57,11 +58,12 @@ export function mountQuiz(
     showOutline,
     showHintAfterMisses,
     highlightOnComplete: true,
-    // Colours come from the stylesheet's variables so themes stay in one place.
-    strokeColor: cssVar('--fg', '#e8e8ea'),
-    outlineColor: cssVar('--border', '#2c2f36'),
-    drawingColor: cssVar('--accent', '#6ea8fe'),
-    highlightColor: cssVar('--t2', config.toneColors.t2),
+    // Colours come from the stylesheet's variables so themes stay in one place; the fallbacks
+    // (D1) track the night-market theme from one named constant, never a fossilised palette.
+    strokeColor: cssVar('--fg', NIGHT_MARKET_FALLBACK['--fg']),
+    outlineColor: cssVar('--border', NIGHT_MARKET_FALLBACK['--border']),
+    drawingColor: cssVar('--accent', NIGHT_MARKET_FALLBACK['--accent']),
+    highlightColor: cssVar('--t2', config.toneColors[DEFAULT_THEME].t2),
     charDataLoader: (character, onLoad, onError) => {
       loadCharData(character).then(onLoad).catch(onError);
     },

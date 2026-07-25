@@ -837,3 +837,10 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   off (`writingPromptPending`, guarded by a new `writingPrompted` setting). The wordless Unit 0
   is excluded from the course size-bounds check; the id-stability test now rebuilds with the
   sounds unit and asserts `course.units[0]` equals it.
+
+- Phase 10 D1: `writer.js`'s CSSOM colour fallbacks were v1's dead palette (the `#6ea8fe`
+  blue among them), used when `getComputedStyle` can't yet answer. They now read from one
+  exported `NIGHT_MARKET_FALLBACK` constant beside the theme code (`ui/theme.js`), and a
+  conformance test asserts it equals the committed dark-theme values — so the fallback can't
+  fossilise away from the live palette again. The stray `config.toneColors.t2` fallback (which
+  was `undefined`, since tone colours are keyed by theme) was fixed to the real value too.
