@@ -682,3 +682,16 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   a `let` that should be `const`, four harmless shadows) and are fixed in this commit. Generated
   trees are ignored: `app/assets/bundle.js`, `app/assets/dict-worker.js`, `app/sw.js`,
   `**/.wrangler/**`, `.venv`, `packs/zh/data`, `packs/zh/audio`.
+
+- Audit F2: `neonIgnite` was reworked so it can no longer render an empty box. The
+  intermittent blank was a lifecycle race — HanziWriter's `charDataLoader` fetched
+  asynchronously, so a slow load or a node that detached mid-flight (route change, session
+  teardown) could leave the SVG with no strokes and never recover. The fix removes the race
+  at the root: the stroke data is fetched BEFORE any DOM is built, the target is checked
+  `isConnected` before the writer starts, the loader hands HanziWriter the data synchronously,
+  and every failure edge — bad data, a detached host, a HanziWriter throw, or a ~2s deadline
+  with no lit stroke — lands on `.neon-fallback`, the steady-glow glyph (a visible character
+  with `--glow-sm`). The path taken is recorded on `host.dataset.ignitePath` (animated|static)
+  and logged with `console.debug` (local only, no beacon). `tests/neon-ignite.test.js` (jsdom)
+  covers all five outcomes. This retires the reason the 语 hero was removed, though the hero
+  itself stays gone in favour of the 3D gate.

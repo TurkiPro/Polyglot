@@ -132,11 +132,19 @@ function cssVar(name, fallback) {
 const NS = 'http://www.w3.org/2000/svg';
 /** One ignition, tuned so a multi-stroke character finishes in about 1.2s. */
 const IGNITE_MS = 1200;
+/** Past this, any path that has not lit a stroke gives up and shows the steady glyph. */
+const FALLBACK_MS = 2000;
 
 /** Honour the OS setting, and the app's own reduce-effects switch. */
 const effectsOff = (doc = document) =>
   doc.documentElement.dataset.effects === 'off' ||
   (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+/** One line of local debug, never a network beat (§1.2). */
+function debugPath(host, path, reason) {
+  host.dataset.ignitePath = path;
+  if (typeof console !== 'undefined') console.debug(`neonIgnite → ${path}${reason ? ` (${reason})` : ''}`);
+}
 
 /**
  * Light a character like a neon sign, stroke by stroke.
@@ -146,8 +154,13 @@ const effectsOff = (doc = document) =>
  * is a sign igniting — and it is the one thing this app can do that a flashcard app with
  * no stroke data cannot copy.
  *
- * The single implementation all four sanctioned uses share (§2). Reduced motion, or the
- * reduce-effects setting, renders the finished character at steady glow with no animation.
+ * The single implementation all four sanctioned uses share (§2). It is built to never
+ * render nothing (audit F2): an earned reward that flickers out to an empty box is worse
+ * than a plain one. The stroke data is fetched BEFORE any DOM is built, the target is
+ * checked for being connected before the animation starts, and on ANY failure — bad data,
+ * a detached node, a HanziWriter throw, or simply ~2s elapsing without a lit stroke — the
+ * character is drawn at steady glow (`.neon-fallback`, a visible glyph with `--glow-sm`)
+ * instead. Reduced motion and the reduce-effects switch take that steady render directly.
  *
  * @param {HTMLElement} host
  * @param {string} char
@@ -159,105 +172,153 @@ export function neonIgnite(host, char, { color = 'var(--accent)', size = 160, du
   host.classList.add('neon-sign');
   host.style.setProperty('--neon-color', color);
 
-  const still = effectsOff(host.ownerDocument ?? document);
   let writer = null;
   let cancelled = false;
+  let settled = false; // first of {animated, static} to run wins
+  let notified = false;
+  const notify = () => {
+    if (!notified) {
+      notified = true;
+      onDone?.();
+    }
+  };
+  const markLit = () => host.classList.add('lit');
 
-  // A filter per instance, because two signs on one screen may burn different colours.
-  const filterId = `neon-${Math.random().toString(36).slice(2, 9)}`;
-  const defs = document.createElementNS(NS, 'svg');
-  defs.setAttribute('width', '0');
-  defs.setAttribute('height', '0');
-  defs.setAttribute('aria-hidden', 'true');
-  defs.classList.add('neon-defs');
-  const filter = document.createElementNS(NS, 'filter');
-  filter.setAttribute('id', filterId);
-  filter.setAttribute('x', '-50%');
-  filter.setAttribute('y', '-50%');
-  filter.setAttribute('width', '200%');
-  filter.setAttribute('height', '200%');
+  /** The guaranteed render: a visible, glowing character. Never an empty box (F2). */
+  const goStatic = (reason) => {
+    if (cancelled || settled) return;
+    settled = true;
+    neonFallback(host, char, size);
+    markLit();
+    debugPath(host, 'static', reason);
+    notify();
+  };
 
-  const blur = document.createElementNS(NS, 'feGaussianBlur');
-  blur.setAttribute('stdDeviation', '3');
-  blur.setAttribute('result', 'glow');
-  const merge = document.createElementNS(NS, 'feMerge');
-  for (const input of ['glow', 'glow', 'SourceGraphic']) {
-    const node = document.createElementNS(NS, 'feMergeNode');
-    node.setAttribute('in', input);
-    merge.append(node);
-  }
-  filter.append(blur, merge);
-  defs.append(filter);
-  host.append(defs);
+  /** The reward: draw the strokes one by one, from data already in hand. */
+  const goAnimated = (data) => {
+    if (cancelled || settled) return;
+    settled = true;
 
-  const stage = document.createElement('div');
-  stage.className = 'neon-stage';
-  host.append(stage);
+    // A filter per instance, because two signs on one screen may burn different colours.
+    const filterId = `neon-${Math.random().toString(36).slice(2, 9)}`;
+    const defs = document.createElementNS(NS, 'svg');
+    defs.setAttribute('width', '0');
+    defs.setAttribute('height', '0');
+    defs.setAttribute('aria-hidden', 'true');
+    defs.classList.add('neon-defs');
+    const filter = document.createElementNS(NS, 'filter');
+    filter.setAttribute('id', filterId);
+    filter.setAttribute('x', '-50%');
+    filter.setAttribute('y', '-50%');
+    filter.setAttribute('width', '200%');
+    filter.setAttribute('height', '200%');
+    const blur = document.createElementNS(NS, 'feGaussianBlur');
+    blur.setAttribute('stdDeviation', '3');
+    blur.setAttribute('result', 'glow');
+    const merge = document.createElementNS(NS, 'feMerge');
+    for (const input of ['glow', 'glow', 'SourceGraphic']) {
+      const node = document.createElementNS(NS, 'feMergeNode');
+      node.setAttribute('in', input);
+      merge.append(node);
+    }
+    filter.append(blur, merge);
+    defs.append(filter);
+    host.append(defs);
 
-  try {
+    const stage = document.createElement('div');
+    stage.className = 'neon-stage';
+    host.append(stage);
+
+    // The data is preloaded, so charDataLoader resolves synchronously — no in-flight fetch
+    // can outlive the element and paint into a detached node.
     writer = HanziWriter.create(stage, char, {
       width: size,
       height: size,
       padding: 8,
       showOutline: false,
-      showCharacter: still,
+      showCharacter: false,
       strokeColor: color,
-      charDataLoader: (character, onLoad, onError) => {
-        loadCharData(character).then(onLoad).catch(onError);
-      },
-      onLoadCharDataError: () => neonFallback(stage, char),
+      charDataLoader: (_character, onLoad) => onLoad(data),
     });
-
     stage.querySelector('svg')?.setAttribute('filter', `url(#${filterId})`);
+    debugPath(host, 'animated');
 
-    if (!still) {
-      writer.animateCharacter({
-        onComplete: () => {
-          if (!cancelled) {
-            host.classList.add('lit');
-            onDone?.();
-          }
-        },
-      });
-      // Hold the finished glow even if the animation never reports back — and force the
-      // character visible, so a stalled or interrupted animation never leaves it blank (#1).
-      setTimeout(() => {
+    let lit = false;
+    writer.animateCharacter({
+      onComplete: () => {
         if (cancelled) return;
-        host.classList.add('lit');
-        try {
-          writer?.showCharacter();
-        } catch {
-          // Data still loading; the error path draws the neon fallback.
-        }
-      }, duration);
-    } else {
-      host.classList.add('lit');
-      onDone?.();
-    }
-  } catch {
-    neonFallback(stage, char);
-    host.classList.add('lit');
-    onDone?.();
+        lit = true;
+        markLit();
+        notify();
+      },
+    });
+    // Hold the finished glow even if the animation never reports back, forcing the glyph
+    // visible; if even that fails, fall through to the steady character rather than a blank.
+    setTimeout(() => {
+      if (cancelled || lit) return;
+      try {
+        writer?.showCharacter();
+        markLit();
+        notify();
+      } catch {
+        neonFallback(host, char, size);
+        markLit();
+        debugPath(host, 'static', 'show-failed');
+        notify();
+      }
+    }, duration);
+  };
+
+  // Reduced motion or effects off: the steady glyph is exactly the intended render.
+  if (effectsOff(host.ownerDocument ?? document)) {
+    goStatic('reduced-motion');
+    return handle();
   }
 
-  return {
-    destroy: () => {
-      cancelled = true;
+  // A hard deadline in case the stroke fetch itself hangs — the reward still resolves.
+  const deadline = setTimeout(() => goStatic('timeout'), FALLBACK_MS);
+
+  // Preload the stroke data BEFORE touching the DOM; only a connected target animates.
+  loadCharData(char)
+    .then((data) => {
+      clearTimeout(deadline);
+      if (cancelled) return;
+      if (!host.isConnected) return goStatic('detached');
       try {
-        writer?.cancelQuiz();
+        goAnimated(data);
       } catch {
-        // Nothing was running.
+        goStatic('animate-threw');
       }
-      host.replaceChildren();
-      host.classList.remove('neon-sign', 'lit');
-    },
-  };
+    })
+    .catch(() => {
+      clearTimeout(deadline);
+      goStatic('char-data');
+    });
+
+  function handle() {
+    return {
+      destroy: () => {
+        cancelled = true;
+        clearTimeout(deadline);
+        try {
+          writer?.cancelQuiz();
+        } catch {
+          // Nothing was running.
+        }
+        host.replaceChildren();
+        host.classList.remove('neon-sign', 'lit');
+        delete host.dataset.ignitePath;
+      },
+    };
+  }
+  return handle();
 }
 
-/** No stroke data: the character still lights, it just does not draw itself. */
-function neonFallback(stage, char) {
+/** The steady-glow glyph: the character, visibly lit, drawn straight into the host. */
+function neonFallback(host, char, size) {
   const text = document.createElement('div');
   text.className = 'neon-fallback';
   text.textContent = char;
-  stage.replaceChildren(text);
+  if (size) text.style.fontSize = `${size * 0.75}px`;
+  host.replaceChildren(text);
 }
