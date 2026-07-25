@@ -20,6 +20,7 @@ import { enabledProviders, isConfigured, providerFor } from '../worker/src/auth/
 import { LIMITS, clientIp, rateLimit } from '../worker/src/mw/ratelimit.js';
 import { CSP, secure } from '../worker/src/mw/security.js';
 import { verifyTurnstile } from '../worker/src/mw/turnstile.js';
+import worker from '../worker/src/index.js';
 
 describe('session tokens', () => {
   it('mints 32 bytes of base64url, never repeating', () => {
@@ -219,6 +220,51 @@ describe('rate limits', () => {
     expect(first.ok).toBe(true);
     expect(second.remaining).toBe(first.remaining - 1);
     expect([...db.rows.values()][0].count).toBe(2);
+  });
+});
+
+describe('audio route filename gate (F6)', () => {
+  const VALID = '0000c52c6edc9fc5.ogg'; // a real 16-hex manifest name
+
+  /** An R2 stub that counts every lookup, so we can prove garbage never reaches it. */
+  function countingAudio() {
+    let gets = 0;
+    return {
+      get gets() { return gets; },
+      AUDIO: {
+        get: async (name) => {
+          gets += 1;
+          return name === VALID ? { body: 'ogg-bytes', httpEtag: '"e"' } : null;
+        },
+      },
+    };
+  }
+
+  const hit = (path, env) => worker.fetch(new Request(`https://polyglot.example${path}`), env);
+
+  it('serves a valid content-hash name from R2', async () => {
+    const env = countingAudio();
+    const res = await hit(`/audio/${VALID}`, env);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toBe('audio/ogg');
+    expect(env.gets).toBe(1);
+  });
+
+  it('404s garbage names without ever touching R2', async () => {
+    for (const bad of [
+      '/audio/',
+      '/audio/notahash.ogg',
+      '/audio/0000c52c6edc9fc5.mp3',
+      '/audio/0000C52C6EDC9FC5.ogg', // uppercase — hashes are lowercase
+      '/audio/short.ogg',
+      '/audio/%2e%2e%2fsecret', // decoded traversal
+      '/audio/0000c52c6edc9fc5.ogg.ogg',
+    ]) {
+      const env = countingAudio();
+      const res = await hit(bad, env);
+      expect(res.status, bad).toBe(404);
+      expect(env.gets, `${bad} must not reach R2`).toBe(0);
+    }
   });
 });
 

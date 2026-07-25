@@ -720,3 +720,15 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   escapes `\`, `%`, `_` so an identifier can never smuggle a wildcard. Unit tests (a pocket
   D1 fake in `worker.test.js`) prove one row per key across ten windows, that a neighbour's
   row is never swept, and that counting within a window leaves the live row intact.
+
+- Audit F6: the `/audio/:file` route now validates the filename against
+  `/^[a-f0-9]{16,64}\.ogg$/` before touching R2. Pack files are lowercase-hex content
+  hashes with one `.ogg` extension (Phase 8 §3), so any other shape can never be ours — and
+  now it costs no R2 lookup, where the old `includes('..')`/`includes('/')` guard let every
+  garbage name through to a bucket read. A manifest-membership set (bundling the ~11k hashes
+  into the worker so only known files pass) was considered and rejected: it pushes the worker
+  against the free-tier size cap for a marginal gain over a regex that already rejects
+  everything ill-formed. Recorded here so it is not re-proposed. Coverage: a behavioural test
+  in `worker.test.js` drives seven garbage names plus one valid hash through the real route
+  with a counting R2 stub and asserts zero lookups for the garbage; `audio.test.js` pins the
+  regex in source.

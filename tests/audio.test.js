@@ -214,9 +214,11 @@ describe('the audio route (§8.3)', () => {
     expect(worker).toContain("'content-type': 'audio/ogg'");
   });
 
-  it('refuses path traversal and unknown files', () => {
-    expect(worker).toContain("file.includes('..')");
-    expect(worker).toContain("file.includes('/')");
+  it('gates on the content-hash filename shape before R2 (F6)', () => {
+    // Traversal and unknown names are refused by the same regex the behavioural test in
+    // worker.test.js exercises against a counting R2 stub.
+    expect(worker).toContain('/^[a-f0-9]{16,64}\\.ogg$/');
+    expect(worker).toMatch(/AUDIO_FILE\.test\(file\)/);
     expect(worker).toMatch(/not found.*404|404.*not found/s);
   });
 

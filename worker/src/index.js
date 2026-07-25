@@ -212,6 +212,9 @@ async function handleApi(request, env, pathname) {
  * manifest, and requiring a session would break guest mode (§1.3). Filenames are content
  * hashes, so the response is immutable — a changed recording is a different filename.
  */
+/** A pack audio filename: a lowercase-hex content hash, one `.ogg` extension, nothing else. */
+const AUDIO_FILE = /^[a-f0-9]{16,64}\.ogg$/;
+
 async function handleAudio(request, env, pathname) {
   if (!env.AUDIO) return new Response('audio pack not configured', { status: 503 });
   if (request.method !== 'GET' && request.method !== 'HEAD') {
@@ -219,8 +222,11 @@ async function handleAudio(request, env, pathname) {
   }
 
   const file = decodeURIComponent(pathname.slice('/audio/'.length));
-  // No traversal: a hash is a flat name, and anything else is not ours.
-  if (!file || file.includes('/') || file.includes('..')) {
+  // Every pack file is a lowercase-hex content hash with one `.ogg` extension (Phase 8 §3).
+  // Enforce that shape before touching R2 (audit F6): it rules out traversal and, more to the
+  // point, spends no R2 lookup on names that could never be ours. A manifest-membership set
+  // was considered and rejected — see DECISIONS, bundling ~11k hashes is not worth the bytes.
+  if (!AUDIO_FILE.test(file)) {
     return new Response('not found', { status: 404 });
   }
 
