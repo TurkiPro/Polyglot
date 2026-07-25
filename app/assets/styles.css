@@ -2554,6 +2554,9 @@ body {
   max-width: 16rem;
   text-align: center;
 }
+/* `display: flex` above overrides the [hidden] UA rule, so hiding must be explicit or the
+   popup never disappears — the long-standing "tooltip hangs" bug. This wins by specificity. */
+.gloss-pop[hidden] { display: none; }
 .gloss-pop-pinyin { color: var(--accent); font-weight: 600; }
 .gloss-pop-meaning { font-size: var(--text-sm); color: var(--fg-dim); }
 

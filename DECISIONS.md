@@ -921,3 +921,12 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   re-downloading the deck. `activate` keeps exactly {shell, pack, runtime} and evicts the rest.
   `tests/sw.test.js` locks the keying so it can't regress. Note: an already-installed old worker
   needs one reload to pick up the new worker, then it serves fresh code.
+
+- Gloss tooltip hang — the ACTUAL root cause: `.gloss-pop { display: flex }` unconditionally
+  overrode the `[hidden]` attribute (whose only power is the UA `display: none`), so
+  `pop.hidden = true` set the attribute but the popup kept rendering at its last position. Every
+  earlier "fix" toggled `hidden` in JS and the jsdom tests checked the `.hidden` PROPERTY, so
+  they passed while the real browser never visually hid it. Fixed with one author rule —
+  `.gloss-pop[hidden] { display: none; }` (specificity 0-2-0 beats the base 0-1-0) — and a test
+  asserts that rule exists so a future `display:` can't strand the popup again. The JS pointer
+  handling from the prior commit stays; it is what keeps the popup from lingering between hovers.

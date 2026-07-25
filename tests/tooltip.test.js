@@ -4,6 +4,8 @@
  * Hover glosses (feedback #1): the character wrapping. The deck lookup and popup are wired
  * at boot and checked by eye; here we prove the markup a view produces is hoverable.
  */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { store } from '../app/src/store.js';
 import { glossify, initGloss } from '../app/src/ui/tooltip.js';
@@ -69,5 +71,12 @@ describe('gloss popup hides reliably', () => {
     fire(span, 'mouseover');
     window.dispatchEvent(new window.Event('blur'));
     expect(pop().hidden).toBe(true);
+  });
+
+  // The property being `hidden` is worthless if CSS overrides the [hidden] display — that was
+  // the real hang: `.gloss-pop { display: flex }` won, so the popup never disappeared.
+  it('the stylesheet actually hides a [hidden] popup', () => {
+    const css = readFileSync(resolve(process.cwd(), 'app/assets/styles.css'), 'utf8');
+    expect(css).toMatch(/\.gloss-pop\[hidden\]\s*\{[^}]*display:\s*none/);
   });
 });
