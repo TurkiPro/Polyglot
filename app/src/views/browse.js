@@ -8,7 +8,7 @@ import { config } from '../../../config/app.config.js';
 import * as db from '../engine/db.js';
 import { numToMarks } from '../zh/pinyin.js';
 import { addCustomWord, addToMyWords, inMyWords, store } from '../store.js';
-import { activatable, button, checkStamp, div, el, empty, h, p, replace, span } from '../ui/components.js';
+import { activatable, button, checkStamp, div, el, empty, featureButton, h, p, replace, span } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { colorPinyin } from '../zh/tones.js';
 import { summarize } from '../zh/defs.js';
@@ -173,7 +173,7 @@ export function renderBrowse(root, ctx) {
 
   /** A single neon sign. Glow is a stage affordance, so it lives on the signboard only. */
   function signTile(name, meta, onOpen) {
-    const tile = button('', onOpen, { variant: 'sign' });
+    const tile = featureButton('', onOpen, 'sign');
     tile.append(
       span({ class: 'sign-name', text: name }),
       span({ class: 'sign-meta', text: meta }),

@@ -11,7 +11,7 @@
  */
 import { config } from '../../../config/app.config.js';
 import { recordCheckpoint, recordToneResult, store } from '../store.js';
-import { button, div, h, p, replace, span } from '../ui/components.js';
+import { button, div, featureButton, h, p, replace, span } from '../ui/components.js';
 import { stage } from '../ui/arcade.js';
 import { strings } from '../ui/strings.js';
 import { ARCHETYPE, buildDrillSet, buildTonePool, isCorrect } from '../zh/tones-drill.js';
@@ -47,8 +47,8 @@ export function renderTonesStep(host, set, onDone) {
 function tonesIntro(host, onDone) {
   const samples = ARCHETYPE.map((entry) => {
     const key = store.deck?.lookup(entry.simp, entry.pinyinNum)?.id;
-    const node = button('', () => tts.speak(entry.simp, { key }), {
-      variant: 'tone-sample', 'aria-label': `${entry.pinyin} — ${entry.gloss}`,
+    const node = featureButton('', () => tts.speak(entry.simp, { key }), 'tone-sample', {
+      'aria-label': `${entry.pinyin} — ${entry.gloss}`,
     });
     const pinyin = span({ class: 'tone-sample-pinyin' });
     pinyin.append(colorPinyin(entry.pinyinNum));
@@ -117,7 +117,7 @@ function runDrill(host, { pairs, scoreOut }, onDone) {
     };
 
     for (const tone of [1, 2, 3, 4, 5]) {
-      const node = button('', () => answer(tone), { variant: `tone-answer t${tone}` });
+      const node = featureButton('', () => answer(tone), `tone-answer t${tone}`);
       node.append(
         span({ class: 'tone-answer-num', text: tone === 5 ? '·' : String(tone) }),
         span({ class: 'tone-answer-name', text: s.toneNames[tone - 1] }),
@@ -168,7 +168,7 @@ export function renderSoundsCheckpoint(root, ctx, unit) {
   const host = div({ class: 'quiz' });
   replace(root, stage('quiz', [
     div({ class: 'lesson-head' }, [
-      button(strings.lesson.leave, () => ctx.navigate('#course'), { variant: 'btn-quiet lesson-leave' }),
+      featureButton(strings.lesson.leave, () => ctx.navigate('#course'), 'btn-quiet lesson-leave'),
       h(1, q.title(unit.title), 'lesson-title'),
     ]),
     host,

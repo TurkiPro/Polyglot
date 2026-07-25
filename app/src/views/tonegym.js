@@ -8,7 +8,7 @@
  */
 import { config } from '../../../config/app.config.js';
 import { recordToneResult, store } from '../store.js';
-import { button, div, h, p, progressBar, replace, span } from '../ui/components.js';
+import { button, div, featureButton, h, p, progressBar, replace, span } from '../ui/components.js';
 import { stage } from '../ui/arcade.js';
 import { strings } from '../ui/strings.js';
 import { buildDrillSet, buildTonePool, isCorrect, summarize } from '../zh/tones-drill.js';
@@ -96,7 +96,7 @@ export function renderToneGym(root, _ctx) {
       };
 
       for (const tone of [1, 2, 3, 4, 5]) {
-        const node = button('', () => answer(tone), { variant: `tone-answer t${tone}` });
+        const node = featureButton('', () => answer(tone), `tone-answer t${tone}`);
         node.append(
           span({ class: 'tone-answer-num', text: tone === 5 ? '·' : String(tone) }),
           span({ class: 'tone-answer-name', text: strings.welcome.toneNames[tone - 1] }),

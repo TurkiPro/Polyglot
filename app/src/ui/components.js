@@ -41,10 +41,32 @@ export const span = (props, children) => el('span', props, children);
 export const p = (text, className) => el('p', { text, class: className });
 export const h = (level, text, className) => el(`h${level}`, { text, class: className });
 
-/** A button. `variant` maps to a CSS class, never an inline style. */
+/**
+ * A button with a CLOSED variant set (audit D4): only `btn-primary`, `btn-quiet`, the size /
+ * width / colour modifiers (`btn-small`, `btn-wide`, `btn-cta`, `btn-audio`, `btn-slow`,
+ * `btn-danger`, the grade `btn-again|hard|good|easy`), and the state tokens `active` /
+ * `suggested`. Feature-specific buttons (tiles, sign, tone samples) do NOT smuggle their class
+ * through here — they use `featureButton`, which keeps the design system's variants small and
+ * greppable. A conformance test enforces the set.
+ */
 export function button(label, onClick, { variant = '', type = 'button', ...attrs } = {}) {
   return el('button', {
     class: `btn ${variant}`.trim(),
+    text: label,
+    attrs: { type, ...attrs },
+    on: { click: onClick },
+  });
+}
+
+/**
+ * A feature-styled button: the `.btn` base plus one or more feature classes on the element
+ * (a sign tile, a tone sample, a match tile). Same DOM as a `btn <class>` — this is only the
+ * sanctioned channel for classes that are NOT part of the closed variant set (D4), so the
+ * design system's variants stay legible and the conformance test has a clean line to hold.
+ */
+export function featureButton(label, onClick, classes = '', { type = 'button', ...attrs } = {}) {
+  return el('button', {
+    class: `btn ${classes}`.trim(),
     text: label,
     attrs: { type, ...attrs },
     on: { click: onClick },

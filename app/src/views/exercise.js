@@ -6,7 +6,7 @@
  * calls `onDone(correct)` so the lesson or checkpoint can log a practice event and move on.
  */
 import { grade } from '../engine/exercises.js';
-import { button, div, el, p, span } from '../ui/components.js';
+import { button, div, el, featureButton, p, span } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { colorPinyin } from '../zh/tones.js';
 import * as tts from '../zh/audio.js';
@@ -34,7 +34,7 @@ function renderMcq(item, onDone) {
   const host = div({ class: 'exercise exercise-mcq' });
 
   const prompt = audio
-    ? button(s.playPrompt, () => tts.speak(item.prompt, { key: item.wordId }), { variant: 'btn-quiet exercise-audio' })
+    ? featureButton(s.playPrompt, () => tts.speak(item.prompt, { key: item.wordId }), 'btn-quiet exercise-audio')
     : div({ class: 'exercise-hanzi', text: item.prompt });
   if (audio) tts.speak(item.prompt, { key: item.wordId });
 
@@ -42,7 +42,7 @@ function renderMcq(item, onDone) {
   let answered = false;
   for (const option of item.options) {
     const label = audio ? option.simp : option.text;
-    const node = button(label, () => {
+    const node = featureButton(label, () => {
       if (answered) return;
       answered = true;
       const { correct } = grade(item, option.id);
@@ -50,7 +50,7 @@ function renderMcq(item, onDone) {
       node.classList.add(correct ? 'chosen-right' : 'chosen-wrong');
       if (!correct) options.querySelector(`[data-id="${cssEscape(item.answer)}"]`)?.classList.add('chosen-right');
       feedback(host, correct, audio ? textById(item, item.answer) : item.options.find((o) => o.id === item.answer)?.text, onDone);
-    }, { variant: `exercise-option${audio ? ' t-hanzi' : ''}` });
+    }, `exercise-option${audio ? ' t-hanzi' : ''}`);
     node.dataset.id = option.id;
     options.append(node);
   }
@@ -113,17 +113,17 @@ function renderMatch(item, onDone) {
   };
 
   for (const left of item.left) {
-    const node = button(left.simp, () => {
+    const node = featureButton(left.simp, () => {
       if (pairing[left.id]) return;
       activeLeft = left.id;
       for (const b of leftButtons.values()) b.classList.remove('match-active');
       node.classList.add('match-active');
-    }, { variant: 'match-item t-hanzi' });
+    }, 'match-item t-hanzi');
     leftButtons.set(left.id, node);
     leftCol.append(node);
   }
   for (const right of item.right) {
-    const node = button(right.text, () => {
+    const node = featureButton(right.text, () => {
       if (!activeLeft || Object.values(pairing).includes(right.id)) return;
       pairing[activeLeft] = right.id;
       leftButtons.get(activeLeft)?.classList.remove('match-active');
@@ -131,7 +131,7 @@ function renderMatch(item, onDone) {
       node.classList.add('match-linked');
       activeLeft = null;
       tryFinish();
-    }, { variant: 'match-item' });
+    }, 'match-item');
     rightButtons.set(right.id, node);
     rightCol.append(node);
   }
@@ -159,12 +159,12 @@ function renderReorder(item, onDone) {
   };
 
   for (const tile of item.tiles) {
-    const node = button(tile.simp, () => {
+    const node = featureButton(tile.simp, () => {
       if (node.disabled) return;
       node.disabled = true;
       chosen.push(tile);
       repaint();
-    }, { variant: 'reorder-tile t-hanzi' });
+    }, 'reorder-tile t-hanzi');
     bank.append(node);
   }
 
@@ -185,7 +185,7 @@ function renderCloze(item, onDone) {
   const options = div({ class: 'exercise-options', attrs: { role: 'group', 'aria-label': s.optionsGroup } });
   let answered = false;
   for (const option of item.options) {
-    const node = button(option.simp, () => {
+    const node = featureButton(option.simp, () => {
       if (answered) return;
       answered = true;
       const { correct } = grade(item, option.id);
@@ -195,7 +195,7 @@ function renderCloze(item, onDone) {
       const blank = sentence.querySelector('.cloze-blank');
       if (correct && blank) { blank.textContent = answerSimp; blank.classList.add('filled'); }
       feedback(host, correct, answerSimp, onDone);
-    }, { variant: 'exercise-option t-hanzi' });
+    }, 'exercise-option t-hanzi');
     options.append(node);
   }
 

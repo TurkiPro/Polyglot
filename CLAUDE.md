@@ -523,6 +523,14 @@ clear card (`.quiz-band-clear`), plus the liquid-button hover (`.btn:hover`, fee
 Adding a glow anywhere else means adding it here first — that is the whole point of the list.
 Every glow is gated behind `:root[data-effects="on"]` so the effects switch is a true opt-out.
 
+**Closed button variants (D4).** `button()`'s `variant` set is closed: `btn-primary`,
+`btn-quiet`, the size/width/colour modifiers (`btn-small`, `btn-wide`, `btn-cta`, `btn-audio`,
+`btn-slow`, `btn-danger`, grade `btn-again|hard|good|easy`), and the states `active` /
+`suggested`. Feature-styled buttons (sign tiles, tone samples, match/reorder tiles, action
+cards) use `featureButton(label, onClick, classes)` instead — same `.btn` base, but their
+class rides its own channel, not the variant set. A conformance test fails if any literal
+`button()` variant is not sanctioned.
+
 **Settings**: sliders for new/day and max/day (defaults from config), theme, **Export
 JSON** (guest mode included), **Import JSON** (validate → `rebuildFromEvents`), account
 section placeholder (Phase 6), Danger Zone wiping local data after typed confirmation.

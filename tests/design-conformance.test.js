@@ -5,7 +5,7 @@
  * live palette, durations must go through the `--dur` token, and `--glow` must appear only in
  * the sanctioned surfaces. Each one closes a way for the design system to drift silently.
  */
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { NIGHT_MARKET_FALLBACK } from '../app/src/ui/theme.js';
@@ -78,5 +78,37 @@ describe('the glow registry (D3)', () => {
 
   it('finds the glows it is meant to be guarding (not vacuously green)', () => {
     expect(lines.filter((line) => /var\(--glow/.test(line)).length).toBeGreaterThanOrEqual(5);
+  });
+});
+
+/* ── D4: the button() variant set is closed ── */
+describe('closed button-variant set (D4)', () => {
+  // Only these tokens may pass through button()'s `variant`. Feature-styled buttons use
+  // `featureButton` instead, so they never appear here. `active`/`suggested` are the two state
+  // modifiers; every other token is a `btn-*` primary/quiet/size/width/colour modifier.
+  const SANCTIONED = new Set([
+    'btn-primary', 'btn-quiet', 'btn-cta', 'btn-wide', 'btn-small',
+    'btn-audio', 'btn-slow', 'btn-danger',
+    'btn-again', 'btn-hard', 'btn-good', 'btn-easy',
+    'active', 'suggested',
+  ]);
+
+  const viewsDir = resolve(process.cwd(), 'app/src/views');
+  const sources = readdirSync(viewsDir)
+    .filter((f) => f.endsWith('.js'))
+    .map((f) => [f, read(`app/src/views/${f}`)]);
+
+  it('every literal button() variant is a sanctioned token', () => {
+    const offenders = [];
+    for (const [file, src] of sources) {
+      // Match `variant: '...'` and `variant: "..."` — the literal forms; template literals
+      // (grade `btn-${key}`, `${spec.variant}...`) resolve to sanctioned tokens at runtime.
+      for (const [, value] of src.matchAll(/variant:\s*'([^']+)'/g)) {
+        for (const token of value.split(/\s+/)) {
+          if (!SANCTIONED.has(token)) offenders.push(`${file}: ${token}`);
+        }
+      }
+    }
+    expect(offenders, `feature classes must use featureButton, not button()'s variant: ${JSON.stringify(offenders)}`).toEqual([]);
   });
 });

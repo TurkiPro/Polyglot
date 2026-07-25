@@ -6,7 +6,7 @@
  */
 import { courseView, queue, store } from '../store.js';
 import { modesForWord } from '../engine/deck.js';
-import { button, div, h, icon, p, replace, sealMark, span, stat } from '../ui/components.js';
+import { div, featureButton, h, icon, p, replace, sealMark, span, stat } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { comboCounter, odometer, stage } from '../ui/arcade.js';
 import { mountGate } from '../ui/gate.js';
@@ -46,7 +46,7 @@ function comboTile(gamify) {
 }
 
 function toneGymTile(ctx) {
-  const tile = button('', () => ctx.navigate('#tones'), { variant: 'collection tone-gym' });
+  const tile = featureButton('', () => ctx.navigate('#tones'), 'collection tone-gym');
   tile.append(
     span({ class: 'collection-name', text: s.toneGym }),
     span({ class: 'collection-meta', text: toneGymSubtitle() }),
@@ -93,7 +93,7 @@ function actionCard({ iconName, eyebrow, title, meta, ratio, onClick, primary })
     parts.push(div({ class: 'action-progress' }, [fill]));
   }
 
-  const card = button('', onClick, { variant: `action-card${primary ? ' action-primary' : ''}` });
+  const card = featureButton('', onClick, `action-card${primary ? ' action-primary' : ''}`);
   card.append(
     div({ class: 'action-icon' }, [icon(iconName, 26)]),
     div({ class: 'action-body' }, parts),

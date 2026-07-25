@@ -14,7 +14,7 @@ import {
 import { rampedNewCards } from '../engine/queue.js';
 import { generate, hashSeed, makeRng, prepareExercises, shuffle } from '../engine/exercises.js';
 import { introducedSet } from '../engine/coursestate.js';
-import { button, div, h, p, replace, sealMark, span } from '../ui/components.js';
+import { button, div, featureButton, h, p, replace, sealMark, span } from '../ui/components.js';
 import { stage } from '../ui/arcade.js';
 import { glossify } from '../ui/tooltip.js';
 import { strings } from '../ui/strings.js';
@@ -86,7 +86,7 @@ function mountShell(root, ctx, unit, index, host) {
       div({ class: 'lesson-main' }, [
         stepStrip(ctx, unit, index),
         div({ class: 'lesson-head' }, [
-          button(s.leave, () => ctx.navigate('#course'), { variant: 'btn-quiet lesson-leave' }),
+          featureButton(s.leave, () => ctx.navigate('#course'), 'btn-quiet lesson-leave'),
           h(1, unit.title, 'lesson-title'),
           unit.note ? noteBlock(unit.note) : null,
         ].filter(Boolean)),

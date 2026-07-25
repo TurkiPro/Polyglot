@@ -12,7 +12,7 @@ import { courseView, recordCheckpoint, recordPractice, store } from '../store.js
 import { buildQuizItems, hashSeed, makeRng, prepareExercises } from '../engine/exercises.js';
 import { attemptCount, introducedSet, unintroduced } from '../engine/coursestate.js';
 import { weakestFirst } from '../engine/practice.js';
-import { button, div, h, p, progressBar, replace, sealMark } from '../ui/components.js';
+import { button, div, featureButton, h, p, progressBar, replace, sealMark } from '../ui/components.js';
 import { stage } from '../ui/arcade.js';
 import { strings } from '../ui/strings.js';
 import { neonIgnite } from '../zh/writer.js';
@@ -63,7 +63,7 @@ function runQuiz(root, ctx, unit, items) {
       div({ class: 'lesson-main' }, [
         stepStrip(ctx, unit, checkpointStep),
         div({ class: 'lesson-head' }, [
-          button(s.leave, () => ctx.navigate('#course'), { variant: 'btn-quiet lesson-leave' }),
+          featureButton(s.leave, () => ctx.navigate('#course'), 'btn-quiet lesson-leave'),
           h(1, s.title(unit.title), 'lesson-title'),
         ]),
         progress,

@@ -860,3 +860,13 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   clear (`.quiz-band-clear`), and the liquid-button hover (`.btn:hover`) — and a conformance
   test walks each `var(--glow` in `styles.css` to its selector and fails if it is not one of
   those, so a new glow must be added to the law before it can ship.
+
+- Phase 10 D4: `button()`'s variant set is now closed to `btn-primary`, `btn-quiet`, and the
+  size/width/colour modifiers plus the `active`/`suggested` states. The feature classes that
+  used to ride the variant channel — `sign`, `tone-sample`, `match-item`, `reorder-tile`,
+  `tone-answer`, `exercise-option`, `action-card`, `teach-done`, `collection`, `lesson-leave` —
+  now go through a new `featureButton(label, onClick, classes)` helper. It emits the identical
+  DOM (`.btn` base + the same classes), so the change is a pure refactor with zero visual
+  change: the closure is about which channel a class travels through, not the rendered markup.
+  A conformance test scans the view sources and fails if any literal `button()` variant is not
+  a sanctioned token, so a new ad-hoc variant can't creep back in. CLAUDE.md §9 records the set.

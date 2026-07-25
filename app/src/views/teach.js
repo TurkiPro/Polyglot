@@ -6,7 +6,7 @@
  * sound, its meaning, the sentence it was chosen to debut in, and what its characters are
  * made of. Under twenty seconds of content, no quiz — the quiz is the card, seconds later.
  */
-import { audioControl, button, div, el, p, span, tianzige } from '../ui/components.js';
+import { audioControl, div, el, featureButton, p, span, tianzige } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { colorMarkedPinyin, colorPinyin, highlightWord } from '../zh/tones.js';
 import { humanDefs } from '../zh/defs.js';
@@ -57,7 +57,7 @@ export function renderTeach(word, onDone) {
     sentence ? sentenceBlock(sentence, word, speakable) : null,
     componentBlock(word),
 
-    button(s.gotIt, onDone, { variant: 'btn-primary btn-cta teach-done' }),
+    featureButton(s.gotIt, onDone, 'btn-primary btn-cta teach-done'),
   ].filter(Boolean));
 }
 
