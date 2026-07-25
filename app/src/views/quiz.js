@@ -19,7 +19,7 @@ import { neonIgnite } from '../zh/writer.js';
 import { renderExercise } from './exercise.js';
 
 const s = strings.quiz;
-const { quizLength, quizPass, quizGold } = config.course;
+const { quizLength, quizPass } = config.course;
 
 export function renderQuiz(root, ctx, unitArg) {
   const unit = store.course?.units.find((u) => u.id === unitArg);

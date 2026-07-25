@@ -4,7 +4,7 @@
  * Read from `credits.json`, which the pipeline writes — never hand-maintained here.
  */
 import { config } from '../../../config/app.config.js';
-import { div, el, empty, h, p, replace } from '../ui/components.js';
+import { el, empty, h, p, replace } from '../ui/components.js';
 import { stage } from '../ui/arcade.js';
 import { strings } from '../ui/strings.js';
 

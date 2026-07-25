@@ -205,7 +205,7 @@ export function neonIgnite(host, char, { color = 'var(--accent)', size = 160, du
       charDataLoader: (character, onLoad, onError) => {
         loadCharData(character).then(onLoad).catch(onError);
       },
-      onLoadCharDataError: () => fallback(stage, char),
+      onLoadCharDataError: () => neonFallback(stage, char),
     });
 
     stage.querySelector('svg')?.setAttribute('filter', `url(#${filterId})`);
@@ -227,7 +227,7 @@ export function neonIgnite(host, char, { color = 'var(--accent)', size = 160, du
         try {
           writer?.showCharacter();
         } catch {
-          // Data still loading; the error path draws the fallback.
+          // Data still loading; the error path draws the neon fallback.
         }
       }, duration);
     } else {
@@ -235,7 +235,7 @@ export function neonIgnite(host, char, { color = 'var(--accent)', size = 160, du
       onDone?.();
     }
   } catch {
-    fallback(stage, char);
+    neonFallback(stage, char);
     host.classList.add('lit');
     onDone?.();
   }
@@ -255,7 +255,7 @@ export function neonIgnite(host, char, { color = 'var(--accent)', size = 160, du
 }
 
 /** No stroke data: the character still lights, it just does not draw itself. */
-function fallback(stage, char) {
+function neonFallback(stage, char) {
   const text = document.createElement('div');
   text.className = 'neon-fallback';
   text.textContent = char;

@@ -145,8 +145,8 @@ export function renderWelcome(root, ctx) {
         feedback.textContent = right ? s.drillRight : s.drillWrong(drill.answer.join('–'));
         feedback.className = `verdict ${right ? 'ok' : 'bad'}`;
 
-        for (const [i, tone] of drill.answer.entries()) {
-          recordToneResult({ tone, correct: right, pair: drill.answer.length > 1 && i > 0 });
+        for (const [i, answered] of drill.answer.entries()) {
+          recordToneResult({ tone: answered, correct: right, pair: drill.answer.length > 1 && i > 0 });
         }
 
         setTimeout(() => {

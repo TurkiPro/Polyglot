@@ -160,7 +160,7 @@ export function markSplitGroups(words, bySimp) {
     const primary = pickPrimary(bySimp.get(simp));
     const primaryReading = primary?.pinyinNum.toLowerCase();
     // If CC-CEDICT cannot say, the first member in deck order carries the reading.
-    let chosen = group.find((w) => w.pinyinNum.toLowerCase() === primaryReading) ?? group[0];
+    const chosen = group.find((w) => w.pinyinNum.toLowerCase() === primaryReading) ?? group[0];
 
     for (const word of group) {
       word.splitGroup = group.filter((w) => w.id !== word.id).map((w) => w.id);

@@ -8,7 +8,7 @@
  * Outputs are committed, so deploys never depend on third-party downloads. Rebuilding is
  * a manual, local act.
  */
-import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { config } from '../../config/app.config.js';
 import { parseCedict, pickPrimary } from './lib/cedict.js';
 import { buildCourse } from './lib/course.js';

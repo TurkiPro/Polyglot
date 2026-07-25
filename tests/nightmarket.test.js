@@ -7,7 +7,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { applyEffects, comboCounter, effectsEnabled, medallion, odometer, stage } from '../app/src/ui/arcade.js';
 
 // jsdom gives import.meta.url an http scheme, so these resolve from the project root.

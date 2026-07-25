@@ -656,15 +656,15 @@ describe('active recall on listening cards', () => {
     sentences: [{ zh: '我爱你。', pinyin: 'wǒ ài nǐ.', pinyinAuto: true, en: 'I love you.', src: 't#1' }],
   });
 
-  async function lisFront(word) {
+  async function lisFront(entry) {
     const store = await import('../app/src/store.js');
-    store.store.deck = createDeck({ words: [word] });
+    store.store.deck = createDeck({ words: [entry] });
     const { renderFront } = await import('../app/src/views/card.js');
 
     const calls = { suggested: [], typed: [], flips: 0 };
     const front = renderFront({
       mode: 'LIS',
-      word,
+      word: entry,
       onReady: () => {},
       onSuggest: (rating, typed) => {
         calls.suggested.push(rating);
@@ -709,30 +709,30 @@ describe('active recall on listening cards', () => {
   });
 
   it('shows the wrong answer on the back beside the true reading', async () => {
-    const word = w();
+    const entry = w();
     const store = await import('../app/src/store.js');
-    store.store.deck = createDeck({ words: [word] });
+    store.store.deck = createDeck({ words: [entry] });
     const { renderBack } = await import('../app/src/views/card.js');
 
-    const wrong = renderBack({ mode: 'LIS', word, typed: 'ai3' });
+    const wrong = renderBack({ mode: 'LIS', word: entry, typed: 'ai3' });
     expect(wrong.querySelector('.typed-answer').textContent).toContain('ai3');
     expect(wrong.querySelector('.pinyin-answer').textContent).toBe('ài');
 
     // A correct answer needs no correction, and neither does an untyped one.
-    expect(renderBack({ mode: 'LIS', word, typed: 'ai4' }).querySelector('.typed-answer')).toBeNull();
-    expect(renderBack({ mode: 'LIS', word }).querySelector('.typed-answer')).toBeNull();
+    expect(renderBack({ mode: 'LIS', word: entry, typed: 'ai4' }).querySelector('.typed-answer')).toBeNull();
+    expect(renderBack({ mode: 'LIS', word: entry }).querySelector('.typed-answer')).toBeNull();
   });
 
   it('leaves REC and SENT self-graded — meanings are not machine-judgeable', async () => {
-    const word = w();
+    const entry = w();
     const store = await import('../app/src/store.js');
-    store.store.deck = createDeck({ words: [word] });
+    store.store.deck = createDeck({ words: [entry] });
     const { renderFront } = await import('../app/src/views/card.js');
 
     for (const mode of ['REC', 'SENT']) {
       const front = renderFront({
         mode,
-        word,
+        word: entry,
         onReady: () => {},
         onSuggest: () => {},
         onFlip: () => {},

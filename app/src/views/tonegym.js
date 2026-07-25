@@ -17,7 +17,7 @@ import * as tts from '../zh/audio.js';
 const s = strings.tones;
 const { toneGymSetSize } = config.learn;
 
-export function renderToneGym(root, ctx) {
+export function renderToneGym(root, _ctx) {
   const host = div({ class: 'tone-gym-view' });
   replace(root, stage('tones', [h(1, s.title, 'title'), host]));
 
@@ -85,8 +85,8 @@ export function renderToneGym(root, ctx) {
           : strings.welcome.drillWrong(drill.answer.join('–'));
         feedback.className = `verdict ${right ? 'ok' : 'bad'}`;
 
-        for (const [i, tone] of drill.answer.entries()) {
-          recordToneResult({ tone, correct: right, pair: drill.answer.length > 1 && i > 0 });
+        for (const [i, answered] of drill.answer.entries()) {
+          recordToneResult({ tone: answered, correct: right, pair: drill.answer.length > 1 && i > 0 });
         }
 
         setTimeout(() => {

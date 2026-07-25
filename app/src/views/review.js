@@ -7,14 +7,13 @@ import { parseCardId } from '../engine/deck.js';
 import { hardestWordToday } from '../engine/gamify.js';
 import { RATING, newCard, previewSchedules } from '../engine/srs.js';
 import { noteSync, queue, recordReview, store, syncPort, updateSettings } from '../store.js';
-import { localDayKey } from '../engine/replay.js';
 import { httpApi, syncNow } from '../sync/client.js';
-import { banner, button, div, el, emptyState, formatInterval, h, p, replace } from '../ui/components.js';
+import { banner, button, div, el, emptyState, formatInterval, p, replace } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { renderBack, renderFront } from './card.js';
 import { renderTeach } from './teach.js';
 import { neonIgnite } from '../zh/writer.js';
-import { odometer, stage } from '../ui/arcade.js';
+import { stage } from '../ui/arcade.js';
 import * as tts from '../zh/audio.js';
 
 const s = strings.review;

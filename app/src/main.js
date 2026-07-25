@@ -1,7 +1,6 @@
 /**
  * polyglot — boot, hash router, and the nav shell.
  */
-import { config } from '../../config/app.config.js';
 import { init, noteSync, store, subscribe, syncPort } from './store.js';
 import { httpApi, syncNow } from './sync/client.js';
 import { setPreferredVoice } from './zh/tts.js';

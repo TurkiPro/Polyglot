@@ -6,7 +6,7 @@
  */
 import { config } from '../../../config/app.config.js';
 import { forgetAccount, noteSync, store, syncPort, wipeLocal } from '../store.js';
-import { button, div, el, p, panel, replace, span } from '../ui/components.js';
+import { button, div, el, p, panel, replace } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { httpApi, syncNow } from './client.js';
 import { loadTurnstile, renderWidget } from './turnstile.js';
@@ -52,7 +52,7 @@ export function accountPanel(ctx) {
 }
 
 /** Signed out: what an account is for, and the provider buttons. */
-function signInControls(paint, ctx) {
+function signInControls(_paint, _ctx) {
   const status = p('', 'muted');
   const widgetHost = div({ class: 'turnstile-host' });
   const buttons = div({ class: 'row' });

@@ -231,11 +231,11 @@ describe('CSP and the one third party', () => {
   });
 
   it('carries the widened policy through to the response', async () => {
-    const { directives, secure } = await import('../worker/src/mw/security.js');
+    const { directives, secure: applySecurity } = await import('../worker/src/mw/security.js');
     const html = () => new Response('<!doctype html>', { headers: { 'content-type': 'text/html' } });
 
-    expect(secure(html(), {}).headers.get('content-security-policy')).toBe(directives());
-    expect(secure(html(), { TURNSTILE_SECRET: 'x' }).headers.get('content-security-policy')).toBe(
+    expect(applySecurity(html(), {}).headers.get('content-security-policy')).toBe(directives());
+    expect(applySecurity(html(), { TURNSTILE_SECRET: 'x' }).headers.get('content-security-policy')).toBe(
       directives({ TURNSTILE_SECRET: 'x' }),
     );
   });

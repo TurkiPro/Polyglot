@@ -214,8 +214,8 @@ polyglot/
    README and types inside `node_modules/<pkg>/`. If the installed API differs from any
    sketch here, the installed package wins — adapt the integration, not the architecture.
 3. **Dependency allowlist.** Runtime: `ts-fsrs`, `hanzi-writer`, `hanzi-writer-data`.
-   Dev: `esbuild`, `vitest`, `wrangler`. Nothing else without explicit human approval —
-   write small utilities yourself instead.
+   Dev: `esbuild`, `vitest`, `wrangler`, `eslint` (+ its data-only companion `globals`).
+   Nothing else without explicit human approval — write small utilities yourself instead.
 4. **Pin everything.** Versions resolving on first `npm install` get committed in
    `package-lock.json`. Never upgrade mid-build.
 5. **Config discipline.** Every §0 value is imported from `config/app.config.js` or read
@@ -227,6 +227,10 @@ polyglot/
    reviews commits.
 9. **Secrets** only via `wrangler secret put` / `.dev.vars` (gitignored).
 10. **`npm test` must be green at every commit** from Phase 2 onward.
+11. **`npm run lint` must be clean at every commit.** ESLint (flat config,
+    `eslint.config.js`) enforces `no-shadow`, `no-undef`, `no-unused-vars`, `eqeqeq`,
+    `no-var`, `prefer-const`. CI runs it before tests in every job; a lint error never
+    reaches production. Fix mechanical flags; report anything that isn't.
 
 ---
 
@@ -332,7 +336,7 @@ characters appearing in deck words** (~3–4k files). Client points hanzi-writer
    Minimal `app/index.html` shell loading `bundle.js`. One smoke vitest test.
 
 **Acceptance**
-- [ ] `npm run build` succeeds; `npm test` green.
+- [ ] `npm run build` succeeds; `npm test` green; `npm run lint` clean.
 - [ ] `npm run dev`: shell at `/`, `{"ok":true}` at `/api/health`, same origin.
 - [ ] Grep confirms zero §0 literals outside `config/` and `wrangler.toml`.
 

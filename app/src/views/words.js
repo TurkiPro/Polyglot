@@ -6,7 +6,7 @@
  */
 import { cardId } from '../engine/deck.js';
 import { myWords, removeFromMyWords, store } from '../store.js';
-import { button, div, el, emptyState, h, p, relativeDay, replace, span } from '../ui/components.js';
+import { button, div, emptyState, h, p, relativeDay, replace, span } from '../ui/components.js';
 import { stage } from '../ui/arcade.js';
 import { strings } from '../ui/strings.js';
 import { colorPinyin } from '../zh/tones.js';

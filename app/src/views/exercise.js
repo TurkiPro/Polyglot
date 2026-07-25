@@ -8,7 +8,7 @@
 import { grade } from '../engine/exercises.js';
 import { button, div, el, p, span } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
-import { colorPinyin, highlightWord } from '../zh/tones.js';
+import { colorPinyin } from '../zh/tones.js';
 import * as tts from '../zh/audio.js';
 
 const s = strings.exercise;

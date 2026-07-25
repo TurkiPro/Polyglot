@@ -9,6 +9,7 @@
     "build": "node scripts/build.mjs",
     "dev": "node scripts/dev.mjs",
     "test": "vitest run",
+    "lint": "eslint .",
     "deck": "node packs/zh/build.mjs",
     "api-test": "node scripts/api-tests.mjs",
     "db:local": "wrangler d1 execute polyglot-db --local --file worker/schema.sql --config worker/wrangler.toml"
@@ -20,7 +21,9 @@
   },
   "devDependencies": {
     "esbuild": "0.28.1",
+    "eslint": "10.8.0",
     "fake-indexeddb": "6.2.5",
+    "globals": "17.7.0",
     "jsdom": "29.1.1",
     "subset-font": "2.5.0",
     "vitest": "4.1.10",

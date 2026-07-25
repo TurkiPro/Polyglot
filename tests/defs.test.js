@@ -47,7 +47,7 @@ describe('classifier handling, against the shipped dictionary', () => {
   it('leaves no CL: text anywhere a row would render', () => {
     // A broad sweep: every entry that has a classifier must summarize without it.
     let checked = 0;
-    for (const [simp, trad, pinyinNum, defs] of dict) {
+    for (const [simp, , , defs] of dict) {
       if (!defs.some((d) => d.startsWith('CL:'))) continue;
       expect(summarize(defs), simp).not.toContain('CL:');
       if (++checked >= 500) break;

@@ -666,3 +666,19 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   tables straight from `schema.sql` and asserts `deleteMe` deletes from each, and api-tests
   counts zero rows in every one against real D1 — a future user-scoped table missing from the
   batch fails the day its schema lands.
+
+- Audit F4: ESLint (flat config, `eslint.config.js`) is now a build gate — rules
+  `no-shadow`, `no-undef`, `no-unused-vars`, `eqeqeq`, `no-var`, `prefer-const`, run by
+  `npm run lint` and by CI before tests in every job. It exists because the `stage`/`flipStage`
+  shadow shipped once and was caught only by Windows test ordering; `no-shadow` would have
+  stopped it at the keyboard. `eslint` plus its data-only companion `globals` (the flat-config
+  environment tables `no-undef` needs) are the two dev additions — approved onto the §4.3
+  allowlist by fixes.md. Globals are declared broadly rather than per directory: over-declaring
+  only softens `no-undef`'s environment strictness, while under-declaring yields false positives,
+  and the rules that carry their weight here do not depend on it. Two rule accommodations, both
+  for intent not laxity: `eqeqeq` keeps the `x != null` idiom (`{ null: 'ignore' }`), and the
+  service worker's esbuild `--define` constant `__PACK_VERSION__` is declared a read-only global
+  for `app/src/sw.js`. The 26 flags it surfaced on first run were all mechanical (unused imports,
+  a `let` that should be `const`, four harmless shadows) and are fixed in this commit. Generated
+  trees are ignored: `app/assets/bundle.js`, `app/assets/dict-worker.js`, `app/sw.js`,
+  `**/.wrangler/**`, `.venv`, `packs/zh/data`, `packs/zh/audio`.
