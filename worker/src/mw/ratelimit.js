@@ -22,6 +22,9 @@ export const LIMITS = Object.freeze({
  */
 export const clientIp = (request) => request.headers.get('cf-connecting-ip') ?? 'local';
 
+/** Escape a value for use as a literal LIKE prefix (identifiers can hold `_`, `%`, `\`). */
+const escapeLike = (value) => value.replace(/[\\%_]/g, (c) => `\\${c}`);
+
 /**
  * Count one request against a scope.
  * @returns {Promise<{ ok: boolean, remaining: number, retryAfter: number }>}
@@ -44,10 +47,15 @@ export async function rateLimit(env, scope, identifier, now = Date.now()) {
   const row = await env.DB.prepare('SELECT count FROM rate_limits WHERE k = ?').bind(key).first();
   const count = row?.count ?? 1;
 
-  // Opportunistic cleanup: cheap, and keeps the table from growing without bound.
-  if (count === 1 && Math.random() < 0.02) {
-    await env.DB.prepare('DELETE FROM rate_limits WHERE window_start < ?')
-      .bind(now - Math.max(LIMITS.auth.windowMs, LIMITS.api.windowMs) * 2)
+  // Cleanup on window rollover, not on a lottery (audit F5). `count === 1` means the INSERT
+  // above just opened a fresh window for this identifier, so its earlier windows are now
+  // expired — drop them in one indexed delete scoped to this identifier. Each returning
+  // caller sweeps its own trail, so no key ever keeps more than its current row.
+  if (count === 1) {
+    await env.DB.prepare(
+      "DELETE FROM rate_limits WHERE k LIKE ? ESCAPE '\\' AND window_start < ?",
+    )
+      .bind(`${scope}:${escapeLike(identifier)}:%`, windowStart)
       .run();
   }
 

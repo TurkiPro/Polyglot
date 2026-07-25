@@ -17,7 +17,7 @@ import {
   readCookie,
 } from '../worker/src/auth/sessions.js';
 import { enabledProviders, isConfigured, providerFor } from '../worker/src/auth/oauth.js';
-import { LIMITS, clientIp } from '../worker/src/mw/ratelimit.js';
+import { LIMITS, clientIp, rateLimit } from '../worker/src/mw/ratelimit.js';
 import { CSP, secure } from '../worker/src/mw/security.js';
 import { verifyTurnstile } from '../worker/src/mw/turnstile.js';
 
@@ -137,6 +137,88 @@ describe('rate limits', () => {
     expect(clientIp(request({ 'cf-connecting-ip': '1.2.3.4' }))).toBe('1.2.3.4');
     expect(clientIp(request({ 'x-forwarded-for': '5.6.7.8' }))).toBe('local');
     expect(clientIp(request({}))).toBe('local');
+  });
+
+  /**
+   * A pocket D1 that understands only the three statements `rateLimit` issues \u2014 the upsert,
+   * the count read, and the F5 cleanup delete \u2014 enough to prove the table stays bounded.
+   */
+  function fakeD1() {
+    const rows = new Map(); // k -> { count, window_start }
+    const likeToRegex = (pattern) => {
+      let out = '^';
+      for (let i = 0; i < pattern.length; i += 1) {
+        const c = pattern[i];
+        if (c === '\\') out += pattern[(i += 1)]?.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') ?? '';
+        else if (c === '%') out += '.*';
+        else if (c === '_') out += '.';
+        else out += c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      }
+      return new RegExp(`${out}$`);
+    };
+    return {
+      rows,
+      prepare(sql) {
+        return {
+          args: [],
+          bind(...args) { this.args = args; return this; },
+          async run() {
+            if (sql.includes('INSERT INTO rate_limits')) {
+              const [k, windowStart] = this.args;
+              const existing = rows.get(k);
+              if (existing) existing.count += 1;
+              else rows.set(k, { count: 1, window_start: windowStart });
+            } else if (sql.includes('DELETE FROM rate_limits')) {
+              const [pattern, windowStart] = this.args;
+              const rx = likeToRegex(pattern);
+              for (const [k, v] of rows) if (rx.test(k) && v.window_start < windowStart) rows.delete(k);
+            }
+            return { success: true };
+          },
+          async first() {
+            const v = rows.get(this.args[0]);
+            return v ? { count: v.count } : null;
+          },
+        };
+      },
+    };
+  }
+
+  it('keeps at most one row per key across many windows, with no lottery (F5)', async () => {
+    const db = fakeD1();
+    const env = { DB: db };
+    const w = LIMITS.auth.windowMs;
+
+    // One hit per window, ten windows, for the same caller.
+    for (let n = 0; n < 10; n += 1) await rateLimit(env, 'auth', '1.2.3.4', n * w + 5);
+
+    const mine = [...db.rows.keys()].filter((k) => k.startsWith('auth:1.2.3.4:'));
+    expect(mine).toHaveLength(1);
+    expect(mine[0]).toBe(`auth:1.2.3.4:${9 * w}`);
+  });
+
+  it('sweeps only the caller\'s own trail, never a neighbour\'s row', async () => {
+    const db = fakeD1();
+    const env = { DB: db };
+    const w = LIMITS.auth.windowMs;
+
+    // A one-shot caller in window 0, then a different caller advancing through windows.
+    await rateLimit(env, 'auth', 'neighbour', 5);
+    for (let n = 0; n < 3; n += 1) await rateLimit(env, 'auth', '1.2.3.4', n * w + 5);
+
+    expect([...db.rows.keys()]).toContain('auth:neighbour:0'); // untouched
+    expect([...db.rows.keys()].filter((k) => k.startsWith('auth:1.2.3.4:'))).toHaveLength(1);
+  });
+
+  it('counts within a window without deleting the live row', async () => {
+    const db = fakeD1();
+    const env = { DB: db };
+
+    const first = await rateLimit(env, 'auth', '9.9.9.9', 5);
+    const second = await rateLimit(env, 'auth', '9.9.9.9', 6);
+    expect(first.ok).toBe(true);
+    expect(second.remaining).toBe(first.remaining - 1);
+    expect([...db.rows.values()][0].count).toBe(2);
   });
 });
 

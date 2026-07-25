@@ -710,3 +710,13 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   same-origin under `connect-src 'self'`. The built worker (`app/assets/dict-worker.js`) is a
   second esbuild entry, gitignored like `bundle.js`, and precached in the service worker as
   shell logic.
+
+- Audit F5: the rate-limit table cleanup no longer runs on a `Math.random() < 0.02`
+  lottery — which let the table grow unbounded between lucky draws. Cleanup now happens on
+  window rollover: when the upsert opens a fresh window for an identifier (`count === 1`), one
+  indexed `DELETE ... WHERE k LIKE '<scope>:<identifier>:%' AND window_start < <current>`
+  drops that identifier's now-expired windows. Each returning caller sweeps its own trail, so
+  no key ever keeps more than its current row — no scheduler, no randomness. The LIKE prefix
+  escapes `\`, `%`, `_` so an identifier can never smuggle a wildcard. Unit tests (a pocket
+  D1 fake in `worker.test.js`) prove one row per key across ten windows, that a neighbour's
+  row is never swept, and that counting within a window leaves the live row intact.
