@@ -10,7 +10,7 @@ import { config } from '../../../config/app.config.js';
 import { recordToneResult, store } from '../store.js';
 import { button, div, h, p, progressBar, replace, span } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
-import { buildDrillSet, isCorrect, summarize } from '../zh/tones-drill.js';
+import { buildDrillSet, buildTonePool, isCorrect, summarize } from '../zh/tones-drill.js';
 import * as tts from '../zh/audio.js';
 
 const s = strings.tones;
@@ -34,14 +34,23 @@ export function renderToneGym(root, ctx) {
   };
 
   /** One set of drills, then back to the menu. */
-  const run = ({ pairs }) => {
-    const drills = buildDrillSet({ size: toneGymSetSize, pairs, stats: store.toneStats });
+  const run = async ({ pairs }) => {
+    // Pack audio needs the manifest loaded before the pool can resolve keys; a miss just
+    // means the fallback syllables (toneless) — the same graceful path as no pack at all.
+    await tts.loadManifest();
+    const pool = buildTonePool(store.deck?.words ?? [], (id) => Boolean(tts.packUrl(id)));
+    const drills = buildDrillSet({ size: toneGymSetSize, pairs, stats: store.toneStats, pool });
     let index = 0;
     let score = 0;
     let chosen = [];
 
+    // A pair is two words; play them in sequence, spaced so each tone lands on its own.
     const play = () =>
-      tts.speak(drills[index].syllables.map((x) => x.syllable).join(' '), { rotate: true });
+      drills[index].syllables.forEach((syl, i) => {
+        const say = () => tts.speak(syl.text, { key: syl.key, rotate: true });
+        if (i === 0) say();
+        else setTimeout(say, i * 900);
+      });
 
     const paint = () => {
       if (index >= drills.length) {

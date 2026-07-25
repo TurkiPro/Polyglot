@@ -12,7 +12,7 @@ import { buildQueue, newCardCandidates, rampedNewCards } from '../app/src/engine
 import { rebuildFromEvents } from '../app/src/engine/replay.js';
 import { earlyBandMetrics, orderByIntroduction, segment } from '../packs/zh/lib/intro.js';
 import { attachComponents, componentsOf, parseDecomposition } from '../packs/zh/lib/decomp.js';
-import { buildDrillSet, isCorrect, toneWeights, weightedTone } from '../app/src/zh/tones-drill.js';
+import { ARCHETYPE, buildDrillSet, buildTonePool, isCorrect, toneWeights, weightedTone } from '../app/src/zh/tones-drill.js';
 
 const packDir = new URL('../app/assets/packs/zh/', import.meta.url);
 const deck = JSON.parse(readFileSync(new URL('deck.zh.json', packDir), 'utf8'));
@@ -360,5 +360,46 @@ describe('tone drills (§7.1.2)', () => {
     const weights = new Map([[1, 1], [2, 1]]);
     expect(weightedTone(weights, () => 0)).toBe(1);
     expect(weightedTone(weights, () => 0.99)).toBe(2);
+  });
+
+  it('pools single-character words with audio by tone, dropping the rest', () => {
+    const words = [
+      { id: 'k1', simp: '天', pinyinNum: 'tian1' },
+      { id: 'k3', simp: '马', pinyinNum: 'ma3' },
+      { id: 'multi', simp: '学习', pinyinNum: 'xue2 xi2' }, // not a single character
+      { id: 'noaudio', simp: '囧', pinyinNum: 'jiong3' }, // no pack audio
+    ];
+    const pool = buildTonePool(words, (id) => id !== 'noaudio');
+    expect(pool[1]).toEqual([{ tone: 1, key: 'k1', text: '天' }]);
+    expect(pool[3]).toEqual([{ tone: 3, key: 'k3', text: '马' }]);
+    expect(pool[2]).toEqual([]); // 学习 is multi-char; 囧 has no audio
+  });
+
+  it('keys drill syllables to the pool, so the view can play real tone audio', () => {
+    const words = [
+      { id: 'k1', simp: '天', pinyinNum: 'tian1' },
+      { id: 'k2', simp: '图', pinyinNum: 'tu2' },
+      { id: 'k3', simp: '马', pinyinNum: 'ma3' },
+      { id: 'k4', simp: '骂', pinyinNum: 'ma4' },
+      { id: 'k5', simp: '吗', pinyinNum: 'ma5' },
+    ];
+    const pool = buildTonePool(words, () => true);
+    for (const drill of buildDrillSet({ size: 6, pairs: true, pool, random: () => 0.5 })) {
+      for (const syl of drill.syllables) {
+        expect(syl.key).toBe(`k${syl.tone}`); // the pool item's tone matches its bucket
+        expect(syl.text).toBeTruthy();
+      }
+    }
+  });
+
+  it('falls back to keyless syllables when there is no pool (offline / no pack)', () => {
+    const [drill] = buildDrillSet({ size: 1, random: () => 0.5 });
+    expect(drill.syllables[0].key).toBeUndefined();
+    expect(drill.syllables[0].text).toBeTruthy();
+  });
+
+  it('gives every archetype tone a character to speak', () => {
+    expect(ARCHETYPE.map((a) => a.simp)).toEqual(['妈', '麻', '马', '骂', '吗']);
+    expect(ARCHETYPE.map((a) => a.tone)).toEqual([1, 2, 3, 4, 5]);
   });
 });

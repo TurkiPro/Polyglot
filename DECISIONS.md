@@ -567,4 +567,22 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   session; documented in the script header, README and CHECKLIST.
 - The deploy/operator steps (D1, OAuth apps, Turnstile, secrets) live in the README and
   CHECKLIST; there is no separate self-hosting document.
+- **Phase 8 §4: the tone gym and onboarding now play pack audio, not browser TTS.** They
+  spoke abstract pinyin syllables (`ma`, `shi`…) with no pack key, so every drill fell
+  through to browser speech — which flattens tone, the one thing a tone drill exists to
+  teach. Fixed by drawing drills from the single-character deck words that already have
+  pack audio, grouped by tone (`buildTonePool`): a real word, spoken with a real contour,
+  no new audio and no re-upload. The per-tone pools are healthy (389/309/298/509 for tones
+  1-4) and thin but usable for the neutral tone (5 words). Pairs play their two syllables
+  in sequence, spaced so each tone lands on its own.
+- Phase 8 §4: the onboarding archetype (mā má mǎ mà · ma) resolves each sample to a pack
+  key through the deck by spelling + reading, which self-corrects the two gaps rather than
+  ever playing a wrong tone: 妈 is only in the deck as 妈妈 (no single-character entry), and
+  the deck catalogues 吗 as má (tone 2), not the neutral question particle — so a lookup for
+  ma1 and ma5 finds nothing and those two fall back to browser voice. 麻/马/骂 play pack
+  audio. Closing the last two would mean rendering 妈 and a neutral 吗 into the pack.
+- Phase 8 §4: two review-card audio controls were keyless and so TTS-only — the keyboard
+  activation of a tap-to-speak character, and the LIS card front — now keyed to the word
+  and to the sentence src respectively. Only the Settings voice preview stays keyless, by
+  design: it is previewing a browser voice, so it must not use the pack.
 

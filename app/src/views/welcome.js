@@ -9,7 +9,7 @@ import { config } from '../../../config/app.config.js';
 import { recordToneResult, store, updateSettings } from '../store.js';
 import { button, div, el, h, p, replace, sealMark, span } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
-import { ARCHETYPE, buildDrillSet, isCorrect } from '../zh/tones-drill.js';
+import { ARCHETYPE, buildDrillSet, buildTonePool, isCorrect } from '../zh/tones-drill.js';
 import { colorPinyin } from '../zh/tones.js';
 import * as tts from '../zh/audio.js';
 
@@ -62,7 +62,10 @@ export function renderWelcome(root, ctx) {
   /* ── 2. Tone intro, then drills ───────────────────────── */
   const teachTones = () => {
     const samples = ARCHETYPE.map((entry) => {
-      const node = button('', () => tts.speak(entry.pinyin), {
+      // Speak the character, keyed to pack audio when the deck teaches this exact reading;
+      // speak() falls back to browser voice for the ones it does not (妈, neutral 吗).
+      const key = store.deck?.lookup(entry.simp, entry.pinyinNum)?.id;
+      const node = button('', () => tts.speak(entry.simp, { key }), {
         variant: 'tone-sample',
         'aria-label': `${entry.pinyin} — ${entry.gloss}`,
       });
@@ -92,8 +95,10 @@ export function renderWelcome(root, ctx) {
   };
 
   /** "Which tone did you hear?" — single syllables, then pairs. */
-  const runDrills = ({ pairs, then }) => {
-    const drills = buildDrillSet({ size: toneGymSetSize, pairs, stats: store.toneStats });
+  const runDrills = async ({ pairs, then }) => {
+    await tts.loadManifest();
+    const pool = buildTonePool(store.deck?.words ?? [], (id) => Boolean(tts.packUrl(id)));
+    const drills = buildDrillSet({ size: toneGymSetSize, pairs, stats: store.toneStats, pool });
     let index = 0;
     let score = 0;
     let chosen = [];
@@ -101,7 +106,13 @@ export function renderWelcome(root, ctx) {
     const host = div({ class: 'drill' });
     show([h(1, pairs ? s.drillPairsTitle : s.drillTitle, 'welcome-title'), host, skipLink()]);
 
-    const play = () => tts.speak(drills[index].syllables.map((x) => x.syllable).join(' '), { rotate: true });
+    // A pair is two words; play them in sequence, spaced so each tone lands on its own.
+    const play = () =>
+      drills[index].syllables.forEach((syl, i) => {
+        const say = () => tts.speak(syl.text, { key: syl.key, rotate: true });
+        if (i === 0) say();
+        else setTimeout(say, i * 900);
+      });
 
     const paint = () => {
       if (index >= drills.length) {

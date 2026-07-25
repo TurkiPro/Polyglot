@@ -8,17 +8,45 @@
  * Pure: no DOM, no audio, no storage. The view plays the syllable and records the answer.
  */
 
-/** The archetype syllable: mā má mǎ mà · ma. One word, five meanings. */
+/**
+ * The archetype syllable: mā má mǎ mà · ma. One word, five meanings.
+ *
+ * `simp` is the character so the sample can speak pack audio; the view resolves it to a
+ * pack key through the deck (§9). Where the deck has no matching reading — 妈 is only in the
+ * deck as 妈妈, and 吗 is catalogued as má not neutral ma — the sample falls back to browser
+ * speech rather than playing the wrong tone.
+ */
 export const ARCHETYPE = Object.freeze([
-  { tone: 1, pinyin: 'mā', pinyinNum: 'ma1', gloss: 'mother' },
-  { tone: 2, pinyin: 'má', pinyinNum: 'ma2', gloss: 'hemp' },
-  { tone: 3, pinyin: 'mǎ', pinyinNum: 'ma3', gloss: 'horse' },
-  { tone: 4, pinyin: 'mà', pinyinNum: 'ma4', gloss: 'to scold' },
-  { tone: 5, pinyin: 'ma', pinyinNum: 'ma5', gloss: '(question particle)' },
+  { tone: 1, pinyin: 'mā', pinyinNum: 'ma1', gloss: 'mother', simp: '妈' },
+  { tone: 2, pinyin: 'má', pinyinNum: 'ma2', gloss: 'hemp', simp: '麻' },
+  { tone: 3, pinyin: 'mǎ', pinyinNum: 'ma3', gloss: 'horse', simp: '马' },
+  { tone: 4, pinyin: 'mà', pinyinNum: 'ma4', gloss: 'to scold', simp: '骂' },
+  { tone: 5, pinyin: 'ma', pinyinNum: 'ma5', gloss: '(question particle)', simp: '吗' },
 ]);
 
-/** Syllables the drills draw on — common, and unambiguous to hear. */
+/** Syllables the drills fall back on when no pack pool is available — toneless in TTS. */
 const SYLLABLES = ['ma', 'ba', 'shi', 'yi', 'wen', 'tang', 'shu', 'bao', 'jia', 'qi'];
+
+/**
+ * Group single-character deck words that have pack audio by tone, so drills can play a real
+ * word spoken with a real tone instead of a toneless synthesised syllable. This is the
+ * whole reason the tone gym stopped sounding flat: browser TTS gives every drill the same
+ * dead pitch, which for a tone drill teaches nothing.
+ *
+ * @param {object[]} words deck words
+ * @param {(id: string) => boolean} hasAudio whether the pack has audio for a word id
+ * @returns {Record<number, Array<{ tone: number, key: string, text: string }>>}
+ */
+export function buildTonePool(words, hasAudio) {
+  const pool = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+  for (const word of words ?? []) {
+    if (!word?.simp || [...word.simp].length !== 1) continue;
+    if (typeof hasAudio === 'function' && !hasAudio(word.id)) continue;
+    const tone = String(word.pinyinNum ?? '').match(/([1-5])$/)?.[1];
+    if (tone) pool[+tone].push({ tone: +tone, key: word.id, text: word.simp });
+  }
+  return pool;
+}
 
 /** Tones 2 and 3 are the pair adult learners confuse most; they get extra weight. */
 const HARD_PAIR = [2, 3];
@@ -65,12 +93,27 @@ export function weightedTone(weights, random = Math.random) {
 }
 
 /**
+ * One drill syllable for a tone: drawn from the pack pool when one is given (a real word,
+ * with a `key` the view resolves to pack audio), else a toneless fallback syllable.
+ */
+function pickSyllable(tone, pool, random) {
+  const bucket = pool?.[tone];
+  if (bucket && bucket.length) {
+    const item = bucket[Math.floor(random() * bucket.length)];
+    return { tone, key: item.key, text: item.text };
+  }
+  const syllable = SYLLABLES[Math.floor(random() * SYLLABLES.length)];
+  return { tone, text: syllable, pinyinNum: `${syllable}${tone}` };
+}
+
+/**
  * Build a drill set.
  *
- * @param {{ size?: number, pairs?: boolean, stats?: object, random?: () => number }} options
- * @returns {Array<{ syllables: Array<{ syllable: string, tone: number }>, answer: number[] }>}
+ * @param {{ size?: number, pairs?: boolean, stats?: object, pool?: object, random?: () => number }} options
+ *   `pool` is `buildTonePool`'s output; without it, drills use toneless fallback syllables.
+ * @returns {Array<{ syllables: Array<{ tone: number, key?: string, text: string }>, answer: number[] }>}
  */
-export function buildDrillSet({ size = 10, pairs = false, stats = null, random = Math.random } = {}) {
+export function buildDrillSet({ size = 10, pairs = false, stats = null, pool = null, random = Math.random } = {}) {
   const weights = toneWeights(stats);
   const drills = [];
 
@@ -80,8 +123,7 @@ export function buildDrillSet({ size = 10, pairs = false, stats = null, random =
 
     for (let n = 0; n < count; n++) {
       const tone = weightedTone(weights, random);
-      const syllable = SYLLABLES[Math.floor(random() * SYLLABLES.length)];
-      syllables.push({ syllable, tone, pinyinNum: `${syllable}${tone}` });
+      syllables.push(pickSyllable(tone, pool, random));
     }
 
     drills.push({ syllables, answer: syllables.map((s) => s.tone) });

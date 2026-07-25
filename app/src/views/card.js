@@ -61,11 +61,12 @@ function speakable(node, word, text) {
   node.setAttribute('role', 'button');
   node.setAttribute('tabindex', '0');
   node.setAttribute('aria-label', s.tapToSpeak);
-  node.addEventListener('click', () => tts.speak(text, { key: word.simp === text ? word.id : undefined }));
+  const key = word.simp === text ? word.id : undefined;
+  node.addEventListener('click', () => tts.speak(text, { key }));
   node.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      tts.speak(text);
+      tts.speak(text, { key });
     }
   });
   return node;
@@ -211,6 +212,8 @@ function listenFront(word, onReady, onSuggest, onFlip) {
   square.setAttribute('tabindex', '0');
   square.setAttribute('aria-label', s.tapToPlay);
 
+  // Pack audio for the sentence (keyed by its src) or the word; speak() falls back to voice.
+  const key = sentence ? sentence.src : word.id;
   const pulse = () => {
     square.classList.remove('pulse');
     // Restart the animation rather than letting a second play be silent visually.
@@ -218,7 +221,7 @@ function listenFront(word, onReady, onSuggest, onFlip) {
     square.classList.add('pulse');
   };
   const play = () => {
-    tts.speak(text);
+    tts.speak(text, { key });
     pulse();
   };
 
