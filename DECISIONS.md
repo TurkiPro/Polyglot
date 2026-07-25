@@ -844,3 +844,10 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   conformance test asserts it equals the committed dark-theme values — so the fallback can't
   fossilise away from the live palette again. The stray `config.toneColors.t2` fallback (which
   was `undefined`, since tone colours are keyed by theme) was fixed to the real value too.
+
+- Phase 10 D2: eleven hardcoded millisecond durations in `styles.css` bypassed the `--dur`
+  token and so ignored reduced-motion's zeroing. Each is now `var(--dur)` or a `calc()` multiple
+  of it (e.g. `300ms → calc(var(--dur) * 2)`), and the `--roll-delay` fallback became `0s`. Only
+  the two `--dur` definitions (`160ms`, and `0ms` under `prefers-reduced-motion`) remain, so
+  reduced motion collapses every animation and transition to zero from one place. A conformance
+  test greps the stylesheet for any `\d+ms` outside the `--dur` definition and fails on a hit.

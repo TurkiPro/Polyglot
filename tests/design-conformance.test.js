@@ -31,3 +31,19 @@ describe('theme fallbacks (D1)', () => {
     }
   });
 });
+
+/* ── D2: every duration flows through --dur, so reduced-motion can zero it ── */
+describe('durations are tokenised (D2)', () => {
+  it('has no hardcoded millisecond value outside the --dur token definition', () => {
+    const offenders = css
+      .split('\n')
+      .map((line, i) => [i + 1, line])
+      .filter(([, line]) => /\d+ms/.test(line) && !/--dur\s*:/.test(line));
+    expect(offenders, `hardcoded ms must become var(--dur) / calc(): ${JSON.stringify(offenders)}`).toEqual([]);
+  });
+
+  it('zeroes --dur under prefers-reduced-motion, so calc()-derived durations collapse to 0', () => {
+    const block = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
+    expect(block.slice(0, block.indexOf('}') + 1)).toMatch(/--dur:\s*0ms/);
+  });
+});

@@ -606,7 +606,7 @@ body {
   background: var(--surface);
   border: 2px solid var(--accent);
   box-shadow: var(--shadow-1);
-  transition: transform 140ms var(--spring), box-shadow var(--dur) var(--ease);
+  transition: transform var(--dur) var(--spring), box-shadow var(--dur) var(--ease);
 }
 .slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
 .slider:active::-webkit-slider-thumb { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 20%, transparent); }
@@ -1965,8 +1965,8 @@ body {
 }
 
 :root[data-effects="on"] .odometer-digit.rolling {
-  animation: odo-roll 300ms var(--ease) both;
-  animation-delay: var(--roll-delay, 0ms);
+  animation: odo-roll calc(var(--dur) * 2) var(--ease) both;
+  animation-delay: var(--roll-delay, 0s);
 }
 
 @keyframes odo-roll {
@@ -2069,7 +2069,7 @@ body {
     transparent 60%
   );
   transform: translateX(-120%);
-  animation: glint 900ms var(--ease) 200ms 1;
+  animation: glint calc(var(--dur) * 5.5) var(--ease) calc(var(--dur) * 1.25) 1;
 }
 
 @keyframes glint {
@@ -2166,7 +2166,7 @@ body {
 
 /* 3. One pulse on a correct judged answer. */
 :root[data-effects="on"] .verdict.pulse-ok {
-  animation: pulse-ok 420ms var(--ease) 1;
+  animation: pulse-ok calc(var(--dur) * 2.5) var(--ease) 1;
 }
 
 @keyframes pulse-ok {
@@ -2538,11 +2538,11 @@ body {
   position: relative;
   box-shadow: 0 4px 14px rgb(0 0 0 / 0.28);
   /* A longer, gently-overshooting ease so the grow settles rather than snapping (feedback). */
-  transition: transform 300ms var(--spring), box-shadow 260ms var(--ease);
+  transition: transform calc(var(--dur) * 2) var(--spring), box-shadow calc(var(--dur) * 1.5) var(--ease);
 }
 .btn:hover:not(:disabled) { transform: translateY(-1px) scale(1.02); }
 /* The press is quick and crisp, then releases back through the spring. */
-.btn:active:not(:disabled) { transform: scale(0.985); transition-duration: 90ms; }
+.btn:active:not(:disabled) { transform: scale(0.985); transition-duration: calc(var(--dur) * 0.5); }
 .btn:disabled { box-shadow: none; }
 
 /* The liquid ring: a rotating multi-colour conic gradient, masked to just the border.
@@ -2563,7 +2563,7 @@ body {
   mask-composite: exclude;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 220ms var(--ease);
+  transition: opacity calc(var(--dur) * 1.5) var(--ease);
 }
 :root[data-effects="on"] .btn:hover:not(:disabled)::before,
 :root[data-effects="on"] .btn:focus-visible:not(:disabled)::before {
@@ -2601,13 +2601,13 @@ body {
   border: 1px solid var(--border);
   background: var(--surface);
   box-shadow: var(--shadow-1);
-  transition: transform 300ms var(--spring), border-color var(--dur) var(--ease),
-    box-shadow 260ms var(--ease);
+  transition: transform calc(var(--dur) * 2) var(--spring), border-color var(--dur) var(--ease),
+    box-shadow calc(var(--dur) * 1.5) var(--ease);
 }
 /* These are cards, not pills — opt them out of the liquid button treatment. */
 .action-card::before { display: none; }
 .action-card:hover:not(:disabled) { transform: translateY(-3px); box-shadow: var(--shadow-2); }
-.action-card:active:not(:disabled) { transform: translateY(-1px); transition-duration: 90ms; }
+.action-card:active:not(:disabled) { transform: translateY(-1px); transition-duration: calc(var(--dur) * 0.5); }
 
 .action-icon {
   flex: none;
