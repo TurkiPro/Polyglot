@@ -144,17 +144,34 @@ describe('topics.json (§5.1, §6)', () => {
     expect(unknown).toEqual([]);
   });
 
-  it('covers the topics §5.1 lists, each with a label and words', () => {
-    const expected = [
-      'food', 'animals', 'people', 'numbers', 'places', 'travel', 'body', 'work',
-      'colors', 'verbs', 'feelings', 'weather', 'money', 'tech', 'questions',
-    ];
-    expect(Object.keys(topics.topics).sort()).toEqual([...expected].sort());
-
-    for (const topic of expected) {
-      expect(topics.topics[topic].length, topic).toBeGreaterThan(0);
+  it('gives every topic a label and words', () => {
+    expect(Object.keys(topics.topics).length).toBeGreaterThan(10);
+    for (const [topic, ids] of Object.entries(topics.topics)) {
+      expect(ids.length, topic).toBeGreaterThan(0);
       expect(topics.labels[topic], topic).toBeTruthy();
     }
+  });
+
+  it('is honestly tagged (Phase 11 §1): no poison substrings, no function words', () => {
+    const home = new Map(); // first topic that lists a word is its home
+    for (const [topic, ids] of Object.entries(topics.topics)) {
+      for (const id of ids) if (!home.has(id)) home.set(id, topic);
+    }
+    // The 电话 class: a "phone number" sense must not put 电话 in numbers.
+    expect(home.get('zh:电话:dian4_hua4')).not.toBe('numbers');
+    // Numbers hold cardinals, in value order — 八 sorts by value, not next to 电话.
+    const numberSimps = topics.topics.numbers.map((id) => byId.get(id).simp);
+    expect(numberSimps.slice(0, 6)).toEqual(['零', '一', '二', '两', '三', '四']);
+    // Function/structure words are CORE, never a topic member.
+    const core = new Set(topics.core ?? []);
+    for (const fn of ['zh:的:de5', 'zh:是:shi4', 'zh:个:ge4', 'zh:我:wo3']) {
+      if (byId.has(fn)) {
+        expect(core.has(fn), fn).toBe(true);
+        expect([...home.keys()].includes(fn), fn).toBe(false);
+      }
+    }
+    // 男朋友 lives among people, where he belongs (the maintainer's second bug).
+    expect(home.get('zh:男朋友:nan2_peng2_you5')).toBe('people');
   });
 
   it('stays inside bands 1-4, as the spec scopes it', () => {

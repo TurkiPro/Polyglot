@@ -930,3 +930,28 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   `.gloss-pop[hidden] { display: none; }` (specificity 0-2-0 beats the base 0-1-0) — and a test
   asserts that rule exists so a future `display:` can't strand the popup again. The JS pointer
   handling from the prior commit stays; it is what keeps the popup from lingering between hovers.
+
+- Phase 11 §1 — tagger diagnosis: the committed topics.json was drafted by matching topic
+  keywords as raw SUBSTRINGS against a word's ENTIRE definition list, so any def that merely
+  contained a topic word swept the word into that topic. 电话 (telephone) landed in "numbers"
+  because one of its CC-CEDICT senses is "phone number" — substring "number". The same mechanism
+  pulled every "this year"/"next year"/"last year" and "sometimes" into "Numbers & time", and
+  classifiers/particles with a stray concrete sense into content topics. The fix (below) is
+  head-term matching against a word's PRIMARY sense, a poison-substring trap list, a closed-class
+  CORE list for function words, and a single strongest "home" topic per word.
+
+- Phase 11 §1 — the re-tag (`packs/zh/lib/topics.js`, `npm run regen-topics`): topics are now
+  assigned by rule. A closed-class CORE list (212 function/structure words: pronouns, particles,
+  copulas, measure words, conjunctions, coverbs, degree/negation adverbs, localizers) is
+  topic-LESS by law. Content words get a home topic from an explicit curated membership for
+  bands 1-2 (the reviewable data), extended by head-term keyword rules against a word's PRIMARY
+  sense for the tail, with a poison-substring trap list ("phone number", "this year",
+  "classifier", "bound form", …) so a stray sense can't sweep a word up. Each word has ONE home
+  topic (strongest by priority); the rest are secondary, for Browse only. Numbers split from time
+  into two topics; both carry an explicit `orderedTopics` sequence (numbers by value, time by
+  scale), so 八 sorts by value and 电话 — now `tech`, not `numbers` — never sits beside it. New
+  coherent topics: clothes, sports, home. Result over bands 1-2: 0 unmapped, 电话→tech, 男朋友
+  stays in people. The committed `course.zh.json` was regenerated so the (still Phase-9) slicer
+  stays green against the new topic seams — a throwaway step; §2 replaces the slicer. Deck bytes
+  untouched. **The review report is `packs/zh/data/topic-report.txt` — the maintainer signs off
+  on the bands 1-2 lists before §2 builds theme-first units on them.**
