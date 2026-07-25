@@ -513,6 +513,16 @@ in one `:root` block (tone colors from §0). System font stack; hanzi large on c
 fronts (clamp ≈48–96px). All user-facing strings in `ui/strings.js` (the i18n seam).
 No inline `style=` or `<script>` — §11's CSP forbids them.
 
+**Sanctioned glow (the registry — do not drift).** Neon glow is an earned accent, not a
+default. Only these surfaces may carry `var(--glow-*)` (or the `neonIgnite` tube filter),
+and a conformance test asserts `var(--glow` appears on no other selector in `styles.css`:
+the ignited signs (`neonIgnite`: the nightly hero, the session done-sign, the checkpoint
+clear), the signboard hover (`.sign` name), the combo/odometer flourish (`.combo-lit`), the
+course-path current step marker (`.syllabus-step.state-current`), and the checkpoint/band
+clear card (`.quiz-band-clear`), plus the liquid-button hover (`.btn:hover`, feedback #7).
+Adding a glow anywhere else means adding it here first — that is the whole point of the list.
+Every glow is gated behind `:root[data-effects="on"]` so the effects switch is a true opt-out.
+
 **Settings**: sliders for new/day and max/day (defaults from config), theme, **Export
 JSON** (guest mode included), **Import JSON** (validate → `rebuildFromEvents`), account
 section placeholder (Phase 6), Danger Zone wiping local data after typed confirmation.

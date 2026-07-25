@@ -47,3 +47,36 @@ describe('durations are tokenised (D2)', () => {
     expect(block.slice(0, block.indexOf('}') + 1)).toMatch(/--dur:\s*0ms/);
   });
 });
+
+/* ── D3: --glow appears only on the sanctioned surfaces (CLAUDE.md registry) ── */
+describe('the glow registry (D3)', () => {
+  // The sanctioned surfaces — must match CLAUDE.md's §9 "Sanctioned glow" list. A selector
+  // matches if it contains one of these fragments.
+  const SANCTIONED = [
+    '.combo-lit', // combo / odometer flourish
+    '.sign:', // signboard hover (sign name)
+    '.syllabus-step.state-current', // course-path current step marker
+    '.quiz-band-clear', // checkpoint / band clear card
+    '.btn:hover', // liquid button hover (feedback #7)
+  ];
+
+  const lines = css.split('\n');
+  /** The selector governing line `i` — the nearest preceding line that opens a rule. */
+  const selectorFor = (i) => {
+    for (let j = i; j >= 0; j -= 1) if (/\{\s*$/.test(lines[j])) return lines[j];
+    return '';
+  };
+
+  it('every var(--glow) sits on a sanctioned selector', () => {
+    const offenders = lines
+      .map((line, i) => [i + 1, line])
+      .filter(([, line]) => /var\(--glow/.test(line))
+      .map(([n, line]) => [n, line.trim(), selectorFor(n - 1).trim()])
+      .filter(([, , selector]) => !SANCTIONED.some((frag) => selector.includes(frag)));
+    expect(offenders, `unsanctioned glow — add the surface to CLAUDE.md §9 first: ${JSON.stringify(offenders)}`).toEqual([]);
+  });
+
+  it('finds the glows it is meant to be guarding (not vacuously green)', () => {
+    expect(lines.filter((line) => /var\(--glow/.test(line)).length).toBeGreaterThanOrEqual(5);
+  });
+});

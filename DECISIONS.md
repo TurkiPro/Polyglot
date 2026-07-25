@@ -851,3 +851,12 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   the two `--dur` definitions (`160ms`, and `0ms` under `prefers-reduced-motion`) remain, so
   reduced motion collapses every animation and transition to zero from one place. A conformance
   test greps the stylesheet for any `\d+ms` outside the `--dur` definition and fails on a hit.
+
+- Phase 10 D3: the sanctioned-glow registry had drifted — the course path's current-step glow
+  (and the older combo/liquid-button glows) used `var(--glow-*)` legitimately but were never
+  written into the law. CLAUDE.md §9 now carries an explicit "Sanctioned glow" list — the
+  ignited signs (`neonIgnite`), signboard hover (`.sign`), combo/odometer flourish
+  (`.combo-lit`), course-path current marker (`.syllabus-step.state-current`), checkpoint/band
+  clear (`.quiz-band-clear`), and the liquid-button hover (`.btn:hover`) — and a conformance
+  test walks each `var(--glow` in `styles.css` to its selector and fails if it is not one of
+  those, so a new glow must be added to the law before it can ship.
