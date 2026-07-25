@@ -1556,7 +1556,15 @@ body {
 
 .word-actions {
   justify-content: center;
+  /* Keep chips at their natural height — a flex row defaults to stretch, which turned the
+     "In my words" pill into a tall oval next to the writing canvases (feedback). */
+  align-items: center;
+  flex-wrap: wrap;
   margin-top: var(--space-3);
+}
+/* When practice opens in place of the button, it takes its own full-width line. */
+.word-actions .practice {
+  flex-basis: 100%;
 }
 
 .result-actions {

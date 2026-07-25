@@ -140,7 +140,7 @@ export const strings = Object.freeze({
     addToMyWords: 'Add to my words',
     inMyWords: 'In my words',
     practiceWriting: 'Practice writing',
-    showStrokes: 'Show strokes again',
+    showStrokes: 'Show stroke order',
     practiceDone: 'Done practising',
     practiceBlurb: 'Free practice. Nothing is graded and your schedule does not change.',
     examples: 'Examples',

@@ -57,27 +57,47 @@ function show(target) {
   node.style.top = `${rect.top}px`;
 }
 
+let anchor = null;
+let safety = null;
+
 function hide() {
+  anchor = null;
+  if (safety) clearTimeout(safety);
   if (pop) pop.hidden = true;
+}
+
+function reveal(target) {
+  anchor = target;
+  show(target);
+  // Safety net: if the character is removed from the DOM while shown (a view re-render), no
+  // mouseout ever fires, so the popup would stick — this guarantees it clears.
+  if (safety) clearTimeout(safety);
+  safety = setTimeout(hide, 4000);
 }
 
 /** Wire the delegated hover/tap once, at boot. */
 export function initGloss(root = document) {
   const targetOf = (event) => event.target.closest?.('[data-gloss]');
+
+  // Moving onto a gloss shows it; moving onto anything else hides it — so it never sticks.
   root.addEventListener('mouseover', (event) => {
     const target = targetOf(event);
-    if (target) show(target);
+    if (target) reveal(target);
+    else if (anchor) hide();
   });
-  root.addEventListener('mouseout', (event) => {
-    if (targetOf(event)) hide();
-  });
-  // Touch: tap a character to reveal, tap anywhere else to dismiss.
-  root.addEventListener('click', (event) => {
-    const target = targetOf(event);
-    if (target) show(target);
-    else hide();
-  });
+
+  // Touch has no hover: tap a character to reveal, tap elsewhere to dismiss.
+  const touch = typeof matchMedia === 'function' && matchMedia('(hover: none)').matches;
+  if (touch) {
+    root.addEventListener('click', (event) => {
+      const target = targetOf(event);
+      if (target) reveal(target);
+      else hide();
+    });
+  }
+
   root.addEventListener('scroll', hide, true);
+  window.addEventListener('hashchange', hide);
 }
 
 /** Wrap each CJK character of `text` in a hoverable gloss span; other text passes through. */

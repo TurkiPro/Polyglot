@@ -86,14 +86,22 @@ export function mountQuiz(
   return {
     writer,
     mistakes: () => mistakes,
-    /** Replay the stroke order, then resume the quiz — the "show me again" affordance (#6). */
-    animate: () => {
+    /**
+     * Play the stroke order once, then resume the quiz. `onDone` fires when the animation
+     * finishes, so the caller can chain characters one after another (feedback).
+     */
+    animate: (onDone) => {
       try {
         writer.cancelQuiz();
       } catch {
         // Nothing was running.
       }
-      writer.animateCharacter({ onComplete: startQuiz });
+      writer.animateCharacter({
+        onComplete: () => {
+          startQuiz();
+          onDone?.();
+        },
+      });
     },
     /** Give up on this character: cancel the quiz and animate the strokes. */
     reveal: () => {

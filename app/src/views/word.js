@@ -146,23 +146,25 @@ function practiceButton(word) {
   const open = button(s.practiceWriting, () => {
     const host = div({ class: 'practice' });
     const canvases = div({ class: 'write-row' });
-    // Practice, not a test: every character shows its outline and demonstrates its stroke
-    // order once, with hints ready after a single miss (#5, #6).
+    // Practice, not a test: every character shows its outline (so no box is blank) and
+    // hints come after a single miss. Stroke demos are on demand, not automatic (feedback).
     const quizzes = [...word.simp].map((char) => {
       const target = div({ class: 'write-target' });
       canvases.append(div({ class: 'tianzige tianzige-write' }, [target]));
-      return mountQuiz(target, char, { showOutline: true, showHintAfterMisses: 1, demo: true });
+      return mountQuiz(target, char, { showOutline: true, showHintAfterMisses: 1 });
     });
 
-    const showAgain = button(s.showStrokes, () => {
-      for (const quiz of quizzes) quiz.animate();
-    }, { variant: 'btn-quiet btn-small' });
+    // Demonstrate the characters one after another, not all at once (feedback).
+    const showStrokes = (index = 0) => {
+      if (index < quizzes.length) quizzes[index].animate(() => showStrokes(index + 1));
+    };
+    const showBtn = button(s.showStrokes, () => showStrokes(0), { variant: 'btn-quiet btn-small' });
     const close = button(s.practiceDone, () => {
       for (const quiz of quizzes) quiz.destroy();
       host.replaceWith(open);
     }, { variant: 'btn-quiet' });
 
-    host.append(p(s.practiceBlurb, 'muted'), canvases, div({ class: 'practice-actions' }, [showAgain, close]));
+    host.append(p(s.practiceBlurb, 'muted'), canvases, div({ class: 'practice-actions' }, [showBtn, close]));
     open.replaceWith(host);
   }, { variant: 'btn-quiet' });
 
