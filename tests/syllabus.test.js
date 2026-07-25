@@ -108,4 +108,22 @@ describe('syllabus + runner (A2)', () => {
     renderLesson(root, { navigate: vi.fn() }, 'u001/1');
     expect(text()).toContain('乙'); // jumped straight to the second word
   });
+
+  it('runs Unit 0 "The Sounds" as ordinary course content', () => {
+    const soundsUnit = {
+      id: 'u000', title: 'The Sounds', band: 0, sounds: true, wordIds: [],
+      steps: [{ kind: 'TONES', set: 'intro' }, { kind: 'PINYIN' }, { kind: 'CHECKPOINT' }],
+    };
+    store.store.course = { units: [soundsUnit, unit] };
+
+    // The tree shows Unit 0 first, with tone/pinyin step labels rather than a word.
+    renderSyllabusPage(root, { navigate: vi.fn() });
+    const first = root.querySelector('.syllabus-unit');
+    expect(first.textContent).toContain('The Sounds');
+    expect(root.querySelector('.syllabus-step.kind-tones')).not.toBeNull();
+
+    // The runner opens Unit 0 on its tone intro — the archetype to tap, not a vocabulary card.
+    renderLesson(root, { navigate: vi.fn() }, 'u000');
+    expect(root.querySelector('.tone-samples')).not.toBeNull();
+  });
 });

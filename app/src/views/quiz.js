@@ -18,6 +18,7 @@ import { strings } from '../ui/strings.js';
 import { neonIgnite } from '../zh/writer.js';
 import { renderExercise } from './exercise.js';
 import { syllabusRail, stepStrip } from './syllabus.js';
+import { renderSoundsCheckpoint } from './sounds.js';
 
 const s = strings.quiz;
 const { quizLength, quizPass } = config.course;
@@ -25,6 +26,9 @@ const { quizLength, quizPass } = config.course;
 export function renderQuiz(root, ctx, unitArg) {
   const unit = store.course?.units.find((u) => u.id === unitArg);
   if (!unit) return void ctx.navigate('#course');
+
+  // Unit 0 "The Sounds" has no deck words — its checkpoint is a scored tone drill (§B).
+  if (unit.sounds || unit.wordIds.length === 0) return renderSoundsCheckpoint(root, ctx, unit);
 
   const introduced = introducedSet(store.states);
   if (unintroduced(unit, introduced).length > 0) {

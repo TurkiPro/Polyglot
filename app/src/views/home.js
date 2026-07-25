@@ -115,13 +115,16 @@ function homeActions(ctx, dueTotal) {
   const unit = currentUnit();
 
   if (unit) {
+    // Unit 0 "The Sounds" (§10 B) is where a new account begins; it holds no words, so it
+    // shows step progress and its own copy rather than the "N of M words" line.
+    const isSounds = unit.sounds || unit.id === 'u000';
     const number = Number(String(unit.id).replace(/\D/g, ''));
     cards.push(actionCard({
       iconName: 'book-open',
-      eyebrow: s.continueEyebrow,
-      title: unit.title,
-      meta: s.unitMeta(number, unit.introduced, unit.total),
-      ratio: unit.total ? unit.introduced / unit.total : 0,
+      eyebrow: isSounds ? s.startCourse : s.continueEyebrow,
+      title: isSounds ? s.soundsTitle : unit.title,
+      meta: isSounds ? s.soundsMeta : s.unitMeta(number, unit.introduced, unit.total),
+      ratio: unit.stepTotal ? unit.stepDone / unit.stepTotal : (unit.total ? unit.introduced / unit.total : 0),
       onClick: () => ctx.navigate('#course'),
       primary: true,
     }));

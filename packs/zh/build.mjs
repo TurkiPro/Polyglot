@@ -12,6 +12,7 @@ import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { config } from '../../config/app.config.js';
 import { parseCedict, pickPrimary } from './lib/cedict.js';
 import { buildCourse } from './lib/course.js';
+import { SOUNDS_UNIT } from './lib/sounds-unit.js';
 import { buildCredits, renderCreditsMarkdown } from './lib/credits.js';
 import { DATA_DIR, download, readSource, readSourceText } from './lib/download.js';
 import { collectCharacters, subsetWeights } from './lib/fonts.js';
@@ -343,6 +344,7 @@ async function writeCourse(words, version, generatedAt) {
     courseBands: config.course.courseBands,
     unitSize: config.course.unitSize,
     lessonWords: config.course.lessonWords,
+    soundsUnit: SOUNDS_UNIT,
   });
 
   const course = {

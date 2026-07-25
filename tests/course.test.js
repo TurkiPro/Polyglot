@@ -8,6 +8,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildCourse, unitId } from '../packs/zh/lib/course.js';
+import { SOUNDS_UNIT } from '../packs/zh/lib/sounds-unit.js';
 import { config } from '../config/app.config.js';
 
 const read = (p) => JSON.parse(readFileSync(resolve(process.cwd(), p), 'utf8'));
@@ -151,11 +152,16 @@ describe('committed course.zh.json (§9.1)', () => {
     expect(new Set(placed)).toEqual(new Set(deck.words.map((w) => w.id)));
   });
 
-  it.skipIf(!has(path))('keeps every unit within size bounds', () => {
-    for (const unit of read(path).units) {
+  it.skipIf(!has(path))('keeps every word-bearing unit within size bounds', () => {
+    // Unit 0 "The Sounds" (band 0) carries no deck words, so the size bounds do not apply to it.
+    for (const unit of read(path).units.filter((u) => u.wordIds.length)) {
       expect(unit.wordIds.length).toBeGreaterThanOrEqual(19);
       expect(unit.wordIds.length).toBeLessThanOrEqual(25);
     }
+  });
+
+  it.skipIf(!has(path))('begins with the generated Unit 0 "The Sounds"', () => {
+    expect(read(path).units[0]).toEqual(SOUNDS_UNIT);
   });
 
   it.skipIf(!has(path))('reproduces the committed unit ids from the deck (id stability)', () => {
@@ -168,6 +174,7 @@ describe('committed course.zh.json (§9.1)', () => {
       notes: overrides.notes,
       courseBands: config.course.courseBands,
       unitSize: config.course.unitSize,
+      soundsUnit: SOUNDS_UNIT,
     });
     expect(units.map((u) => u.id)).toEqual(course.units.map((u) => u.id));
     expect(units.map((u) => u.wordIds.join(','))).toEqual(course.units.map((u) => u.wordIds.join(',')));

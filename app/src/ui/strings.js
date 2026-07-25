@@ -31,6 +31,9 @@ export const strings = Object.freeze({
     continueCourse: (n, title) => `Continue · Unit ${n} — ${title}`,
     continueEyebrow: 'Continue the course',
     unitMeta: (n, done, total) => `Unit ${n} · ${done} of ${total} words`,
+    startCourse: 'Start the course',
+    soundsTitle: 'Unit 0 — The Sounds',
+    soundsMeta: 'Tones and pinyin, before your first word',
     reviewCard: 'Review',
     dueMeta: (n) => (n === 1 ? '1 card due' : `${n} cards due`),
     doneToday: 'Done for today',
@@ -59,6 +62,11 @@ export const strings = Object.freeze({
     },
     progress: (done, total) => `${done} of ${total}`,
     show: 'Show answer',
+    // The one-time handwriting nudge (Phase 10 B), shown when a WRITE card would first unlock.
+    writingPrompt: 'Want handwriting practice? Add stroke-writing cards as your words mature.',
+    writingPromptYes: 'Add handwriting',
+    writingPromptNo: 'Not now',
+    writingPromptNote: 'You can change this any time in Settings.',
     /** Names the grade bar for assistive tech (F7). */
     rateGroup: 'Rate how well you recalled this',
     again: 'Again',
@@ -307,6 +315,8 @@ export const strings = Object.freeze({
       PHRASE: 'Phrase',
       PRACTICE: 'Practice',
       CHECKPOINT: 'Checkpoint',
+      TONES: 'Tones',
+      PINYIN: 'Pinyin',
     },
     // Accessible names for a step's state.
     states: {
@@ -320,6 +330,8 @@ export const strings = Object.freeze({
     phraseStep: 'New phrase',
     practiceStep: 'Practice set',
     checkpointStep: 'Unit checkpoint',
+    tonesStep: 'Tone drill',
+    pinyinStep: 'Pinyin sounds',
   },
 
   lesson: {

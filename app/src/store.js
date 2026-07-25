@@ -13,6 +13,7 @@ import { createEvent, mergeEvents, toWire } from './engine/events.js';
 import { computeGamify } from './engine/gamify.js';
 import { buildQueue, rampedNewCards } from './engine/queue.js';
 import { applyEvent, localDayKey, rebuildFromEvents, stateHash } from './engine/replay.js';
+import { intervalDays } from './engine/srs.js';
 import { createPracticeEvent, rebuildPractice, toWirePractice } from './engine/practice.js';
 import { courseProgress } from './engine/coursestate.js';
 
@@ -52,6 +53,8 @@ export const DEFAULT_SETTINGS = Object.freeze({
   onboarded: false,
   /** Set when the Home banner offering onboarding has been dismissed. */
   welcomeBannerDismissed: false,
+  /** Set once the one-time "want handwriting?" prompt has been shown (Phase 10 B). */
+  writingPrompted: false,
 });
 
 export const store = {
@@ -287,6 +290,23 @@ export async function studyNext(wordId, now = Date.now()) {
 
 /** Whether a word is already queued to lead. */
 export const isPrioritized = (wordId) => store.priorities.has(wordId);
+
+/**
+ * Whether a WRITE card would now unlock but the writing track is off (Phase 10 B).
+ *
+ * The handwriting choice left onboarding for Settings; the one place it still deserves a nudge
+ * is the first time it would actually matter — when a word's REC interval has reached the
+ * stagger threshold, the moment its WRITE sibling would have unlocked had the track been on.
+ * The prompt is shown once, then never again (`writingPrompted`).
+ */
+export function writingPromptPending() {
+  if (store.settings.writingTrack !== false || store.settings.writingPrompted) return false;
+  const threshold = config.study.staggerUnlockDays;
+  for (const [cardId, state] of store.states) {
+    if (cardId.endsWith('#REC') && intervalDays(state) >= threshold) return true;
+  }
+  return false;
+}
 
 /** Whether a word is in the learner's list — a custom word, or a pinned curriculum word. */
 export function inMyWords(wordId) {

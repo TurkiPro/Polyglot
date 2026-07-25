@@ -27,6 +27,8 @@ function stepLabel(step) {
   if (step.kind === 'WORD') return store.deck?.word(step.wordId)?.simp ?? step.wordId;
   if (step.kind === 'PHRASE') return s.phraseStep;
   if (step.kind === 'PRACTICE') return s.practiceStep;
+  if (step.kind === 'TONES') return s.tonesStep;
+  if (step.kind === 'PINYIN') return s.pinyinStep;
   return s.checkpointStep;
 }
 

@@ -187,6 +187,7 @@ export function buildCourse(words, topicsFile = {}, options = {}) {
     courseBands = config.course.courseBands,
     unitSize = config.course.unitSize,
     lessonWords = config.course.lessonWords,
+    soundsUnit = null, // Phase 10 B: prepend Unit 0 "The Sounds" when the caller supplies it
   } = options;
   const topics = topicsFile.topics ?? {};
   const labels = topicsFile.labels ?? {};
@@ -234,16 +235,24 @@ export function buildCourse(words, topicsFile = {}, options = {}) {
     units.push(unit);
   }
 
+  // Unit sizes are measured over the word-bearing units, before Unit 0 (wordless) joins them.
+  const wordUnits = units;
+  const sizes = {
+    min: Math.min(...wordUnits.map((u) => u.wordIds.length)),
+    max: Math.max(...wordUnits.map((u) => u.wordIds.length)),
+  };
+  const all = soundsUnit ? [soundsUnit, ...units] : units;
+
   const stepTotals = { WORD: 0, PHRASE: 0, PRACTICE: 0, CHECKPOINT: 0 };
-  for (const unit of units) for (const step of unit.steps) stepTotals[step.kind] += 1;
+  for (const unit of all) for (const step of unit.steps) stepTotals[step.kind] = (stepTotals[step.kind] ?? 0) + 1;
 
   return {
-    units,
+    units: all,
     stats: {
-      units: units.length,
+      units: all.length,
       authored: units.filter((u) => u.band <= maxAuthored).length,
       withNote: units.filter((u) => u.note).length,
-      sizes: { min: Math.min(...units.map((u) => u.wordIds.length)), max: Math.max(...units.map((u) => u.wordIds.length)) },
+      sizes,
       steps: stepTotals,
     },
   };

@@ -69,7 +69,8 @@ function learningPanel(ctx) {
     p(s.writingTrackNote, 'muted'),
     div({ class: 'row' }, [
       button(s.toneGym, () => ctx.navigate('#tones'), { variant: 'btn-quiet' }),
-      button(s.replayWelcome, () => ctx.navigate('#welcome'), { variant: 'btn-quiet' }),
+      // Onboarding is now Unit 0 of the course; "replay the intro" opens it (§10 B).
+      button(s.replayWelcome, () => ctx.navigate('#lesson/u000'), { variant: 'btn-quiet' }),
     ]),
   ]);
 }

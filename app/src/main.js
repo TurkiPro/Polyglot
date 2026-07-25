@@ -19,7 +19,6 @@ import { renderSettings } from './views/settings.js';
 import { renderStats } from './views/stats.js';
 import { renderWord } from './views/word.js';
 import { renderWords } from './views/words.js';
-import { renderWelcome } from './views/welcome.js';
 import { renderToneGym } from './views/tonegym.js';
 import { renderSyllabusPage } from './views/syllabus.js';
 import { renderLesson } from './views/lesson.js';
@@ -28,7 +27,7 @@ import { renderQuiz } from './views/quiz.js';
 /** Routes are `#name` or `#name/:arg`. */
 const ROUTES = [
   'home', 'review', 'browse', 'words', 'word', 'stats', 'settings', 'credits',
-  'welcome', 'tones', 'course', 'lesson', 'quiz',
+  'tones', 'course', 'lesson', 'quiz',
 ];
 const DEFAULT_ROUTE = 'home';
 
@@ -42,7 +41,6 @@ const VIEWS = {
   browse: renderBrowse,
   words: renderWords,
   word: renderWord,
-  welcome: renderWelcome,
   tones: renderToneGym,
   course: renderSyllabusPage,
   lesson: renderLesson,
@@ -165,8 +163,8 @@ function boot() {
         const route = parseHash(location.hash);
         if (['home', 'stats', 'words'].includes(route.name)) paint();
       });
-      // Onboarding is disabled for now (removed pending a redesign): new accounts land on
-      // Home rather than being sent to #welcome.
+      // Onboarding is now Unit 0 of the course (Phase 10 B), not a forced route: a new account
+      // lands on Home, whose CTA offers "Start the course · Unit 0 — The Sounds".
       paint();
       registerServiceWorker();
       backgroundSync();

@@ -13,6 +13,7 @@
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import { buildCourse } from '../packs/zh/lib/course.js';
+import { SOUNDS_UNIT } from '../packs/zh/lib/sounds-unit.js';
 import { config } from '../config/app.config.js';
 
 const LANG = config.pack.langPackV1;
@@ -32,6 +33,7 @@ const { units, stats } = buildCourse(deck.words, topics, {
   courseBands: config.course.courseBands,
   unitSize: config.course.unitSize,
   lessonWords: config.course.lessonWords,
+  soundsUnit: SOUNDS_UNIT,
 });
 
 // The course tracks the deck it was built from; keep its existing metadata untouched.

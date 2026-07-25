@@ -820,3 +820,20 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   hero+signboard `#course` (`views/course.js`) was removed; the Home CTA still points at
   `#course`. `neonIgnite` on the checkpoint sign and the current-step marker's glow are the only
   new glows (added to the §D3 registry).
+
+- Phase 10 B: onboarding was reborn as Unit 0 "The Sounds" — a generated, wordless `u000`
+  prepended to the syllabus by the pipeline (`packs/zh/lib/sounds-unit.js`, shared by build.mjs
+  and regen-course.mjs). Its steps are abstract kinds the client renders: TONES (intro +
+  singles + pairs drills), PINYIN (the crash intro), and a wordless CHECKPOINT (a scored tone
+  drill that clears the unit from the log like any other). The ordinary lesson runner handles
+  TONES/PINYIN; `quiz.js` routes a wordless unit to `renderSoundsCheckpoint`. Because the unit
+  is real course data, a new account's current step is `u000` step 0 (Home CTA: "Start the
+  course · Unit 0 — The Sounds") and an existing account finds it already behind its frontier,
+  done-able — no special history plumbing needed, the frontier model (§A3) does it. The old
+  `#welcome` route, `views/welcome.js`, and the dead auto-flow are gone; `views/sounds.js` holds
+  the reborn tone/pinyin content (strings stay under `strings.welcome`, still shared with the
+  `#tones` gym). The handwriting choice already lived in Settings; it gained a one-time inline
+  prompt in the review flow, shown the first time a WRITE card would unlock while the track is
+  off (`writingPromptPending`, guarded by a new `writingPrompted` setting). The wordless Unit 0
+  is excluded from the course size-bounds check; the id-stability test now rebuilds with the
+  sounds unit and asserts `course.units[0]` equals it.

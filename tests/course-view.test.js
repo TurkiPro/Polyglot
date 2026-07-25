@@ -112,6 +112,27 @@ describe('courseProgress (§10 A3)', () => {
     expect(unintroduced(units[0], introduced)).toEqual(['b']);
     expect(metWords(units[0], introduced)).toEqual(['a', 'c']);
   });
+
+  // Unit 0 "The Sounds" (Phase 10 B): a wordless unit whose only anchor is its checkpoint.
+  const sounds = {
+    id: 'u000', title: 'The Sounds', band: 0, sounds: true, wordIds: [],
+    steps: [{ kind: 'TONES', set: 'intro' }, { kind: 'PINYIN' }, { kind: 'CHECKPOINT' }],
+  };
+  const withSounds = { units: [sounds, ...units] };
+
+  it('starts a fresh account at Unit 0, step 0 (the course begins with the sounds)', () => {
+    const { current, currentId } = courseProgress({}, withSounds, [], []);
+    expect(currentId).toBe('u000');
+    expect(current).toEqual({ unitId: 'u000', index: 0 });
+  });
+
+  it('clears Unit 0 from its checkpoint event alone — no words involved', () => {
+    const practice = [{ type: 'CHECKPOINT', unitId: 'u000', wordId: 'u000', correct: 1 }];
+    const { rows, currentId } = courseProgress({}, withSounds, [], practice);
+    expect(rows[0].steps.map((st) => st.state)).toEqual(['done', 'done', 'done']);
+    expect(rows[0].percent).toBe(100);
+    expect(currentId).toBe('u001'); // the course moves on to the first word unit
+  });
 });
 
 /* ── Exercise views ─────────────────────────────────────── */

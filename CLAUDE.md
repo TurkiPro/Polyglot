@@ -436,9 +436,16 @@ Build `app/src/engine/` with **zero UI imports** so everything runs under vitest
 Hash routes: `#home` (due count, streak, XP, start), `#review`, `#browse`, `#words`,
 `#word/:id`, `#stats`, `#settings`, `#credits`. Space/tap flips; keys 1–4 grade.
 
-**`#welcome`** (Phase 7): onboarding, shown once when no reviews exist and revisitable
-from Settings. One question, then tones (the mā má mǎ mà · ma archetype plus drills),
-a pinyin crash intro, the handwriting choice, and done. Every step skippable.
+**Onboarding = Unit 0 "The Sounds"** (Phase 10 B): there is no `#welcome` route. Onboarding
+is the course's first unit — a generated, wordless `u000` at the top of the syllabus whose
+steps are the tone intro (the mā má mǎ mà · ma archetype), the tone drills (singles → pairs),
+the pinyin crash intro, and a wordless mini-checkpoint (a scored tone drill that clears the
+unit from the log like any other). It is run by the ordinary lesson runner and every step is
+skippable — nothing is forced, it is simply where the course begins. A new account's Home CTA
+reads "Start the course · Unit 0 — The Sounds"; an existing account sees Unit 0 already behind
+its frontier, done-able. The handwriting choice is NOT here: it lives in Settings, plus a
+one-time inline prompt the first time a WRITE card would unlock. The tone drills live in
+`views/sounds.js` (shared with `#tones`); `strings.welcome` remains their string namespace.
 
 **Teach screen**: a word's first appearance, inside the review flow and ungraded — audio,
 hanzi in the 田字格, pinyin, defs, its `introSentence`, and its component breakdown. One

@@ -22,6 +22,7 @@ import { renderBack } from './card.js';
 import { renderTeach } from './teach.js';
 import { renderExercise } from './exercise.js';
 import { syllabusRail, stepStrip } from './syllabus.js';
+import { renderPinyinStep, renderTonesStep } from './sounds.js';
 
 const s = strings.lesson;
 const EXERCISE_TYPES = ['MCQ_MEANING', 'MCQ_AUDIO', 'TYPE_PINYIN', 'CLOZE', 'REORDER', 'MATCH'];
@@ -71,6 +72,9 @@ function runStep(root, ctx, unit, index) {
   if (step.kind === 'WORD') return runWord(host, ctx, unit, step, advance);
   if (step.kind === 'PHRASE') return runPhrase(host, unit, step, advance);
   if (step.kind === 'PRACTICE') return runPractice(host, unit, advance);
+  // Unit 0 "The Sounds" steps (§B): tone drills and the pinyin crash intro.
+  if (step.kind === 'TONES') return renderTonesStep(host, step.set, advance);
+  if (step.kind === 'PINYIN') return renderPinyinStep(host, advance);
   advance();
 }
 

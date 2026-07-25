@@ -6,7 +6,7 @@
 import { parseCardId } from '../engine/deck.js';
 import { hardestWordToday } from '../engine/gamify.js';
 import { RATING, newCard, previewSchedules } from '../engine/srs.js';
-import { noteSync, queue, recordReview, store, syncPort, updateSettings } from '../store.js';
+import { noteSync, queue, recordReview, store, syncPort, updateSettings, writingPromptPending } from '../store.js';
 import { httpApi, syncNow } from '../sync/client.js';
 import { banner, button, div, el, emptyState, formatInterval, p, replace } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
@@ -77,6 +77,7 @@ export function renderReview(root, ctx) {
 
   replace(root, view);
   maybeWarnNoAudio(root);
+  maybeWritingPrompt(root, view);
 
   const currentCardId = () => session.cards[session.index];
 
@@ -328,4 +329,26 @@ async function maybeWarnNoAudio(root) {
       updateSettings({ audioBannerDismissed: true }),
     ),
   );
+}
+
+/**
+ * The one-time handwriting nudge (Phase 10 B): shown the first time a WRITE card would unlock
+ * while the writing track is off. Either answer marks it prompted, so it never returns; the
+ * choice itself lives in Settings, as the note says.
+ */
+function maybeWritingPrompt(root, view) {
+  if (!writingPromptPending()) return;
+  const dismiss = (patch) => {
+    prompt.remove();
+    updateSettings({ writingPrompted: true, ...patch });
+  };
+  const prompt = div({ class: 'banner writing-prompt', attrs: { role: 'status' } }, [
+    p(s.writingPrompt),
+    p(s.writingPromptNote, 'muted'),
+    div({ class: 'row' }, [
+      button(s.writingPromptYes, () => dismiss({ writingTrack: true }), { variant: 'btn-primary btn-small' }),
+      button(s.writingPromptNo, () => dismiss(), { variant: 'btn-quiet btn-small' }),
+    ]),
+  ]);
+  view.prepend(prompt);
 }
