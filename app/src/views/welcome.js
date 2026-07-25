@@ -11,6 +11,7 @@ import { button, div, el, h, p, replace, sealMark, span } from '../ui/components
 import { strings } from '../ui/strings.js';
 import { ARCHETYPE, buildDrillSet, buildTonePool, isCorrect } from '../zh/tones-drill.js';
 import { colorPinyin } from '../zh/tones.js';
+import { stage } from '../ui/arcade.js';
 import * as tts from '../zh/audio.js';
 
 const s = strings.welcome;
@@ -35,11 +36,11 @@ const PINYIN_NOTES = [
  * @param {{ navigate: (hash: string) => void }} ctx
  */
 export function renderWelcome(root, ctx) {
-  const stage = div({ class: 'welcome' });
-  replace(root, stage);
+  const screen = stage('welcome');
+  replace(root, screen);
 
   /** Every step returns nodes; this just swaps them in. */
-  const show = (nodes) => replace(stage, ...nodes.filter(Boolean));
+  const show = (nodes) => replace(screen, ...nodes.filter(Boolean));
 
   const finish = async () => {
     await updateSettings({ onboarded: true, welcomeBannerDismissed: true });

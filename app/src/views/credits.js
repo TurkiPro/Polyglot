@@ -5,13 +5,14 @@
  */
 import { config } from '../../../config/app.config.js';
 import { div, el, empty, h, p, replace } from '../ui/components.js';
+import { stage } from '../ui/arcade.js';
 import { strings } from '../ui/strings.js';
 
 const s = strings.credits;
 const LANG = config.pack.langPackV1;
 
 export function renderCredits(root) {
-  const view = div({ class: 'credits' }, [h(1, s.title, 'title'), p(s.body, 'muted')]);
+  const view = stage('credits', [h(1, s.title, 'title'), p(s.body, 'muted')]);
   replace(root, view);
 
   fetch(`/assets/packs/${LANG}/credits.json`)

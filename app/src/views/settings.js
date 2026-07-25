@@ -6,14 +6,14 @@ import { exportData, importData, store, updateSettings, wipeLocal } from '../sto
 import { button, div, el, h, p, panel, replace, slider } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { applyTheme } from '../ui/theme.js';
-import { applyEffects } from '../ui/arcade.js';
+import { applyEffects, stage } from '../ui/arcade.js';
 import { accountPanel } from '../sync/account.js';
 import { voicePanel } from './voices.js';
 
 const s = strings.settings;
 
 export function renderSettings(root, ctx) {
-  const view = div({ class: 'settings' }, [
+  const view = stage('settings', [
     h(1, s.title, 'title'),
     studyPanel(),
     learningPanel(ctx),

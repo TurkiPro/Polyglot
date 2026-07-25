@@ -4,6 +4,7 @@
 import { cardIdsForWord, parseCardId } from '../engine/deck.js';
 import { addToMyWords, inMyWords, store } from '../store.js';
 import { audioControl, button, checkStamp, div, el, empty, h, p, relativeDay, replace, span } from '../ui/components.js';
+import { stage } from '../ui/arcade.js';
 import { strings } from '../ui/strings.js';
 import { colorMarkedPinyin, colorPinyin } from '../zh/tones.js';
 import { classifiers, humanDefs } from '../zh/defs.js';
@@ -14,7 +15,7 @@ const s = strings.word;
 
 export function renderWord(root, ctx, wordId) {
   const word = store.deck?.word(wordId);
-  if (!word) return replace(root, div({ class: 'word' }, [empty(s.noSuchWord)]));
+  if (!word) return replace(root, stage('word', [empty(s.noSuchWord)]));
 
   const pinyin = div({ class: 'pinyin large' });
   pinyin.append(colorPinyin(word.pinyinNum));
@@ -85,7 +86,7 @@ export function renderWord(root, ctx, wordId) {
 
   sections.push(section(s.progress, progressList(word)));
 
-  replace(root, div({ class: 'word' }, sections));
+  replace(root, stage('word', sections));
 }
 
 function section(title, body) {

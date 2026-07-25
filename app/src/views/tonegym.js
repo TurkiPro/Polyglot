@@ -9,6 +9,7 @@
 import { config } from '../../../config/app.config.js';
 import { recordToneResult, store } from '../store.js';
 import { button, div, h, p, progressBar, replace, span } from '../ui/components.js';
+import { stage } from '../ui/arcade.js';
 import { strings } from '../ui/strings.js';
 import { buildDrillSet, buildTonePool, isCorrect, summarize } from '../zh/tones-drill.js';
 import * as tts from '../zh/audio.js';
@@ -18,7 +19,7 @@ const { toneGymSetSize } = config.learn;
 
 export function renderToneGym(root, ctx) {
   const host = div({ class: 'tone-gym-view' });
-  replace(root, div({ class: 'tones' }, [h(1, s.title, 'title'), host]));
+  replace(root, stage('tones', [h(1, s.title, 'title'), host]));
 
   const menu = () => {
     const stats = summarize(store.toneStats);

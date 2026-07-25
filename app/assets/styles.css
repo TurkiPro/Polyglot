@@ -76,6 +76,8 @@
   --radius: 14px;
   --radius-sm: 10px;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* A gentle overshoot for hover growth — settles with a soft bounce, never snaps. */
+  --spring: cubic-bezier(0.34, 1.35, 0.5, 1);
   --dur: 160ms;
 
   /* Three roles: hanzi serif, latin display serif, UI sans. */
@@ -581,15 +583,48 @@ body {
   margin-bottom: var(--space-2);
 }
 
+/* A custom range: an accent gradient fills the chosen side, a soft-shadowed knob rides it —
+   the same accent language as the home cards. `--fill` is set by the slider() component. */
 .slider {
+  -webkit-appearance: none;
+  appearance: none;
   width: 100%;
-  /* Seal red fills the left (chosen) side and the thumb; the rest stays neutral track. */
-  accent-color: var(--accent);
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--accent) 0 var(--fill, 50%),
+    var(--surface-2) var(--fill, 50%) 100%
+  );
+  cursor: pointer;
 }
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  box-shadow: var(--shadow-1);
+  transition: transform 140ms var(--spring), box-shadow var(--dur) var(--ease);
+}
+.slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+.slider:active::-webkit-slider-thumb { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 20%, transparent); }
+.slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+.slider::-moz-range-track { height: 8px; border-radius: 999px; background: transparent; }
+.slider:focus-visible { outline: 2px solid var(--fg); outline-offset: 4px; }
 
 .slider-value {
   color: var(--fg);
   font-variant-numeric: tabular-nums;
+  font-weight: 600;
 }
 
 .segmented,
@@ -2377,9 +2412,12 @@ body {
 .btn {
   position: relative;
   box-shadow: 0 4px 14px rgb(0 0 0 / 0.28);
-  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+  /* A longer, gently-overshooting ease so the grow settles rather than snapping (feedback). */
+  transition: transform 300ms var(--spring), box-shadow 260ms var(--ease);
 }
-.btn:hover:not(:disabled) { transform: translateY(-1px) scale(1.03); }
+.btn:hover:not(:disabled) { transform: translateY(-1px) scale(1.02); }
+/* The press is quick and crisp, then releases back through the spring. */
+.btn:active:not(:disabled) { transform: scale(0.985); transition-duration: 90ms; }
 .btn:disabled { box-shadow: none; }
 
 /* The liquid ring: a rotating multi-colour conic gradient, masked to just the border.
@@ -2438,12 +2476,13 @@ body {
   border: 1px solid var(--border);
   background: var(--surface);
   box-shadow: var(--shadow-1);
-  transition: transform var(--dur) var(--ease), border-color var(--dur) var(--ease),
-    box-shadow var(--dur) var(--ease);
+  transition: transform 300ms var(--spring), border-color var(--dur) var(--ease),
+    box-shadow 260ms var(--ease);
 }
 /* These are cards, not pills — opt them out of the liquid button treatment. */
 .action-card::before { display: none; }
-.action-card:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--shadow-2); }
+.action-card:hover:not(:disabled) { transform: translateY(-3px); box-shadow: var(--shadow-2); }
+.action-card:active:not(:disabled) { transform: translateY(-1px); transition-duration: 90ms; }
 
 .action-icon {
   flex: none;
@@ -2525,3 +2564,36 @@ body {
   margin: 0 0 var(--space-4);
 }
 .home-caught-up .seal { color: var(--accent); }
+
+/* ── Unify the card language across pages ─────────────────────────── */
+
+/* Every panel and tile reads as the same card: surface, hairline, soft depth. */
+.panel { box-shadow: var(--shadow-1); }
+
+/* Signboard tiles and collection tiles are cards, not pills — no liquid ring, and they lift
+   the same way the home action cards do. */
+.sign::before,
+.collection::before { display: none; }
+.sign,
+.collection { box-shadow: var(--shadow-1); }
+.sign:hover:not(:disabled),
+.collection:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+}
+
+/* Hero surfaces wear the accent as a tint — the same gradient as "Continue the course". */
+.course-hero,
+.quiz-band-clear {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 9%, var(--surface)), var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+.course-hero-eyebrow { color: var(--accent); }
+
+/* Section eyebrows pick up the accent, matching the home cards and the lesson note label. */
+.course-hero-title { font-family: var(--font-display); }
+
+/* The current course sign gets the same tinted treatment as its hero card. */
+.course-sign.is-current {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 10%, var(--surface)), var(--surface));
+}

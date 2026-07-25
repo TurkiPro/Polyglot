@@ -54,17 +54,21 @@ export function button(label, onClick, { variant = '', type = 'button', ...attrs
 /** A labelled range slider that reports its value as you drag. */
 export function slider({ label, min, max, step = 1, value, onChange }) {
   const output = el('output', { class: 'slider-value', text: String(value) });
+  const setFill = (v) => input.style.setProperty('--fill', `${((v - min) / (max - min || 1)) * 100}%`);
   const input = el('input', {
     class: 'slider',
     attrs: { type: 'range', min: String(min), max: String(max), step: String(step) },
     value: String(value),
     on: {
       input: (event) => {
+        const v = Number(event.target.value);
         output.textContent = event.target.value;
-        onChange(Number(event.target.value));
+        setFill(v);
+        onChange(v);
       },
     },
   });
+  setFill(value); // paint the fill for the starting value
   return el('label', { class: 'field' }, [
     el('span', { class: 'field-label' }, [label, output]),
     input,
