@@ -28,6 +28,9 @@ const PRECACHE = [
   '/',
   '/index.html',
   '/assets/bundle.js',
+  // The dictionary-import worker (F3): shell logic, a few KB — kept beside the bundle so
+  // it is present whenever the app is, not only after a first online Browse.
+  '/assets/dict-worker.js',
   '/assets/styles.css',
   '/manifest.webmanifest',
   // ~37 KB of icons, against a 5 MB deck — cheap enough to guarantee they are there.

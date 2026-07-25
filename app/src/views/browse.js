@@ -14,33 +14,67 @@ import { colorPinyin } from '../zh/tones.js';
 import { summarize } from '../zh/defs.js';
 import { prepareEntries, rankResults } from './search.js';
 import { stage } from '../ui/arcade.js';
+import { dictBatches } from '../engine/dict-batch.js';
 
 const s = strings.browse;
 const LANG = config.pack.langPackV1;
 const MAX_RESULTS = 50;
 const DICT_READY_KEY = 'dictImported';
+const DICT_WORKER_URL = '/assets/dict-worker.js';
 
 /** Import the pack dictionary into IndexedDB once (§5.2). */
 async function ensureDictionary(onProgress) {
   if (await db.getMeta(store.db, DICT_READY_KEY, false)) return;
 
   onProgress();
-  const res = await fetch(`/assets/packs/${LANG}/dict.${LANG}.json`);
+  const url = `/assets/packs/${LANG}/dict.${LANG}.json`;
+  await importDictionary(url);
+  await db.setMeta(store.db, DICT_READY_KEY, true);
+}
+
+/**
+ * Parse the dictionary in a Web Worker and write its batches to IndexedDB (audit F3).
+ *
+ * The parse is what froze phones; here it runs off the main thread and the UI stays
+ * interactive while batches trickle in. IndexedDB writes are serialized so they never
+ * pile up on one frame. If the platform has no Worker (or blocks its construction), the
+ * import still completes on the main thread — Browse working matters more than the freeze.
+ */
+function importDictionary(url) {
+  let worker;
+  try {
+    worker = new Worker(DICT_WORKER_URL, { type: 'module' });
+  } catch {
+    return importOnMainThread(url);
+  }
+
+  return new Promise((resolve, reject) => {
+    let writes = Promise.resolve();
+    const finish = (fn) => { worker.terminate(); fn(); };
+
+    worker.onmessage = (event) => {
+      const msg = event.data;
+      if (msg.type === 'batch') {
+        writes = writes.then(() => db.putAll(store.db, db.STORES.dict, msg.rows));
+      } else if (msg.type === 'done') {
+        writes.then(() => finish(resolve), (err) => finish(() => reject(err)));
+      } else if (msg.type === 'error') {
+        finish(() => reject(new Error(msg.message)));
+      }
+    };
+    worker.onerror = (event) => finish(() => reject(new Error(event.message || 'dict worker failed')));
+    worker.postMessage({ url });
+  });
+}
+
+/** The fallback path: fetch, parse, and write in the same batches, on this thread. */
+async function importOnMainThread(url) {
+  const res = await fetch(url);
   if (!res.ok) throw new Error(`dictionary: ${res.status}`);
   const entries = await res.json();
-
-  // Chunked so a huge transaction cannot stall the UI thread.
-  const CHUNK = 5000;
-  for (let i = 0; i < entries.length; i += CHUNK) {
-    const rows = entries.slice(i, i + CHUNK).map(([simp, trad, pinyinNum, defs]) => ({
-      simp,
-      trad,
-      pinyinNum,
-      defs,
-    }));
+  for (const rows of dictBatches(entries)) {
     await db.putAll(store.db, db.STORES.dict, rows);
   }
-  await db.setMeta(store.db, DICT_READY_KEY, true);
 }
 
 

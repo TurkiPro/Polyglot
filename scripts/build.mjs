@@ -46,4 +46,13 @@ await build({
   define: { __PACK_VERSION__: JSON.stringify(version) },
 });
 
-console.log(`built bundle.js and sw.js (pack ${version})`);
+// The dictionary-import Web Worker (F3), a module worker served at /assets/dict-worker.js.
+await build({
+  entryPoints: ['app/src/engine/dict-worker.js'],
+  outfile: 'app/assets/dict-worker.js',
+  bundle: true,
+  format: 'esm',
+  target: 'es2022',
+});
+
+console.log(`built bundle.js, sw.js and dict-worker.js (pack ${version})`);

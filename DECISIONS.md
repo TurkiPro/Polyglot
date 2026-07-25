@@ -695,3 +695,18 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   and logged with `console.debug` (local only, no beacon). `tests/neon-ignite.test.js` (jsdom)
   covers all five outcomes. This retires the reason the 语 hero was removed, though the hero
   itself stays gone in favour of the 3D gate.
+
+- Audit F3: the dictionary import moved off the main thread. `browse.js` used to
+  `await res.json()` the ~120k-entry CC-CEDICT file and reshape it inline on first Browse —
+  a multi-second freeze at a first-impression moment. Now a module Web Worker
+  (`app/src/engine/dict-worker.js`) fetches and parses the file and posts it back in
+  2,000-entry batches (`dict-batch.js`, the pure, unit-tested core); the main thread writes
+  each batch to IndexedDB with the writes serialized so they never stack on one frame, and
+  the UI stays interactive throughout. A `try { new Worker(...) }` fallback keeps a
+  main-thread import for platforms without module workers, so Browse never simply breaks.
+  CSP needs NO change: the policy is `default-src 'self'` / `script-src 'self'` with no
+  `worker-src` override, so a same-origin module worker resolves through the
+  worker-src→child-src→script-src fallback to `'self'`, and the worker's own `fetch` is
+  same-origin under `connect-src 'self'`. The built worker (`app/assets/dict-worker.js`) is a
+  second esbuild entry, gitignored like `bundle.js`, and precached in the service worker as
+  shell logic.

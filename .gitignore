@@ -1,5 +1,6 @@
 node_modules
 app/assets/bundle.js
+app/assets/dict-worker.js
 packs/zh/data/
 .dev.vars
 .wrangler
