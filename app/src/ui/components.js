@@ -51,6 +51,27 @@ export function button(label, onClick, { variant = '', type = 'button', ...attrs
   });
 }
 
+/**
+ * Make a non-button element operable by keyboard (a11y, F7).
+ *
+ * Some rows navigate on click but are plain `<div>`s — reachable with a mouse, invisible to
+ * the keyboard. This gives them a role, a tab stop, and Enter/Space activation so the
+ * existing `:focus-visible` styling actually has something to land on.
+ */
+export function activatable(node, onActivate, { role = 'button', label } = {}) {
+  node.setAttribute('role', role);
+  node.setAttribute('tabindex', '0');
+  if (label) node.setAttribute('aria-label', label);
+  node.addEventListener('click', onActivate);
+  node.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onActivate(event);
+    }
+  });
+  return node;
+}
+
 /** A labelled range slider that reports its value as you drag. */
 export function slider({ label, min, max, step = 1, value, onChange }) {
   const output = el('output', { class: 'slider-value', text: String(value) });

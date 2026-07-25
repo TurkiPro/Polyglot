@@ -243,7 +243,7 @@ export function renderReview(root, ctx) {
    * grading will produce rather than an estimate of them.
    */
   function ratingRow() {
-    const row = div({ class: 'ratings' });
+    const row = div({ class: 'ratings', attrs: { role: 'group', 'aria-label': s.rateGroup } });
     const now = Date.now();
     // A card being introduced has no stored state yet — most of a beginner's session.
     // Grading would create a fresh card and schedule from that, so preview the same way.

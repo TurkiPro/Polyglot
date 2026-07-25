@@ -6,7 +6,7 @@
  */
 import { cardId } from '../engine/deck.js';
 import { myWords, removeFromMyWords, store } from '../store.js';
-import { button, div, emptyState, h, p, relativeDay, replace, span } from '../ui/components.js';
+import { activatable, button, div, emptyState, h, p, relativeDay, replace, span } from '../ui/components.js';
 import { stage } from '../ui/arcade.js';
 import { strings } from '../ui/strings.js';
 import { colorPinyin } from '../zh/tones.js';
@@ -60,14 +60,18 @@ function row(word, repaint, ctx) {
   pinyin.append(colorPinyin(word.pinyinNum));
 
   const open = () => ctx.navigate(`#word/${encodeURIComponent(word.id)}`);
-  const main = div({ class: 'row-main', on: { click: open } }, [
-    div({ class: 'row-head' }, [
-      span({ class: 'row-hanzi', text: word.simp }),
-      pinyin,
-      span({ class: `chip chip-${status.kind}`, text: status.label }),
+  const main = activatable(
+    div({ class: 'row-main' }, [
+      div({ class: 'row-head' }, [
+        span({ class: 'row-hanzi', text: word.simp }),
+        pinyin,
+        span({ class: `chip chip-${status.kind}`, text: status.label }),
+      ]),
+      p(word.defs.slice(0, 3).join('; '), 'row-defs'),
     ]),
-    p(word.defs.slice(0, 3).join('; '), 'row-defs'),
-  ]);
+    open,
+    { role: 'link', label: s.openWord(word.simp) },
+  );
 
   const actions = div({ class: 'row-actions' });
   const remove = button(s.remove, () => confirmRemove(), { variant: 'btn-quiet btn-small' });

@@ -8,7 +8,7 @@ import { config } from '../../../config/app.config.js';
 import * as db from '../engine/db.js';
 import { numToMarks } from '../zh/pinyin.js';
 import { addCustomWord, addToMyWords, inMyWords, store } from '../store.js';
-import { button, checkStamp, div, el, empty, h, p, replace, span } from '../ui/components.js';
+import { activatable, button, checkStamp, div, el, empty, h, p, replace, span } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { colorPinyin } from '../zh/tones.js';
 import { summarize } from '../zh/defs.js';
@@ -250,12 +250,15 @@ function deckRow(word, ctx) {
   const pinyin = span({ class: 'pinyin' });
   pinyin.append(colorPinyin(word.pinyinNum));
 
-  const main = div({ class: 'result-main' }, [
-    span({ class: 'result-hanzi', text: word.simp }),
-    pinyin,
-    p(summarize(word.defs), 'result-defs'),
-  ]);
-  main.addEventListener('click', () => ctx?.navigate(`#word/${encodeURIComponent(word.id)}`));
+  const main = activatable(
+    div({ class: 'result-main' }, [
+      span({ class: 'result-hanzi', text: word.simp }),
+      pinyin,
+      p(summarize(word.defs), 'result-defs'),
+    ]),
+    () => ctx?.navigate(`#word/${encodeURIComponent(word.id)}`),
+    { role: 'link', label: s.openWord(word.simp) },
+  );
 
   return div({ class: 'result' }, [main, knownChip(word)]);
 }

@@ -732,3 +732,43 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   in `worker.test.js` drives seven garbage names plus one valid hash through the real route
   with a counting R2 stub and asserts zero lookups for the garbage; `audio.test.js` pins the
   regex in source.
+
+- Audit F7: accessibility inventory of the six custom-widget surfaces, with the S-sized
+  items fixed in this pack and the larger ones reported here for prioritisation.
+
+  Inventory (keyboard operability · roles/names/labels · focus visibility):
+  1. **Bottom tab bar / top nav** — already sound: real `<a>` links inside labelled `<nav>`
+     landmarks ("Main"/"Sections"), the active link carries `aria-current="page"`, and the
+     Settings gear is a `<button>` with an `aria-label`. `.nav-link`/`.tab` have
+     `:focus-visible` rings. No change needed.
+  2. **Grade bar** — real `<button>`s, gradeable by mouse, by the 1–4 keys, and by
+     Enter/Space on the suggested rating. FIXED (S): the `.ratings` container is now a
+     `role="group"` with an `aria-label`, so a screen-reader user hears it as one labelled
+     set rather than four loose buttons. The "suggested" state stays a visual default, not an
+     `aria-pressed` toggle — it is not a toggle.
+  3. **Card flip / reveal** — the hanzi/sentence are `speakable` (role=button, tabindex,
+     aria-label, Enter/Space), and "Show answer" is a real button. GAP (M, reported): the
+     revealed back is swapped in silently — there is no `aria-live` region announcing the
+     answer to a screen reader, so the flip is a visual-only event. Fixing it well needs a
+     polite live region wired to the reveal with care not to double-announce; deferred.
+  4. **Match / reorder / cloze tiles** — all real `<button>`s, natively operable. FIXED (S):
+     the `.match-grid` is a labelled `role="group"`.
+  5. **Quiz / MCQ choices** — all real `<button>`s; on answer, focus moves to the Continue
+     button, so the keyboard flow never strands. FIXED (S): `.exercise-options` is a labelled
+     `role="group"`.
+  6. **Dialogs** — there are none in the modal sense: the Danger Zone wipe, account deletion,
+     and word removal are all inline confirmations built from real buttons and a typed-word
+     guard, so there is no focus trap to get wrong. Nothing to fix; noted so "focus-trap
+     dialogs" is not raised against a component that does not exist.
+
+  Also FIXED (S): the navigating rows in My Words (`.row-main`) and Browse (`.result-main`)
+  were click-only `<div>`s — the stylesheet already carried `.row-main:focus-visible`, but
+  nothing was focusable to use it. A new `activatable()` helper gives them `role="link"`,
+  `tabindex="0"`, an accessible name, and Enter/Space activation.
+
+  Reported for later (M or larger, not improvised here): (a) the reveal live-region above;
+  (b) a full screen-reader pass on the flip sequence (front/back semantics, when the grade
+  bar becomes actionable); (c) an app-wide `:focus-visible` audit for the decorative controls
+  (sign tiles, action cards) to confirm every focusable element shows a ring. Coverage:
+  `tests/a11y.test.js` pins the `activatable` contract; `course-view.test.js` asserts the MCQ
+  choices are a labelled group of real buttons.

@@ -59,6 +59,8 @@ export const strings = Object.freeze({
     },
     progress: (done, total) => `${done} of ${total}`,
     show: 'Show answer',
+    /** Names the grade bar for assistive tech (F7). */
+    rateGroup: 'Rate how well you recalled this',
     again: 'Again',
     hard: 'Hard',
     good: 'Good',
@@ -100,6 +102,8 @@ export const strings = Object.freeze({
     resultCap: (n) => `Best ${n} matches`,
     resultCount: (n) => (n === 1 ? '1 match' : `${n} matches`),
     add: 'Add to my words',
+    /** Accessible name for a result row that opens the word's detail page (F7). */
+    openWord: (word) => `Open ${word}`,
     studyNext: 'Study next',
     queued: 'Up next',
     collections: 'Collections',
@@ -133,6 +137,8 @@ export const strings = Object.freeze({
     removed: 'Removed',
     cancel: 'Cancel',
     count: (n) => (n === 1 ? '1 word' : `${n} words`),
+    /** Accessible name for a word row that opens its detail page (F7). */
+    openWord: (word) => `Open ${word}`,
   },
 
   word: {
@@ -341,6 +347,8 @@ export const strings = Object.freeze({
     matchWhole: 'See the pairs above.',
     reorderPrompt: 'Put the words in order.',
     clozePrompt: 'Which word fills the gap?',
+    /** Names the set of answer choices for assistive tech (F7). */
+    optionsGroup: 'Answer choices',
   },
 
   tones: {

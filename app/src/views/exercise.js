@@ -38,7 +38,7 @@ function renderMcq(item, onDone) {
     : div({ class: 'exercise-hanzi', text: item.prompt });
   if (audio) tts.speak(item.prompt, { key: item.wordId });
 
-  const options = div({ class: 'exercise-options' });
+  const options = div({ class: 'exercise-options', attrs: { role: 'group', 'aria-label': s.optionsGroup } });
   let answered = false;
   for (const option of item.options) {
     const label = audio ? option.simp : option.text;
@@ -136,7 +136,10 @@ function renderMatch(item, onDone) {
     rightCol.append(node);
   }
 
-  host.append(p(s.matchPrompt, 'exercise-meaning'), div({ class: 'match-grid' }, [leftCol, rightCol]));
+  host.append(
+    p(s.matchPrompt, 'exercise-meaning'),
+    div({ class: 'match-grid', attrs: { role: 'group', 'aria-label': s.matchPrompt } }, [leftCol, rightCol]),
+  );
   return host;
 }
 
@@ -179,7 +182,7 @@ function renderCloze(item, onDone) {
       : span({ class: 'cloze-word', text: simp }));
   });
 
-  const options = div({ class: 'exercise-options' });
+  const options = div({ class: 'exercise-options', attrs: { role: 'group', 'aria-label': s.optionsGroup } });
   let answered = false;
   for (const option of item.options) {
     const node = button(option.simp, () => {

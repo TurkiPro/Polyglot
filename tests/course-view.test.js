@@ -99,6 +99,19 @@ describe('renderExercise (§9.2)', () => {
     node.remove();
   });
 
+  it('MCQ: the choices are a labelled group of real buttons (a11y, F7)', () => {
+    const item = generate('MCQ_MEANING', { candidates: [ctx.byId.get('zh:我:wo3')], ctx, rng: () => 0.4 });
+    const node = renderExercise(item, vi.fn());
+
+    const group = node.querySelector('.exercise-options');
+    expect(group.getAttribute('role')).toBe('group');
+    expect(group.getAttribute('aria-label')).toBeTruthy();
+    const choices = [...group.children];
+    expect(choices.length).toBeGreaterThan(1);
+    // Real <button>s are keyboard-operable natively — no custom key handling to get wrong.
+    expect(choices.every((c) => c.tagName === 'BUTTON')).toBe(true);
+  });
+
   it('MCQ: a wrong pick shows the answer and calls back with false', () => {
     const item = generate('MCQ_MEANING', { candidates: [ctx.byId.get('zh:好:hao3')], ctx, rng: () => 0.7 });
     const onDone = vi.fn();
