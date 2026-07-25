@@ -895,3 +895,10 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   overrides. The rail column grew to 280–340px with a larger gutter, and the content column is
   capped at a readable 780px centred in the space the rail leaves, so prose keeps a sane measure
   while tone samples and exercises get room to breathe. The full `#course` tree widened to 880px.
+
+- Phase 10 follow-up (4): within a band the syllabus repeated topic titles ("People & family"
+  ×3, "Work & school" ×4) because a theme legitimately spans several non-adjacent units. The
+  tree now numbers a recurring title as a series — "People & family 1/2/3" — while titles that
+  appear once stay clean; the earlier standalone position number was dropped as redundant. Done
+  in the display layer (no course-data regen), so single-unit contexts (lesson header, Home CTA)
+  keep the plain topic name where there is no adjacent duplicate to disambiguate.

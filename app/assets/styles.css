@@ -2299,13 +2299,6 @@ body {
   transition: transform var(--dur) var(--ease);
 }
 .syllabus-unit[open] > .syllabus-unit-head::after { transform: rotate(90deg); }
-.syllabus-unit .unit-num {
-  flex: none;
-  min-width: 1.6em;
-  color: var(--fg-dim);
-  font-variant-numeric: tabular-nums;
-  font-size: var(--text-sm);
-}
 .syllabus-unit .unit-title { font-weight: 600; flex: 1; }
 .syllabus-unit .unit-pct { color: var(--fg-dim); font-variant-numeric: tabular-nums; font-size: var(--text-sm); }
 .syllabus-unit.status-cleared .unit-pct { color: var(--ok); }

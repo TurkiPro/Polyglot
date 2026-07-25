@@ -56,15 +56,12 @@ function stepRow(unit, index, step, ctx) {
  * A unit as a collapsible section — native `<details>`, so it is keyboard-operable and needs
  * no JS. The unit that holds the current step opens by default; the rest fold to their header.
  */
-function unitSection(row, ctx, { openId, ordinal }) {
+function unitSection(row, ctx, { openId, title = row.title }) {
   const details = el('details', { class: `syllabus-unit status-${row.status}` });
   const summary = el('summary', { class: 'syllabus-unit-head' }, [
-    // Topic titles recur across a band (a theme spans several units), so the within-band
-    // number keeps each row distinct and gives a sense of position.
-    ordinal ? span({ class: 'unit-num', text: String(ordinal) }) : null,
-    span({ class: 'unit-title', text: row.title }),
+    span({ class: 'unit-title', text: title }),
     span({ class: 'unit-pct', text: s.unitProgress(row.percent) }),
-  ].filter(Boolean));
+  ]);
   const steps = el('ol', { class: 'syllabus-steps' });
 
   // The course has hundreds of units; build a unit's step rows only when it is open, so the
@@ -120,9 +117,21 @@ function bandSection(group, ctx, { openBand, openId }) {
   const units = div({ class: 'syllabus-band-units' });
 
   const fill = () => {
-    if (!units.childElementCount) {
-      units.append(...group.rows.map((row, i) => unitSection(row, ctx, { openId, ordinal: i + 1 })));
-    }
+    if (units.childElementCount) return;
+    // A theme spans several units, so a topic title recurs within a band. Number the recurrences
+    // as a series ("People & family 1/2/3") so no two rows read the same; unique titles stay clean.
+    const counts = new Map();
+    for (const row of group.rows) counts.set(row.title, (counts.get(row.title) ?? 0) + 1);
+    const seen = new Map();
+    units.append(...group.rows.map((row) => {
+      let title = row.title;
+      if (counts.get(row.title) > 1) {
+        const n = (seen.get(row.title) ?? 0) + 1;
+        seen.set(row.title, n);
+        title = s.unitSeries(row.title, n);
+      }
+      return unitSection(row, ctx, { openId, title });
+    }));
   };
   if (group.band === openBand) { details.open = true; fill(); }
   details.addEventListener('toggle', () => { if (details.open) fill(); });

@@ -129,6 +129,23 @@ describe('syllabus + runner (A2)', () => {
     expect(openBand.querySelectorAll('.syllabus-unit').length).toBe(2);
   });
 
+  it('numbers a recurring topic title as a series, leaving unique titles clean', () => {
+    const mk = (id, title) => ({
+      id, title, band: 1, wordIds: [`${id}:w`],
+      steps: [{ kind: 'WORD', wordId: `${id}:w` }, { kind: 'CHECKPOINT' }],
+    });
+    store.store.course = {
+      units: [mk('u001', 'People & family'), mk('u002', 'Work & school'),
+        mk('u003', 'People & family'), mk('u004', 'Food & drink'), mk('u005', 'People & family')],
+    };
+
+    renderSyllabusPage(root, { navigate: vi.fn() });
+    const titles = [...root.querySelectorAll('.syllabus-unit .unit-title')].map((n) => n.textContent);
+    expect(titles).toEqual([
+      'People & family 1', 'Work & school', 'People & family 2', 'Food & drink', 'People & family 3',
+    ]);
+  });
+
   it('runs Unit 0 "The Sounds" as ordinary course content', () => {
     const soundsUnit = {
       id: 'u000', title: 'The Sounds', band: 0, sounds: true, wordIds: [],
