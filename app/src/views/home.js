@@ -6,11 +6,10 @@
  */
 import { courseView, queue, store, updateSettings } from '../store.js';
 import { MODES, modesForWord } from '../engine/deck.js';
-import { banner, button, div, h, p, replace, sealMark, stat } from '../ui/components.js';
+import { banner, button, div, h, icon, p, replace, sealMark, span, stat } from '../ui/components.js';
 import { strings } from '../ui/strings.js';
 import { comboCounter, odometer, stage } from '../ui/arcade.js';
 import { neonIgnite } from '../zh/writer.js';
-import { span } from '../ui/components.js';
 
 const s = strings.home;
 
@@ -111,23 +110,74 @@ function lockedNote() {
 }
 
 /**
- * The course's "Continue · Unit N — Title" — the Home CTA for an account mid-course (§9.3).
- * Reviews keep their own equal CTA below; this only leads the way in.
+ * A big tappable card — icon, what it is, and where it leads. The home's two ways in (the
+ * course and reviews) are cards, not stacked pills: a clearer shape, and the primary one
+ * carries the accent as a tint rather than a slab of seal red.
  */
-function courseCta(ctx) {
+function actionCard({ iconName, eyebrow, title, meta, ratio, onClick, primary }) {
+  const parts = [
+    eyebrow ? span({ class: 'action-eyebrow', text: eyebrow }) : null,
+    span({ class: 'action-title', text: title }),
+    meta ? span({ class: 'action-meta', text: meta }) : null,
+  ].filter(Boolean);
+
+  if (ratio != null) {
+    const fill = div({ class: 'action-progress-fill' });
+    fill.style.width = `${Math.round(Math.max(0, Math.min(1, ratio)) * 100)}%`;
+    parts.push(div({ class: 'action-progress' }, [fill]));
+  }
+
+  const card = button('', onClick, { variant: `action-card${primary ? ' action-primary' : ''}` });
+  card.append(
+    div({ class: 'action-icon' }, [icon(iconName, 26)]),
+    div({ class: 'action-body' }, parts),
+    div({ class: 'action-go' }, [icon('chevron-right', 22)]),
+  );
+  return card;
+}
+
+/** The current course unit, if the account is mid-course. */
+function currentUnit() {
   if (!store.course) return null;
   const { rows, currentId } = courseView();
-  const current = rows.find((r) => r.id === currentId);
-  if (!current) return null; // the whole course is cleared — nothing to continue
-  const number = Number(String(current.id).replace(/\D/g, ''));
-  return button(s.continueCourse(number, current.title), () => ctx.navigate('#course'), {
-    variant: 'btn-primary btn-cta',
-  });
+  return rows.find((r) => r.id === currentId) ?? null;
+}
+
+/** The course card (primary) and the review card — the review one only when something is due. */
+function homeActions(ctx, dueTotal) {
+  const cards = [];
+  const unit = currentUnit();
+
+  if (unit) {
+    const number = Number(String(unit.id).replace(/\D/g, ''));
+    cards.push(actionCard({
+      iconName: 'book-open',
+      eyebrow: s.continueEyebrow,
+      title: unit.title,
+      meta: s.unitMeta(number, unit.introduced, unit.total),
+      ratio: unit.total ? unit.introduced / unit.total : 0,
+      onClick: () => ctx.navigate('#course'),
+      primary: true,
+    }));
+  }
+
+  if (dueTotal > 0) {
+    cards.push(actionCard({
+      iconName: 'rotate-ccw',
+      title: s.reviewCard,
+      meta: s.dueMeta(dueTotal),
+      onClick: () => ctx.navigate('#review'),
+      primary: cards.length === 0,
+    }));
+  }
+
+  return cards.length ? div({ class: 'home-actions' }, cards) : null;
 }
 
 export function renderHome(root, ctx) {
   const { cards, dueCount, newCount } = queue();
   const gamify = store.gamify;
+  const total = cards.length;
 
   const tiles = div({ class: 'tiles' }, [
     stat(dueCount, s.due),
@@ -136,47 +186,19 @@ export function renderHome(root, ctx) {
     gamify ? comboTile(gamify) : null,
   ].filter(Boolean));
 
-  const total = cards.length;
-
-  const course = courseCta(ctx);
-
-  if (total > 0) {
-    // The course leads; reviews keep their own equal CTA (§9.3).
-    const reviewBtn = button(s.startWith(total), () => ctx.navigate('#review'), {
-      variant: course ? 'btn-quiet btn-cta' : 'btn-primary btn-cta',
-    });
-    const cta = div({ class: 'home-cta' }, [course, reviewBtn].filter(Boolean));
-    replace(
-      root,
-      stage('home', [
-        welcomeBanner(ctx),
-        heroSign(),
-        h(1, s.greeting, 'greeting'),
-        cta,
-        tiles,
-        toneGymTile(ctx),
-        lockedNote(),
-      ].filter(Boolean)),
-    );
-    return;
-  }
-
-  // Nothing due for review: the course can still go on, and the stamp is the reward.
-  const started = store.events.length > 0;
-  const done = div({ class: 'done-stamp' }, [
-    sealMark(96, { title: strings.appName }),
-    h(2, started ? s.doneToday : s.nothingYet, 'done-title'),
-    gamify?.streak ? p(s.streakDays(gamify.streak), 'muted') : null,
-    started ? p(s.allDone, 'muted') : null,
-    button(strings.browse.title, () => ctx.navigate('#browse'), { variant: 'btn-quiet' }),
-  ].filter(Boolean));
+  // Reviews cleared, but the course goes on: a quiet stamp, not a whole box that stops you.
+  const caughtUp = total === 0 && store.events.length > 0
+    ? div({ class: 'home-caught-up' }, [sealMark(36), span({ text: s.allDone })])
+    : null;
 
   replace(root, stage('home', [
     welcomeBanner(ctx),
     heroSign(),
-    course ? div({ class: 'home-cta' }, [course]) : null,
+    h(1, s.greeting, 'greeting'),
+    homeActions(ctx, total),
+    caughtUp,
     tiles,
-    done,
     toneGymTile(ctx),
+    total > 0 ? lockedNote() : null,
   ].filter(Boolean)));
 }

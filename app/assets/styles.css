@@ -2417,3 +2417,111 @@ body {
   .btn::before { animation: none !important; }
   .btn:hover:not(:disabled) { transform: none; }
 }
+
+/* ── Home action cards (redesign) ─────────────────────────────────── */
+
+.home-actions {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.action-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  text-align: left;
+  padding: var(--space-3) var(--space-4);
+  min-height: 80px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+  transition: transform var(--dur) var(--ease), border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+/* These are cards, not pills — opt them out of the liquid button treatment. */
+.action-card::before { display: none; }
+.action-card:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--shadow-2); }
+
+.action-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  color: var(--fg-dim);
+}
+.action-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.action-eyebrow {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  color: var(--fg-dim);
+}
+.action-title {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.action-meta { font-size: var(--text-sm); color: var(--fg-dim); }
+.action-go { flex: none; color: var(--fg-dim); transition: transform var(--dur) var(--ease); }
+.action-card:hover:not(:disabled) .action-go { transform: translateX(3px); }
+
+.action-progress {
+  margin-top: var(--space-2);
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.action-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width var(--dur) var(--ease);
+}
+
+/* Primary (the course): the accent as a tint, not a slab of seal red. */
+.action-primary {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 10%, var(--surface)), var(--surface));
+}
+.action-primary .action-icon {
+  background: color-mix(in srgb, var(--accent) 20%, var(--surface-2));
+  color: var(--accent);
+}
+.action-primary .action-eyebrow { color: var(--accent); }
+:root[data-effects="on"] .action-primary:hover:not(:disabled) {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-2), 0 0 24px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* The tone-gym / collection tiles are cards too — no liquid ring on them either. */
+.collection::before { display: none; }
+
+.home-caught-up {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--fg-dim);
+  margin: 0 0 var(--space-4);
+}
+.home-caught-up .seal { color: var(--accent); }
