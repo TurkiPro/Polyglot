@@ -870,3 +870,11 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   change: the closure is about which channel a class travels through, not the rendered markup.
   A conformance test scans the view sources and fails if any literal `button()` variant is not
   a sanctioned token, so a new ad-hoc variant can't creep back in. CLAUDE.md §9 records the set.
+
+- Phase 10 follow-up: the syllabus felt "infinite" because the course is the entire HSK 3.0
+  vocabulary — 10,904 words → 497 units (band 7 = HSK 7–9 alone is 253 units) — rendered as one
+  flat list of unit rows. The tree is now grouped Band → Unit → Step: the top level is a handful
+  of band sections ("The Sounds", HSK 1…6, HSK 7–9), each opening to its units, each opening to
+  its steps. The band in play opens by default and its units build lazily; the rest stay one
+  line, so the default view is a short, scannable list rather than 497 rows. Nothing was removed
+  from the course — the whole journey is still reachable, just no longer an endless scroll.

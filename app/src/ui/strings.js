@@ -307,6 +307,8 @@ export const strings = Object.freeze({
     title: 'Syllabus',
     overall: (pct) => `${pct}% of the course`,
     unitProgress: (pct) => `${pct}%`,
+    // The band grouping — the top level of the tree. Band 0 is Unit 0; band 7 is HSK 7–9.
+    bandTitle: (band) => (band === 0 ? 'The Sounds' : band === 7 ? 'HSK 7–9' : `HSK ${band}`),
     stepOf: (unitTitle, x, y) => `${unitTitle} · step ${x} of ${y}`,
     openTree: 'Open the syllabus',
     // Step kinds — the short label beside each step's marker.

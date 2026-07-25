@@ -109,6 +109,27 @@ describe('syllabus + runner (A2)', () => {
     expect(text()).toContain('乙'); // jumped straight to the second word
   });
 
+  it('groups units by band so the top level stays small (not one row per unit)', () => {
+    // A course spanning three bands: the tree's top level is three band sections, and only
+    // the current band's units are built — the rest stay collapsed, so the list is bounded.
+    const mk = (id, band) => ({
+      id, title: id, band, wordIds: [`${id}:w`],
+      steps: [{ kind: 'WORD', wordId: `${id}:w` }, { kind: 'CHECKPOINT' }],
+    });
+    store.store.course = { units: [mk('u001', 1), mk('u002', 1), mk('u003', 2), mk('u004', 7)] };
+
+    renderSyllabusPage(root, { navigate: vi.fn() });
+    // One section per band (1, 2, 7) — three, not four units.
+    expect(root.querySelectorAll('.syllabus-band').length).toBe(3);
+    // Nothing done yet ⇒ current is band 1; only its units are in the DOM.
+    const openBand = root.querySelector('.syllabus-band[open]');
+    expect(openBand.querySelector('.band-title').textContent).toBe('HSK 1');
+    expect(root.querySelectorAll('.syllabus-band[open] .syllabus-unit').length).toBe(2); // u001, u002
+    // Band 7 is collapsed, so its unit is not rendered yet.
+    expect(root.textContent).toContain('HSK 7–9');
+    expect(root.querySelectorAll('.syllabus-unit').length).toBe(2);
+  });
+
   it('runs Unit 0 "The Sounds" as ordinary course content', () => {
     const soundsUnit = {
       id: 'u000', title: 'The Sounds', band: 0, sounds: true, wordIds: [],

@@ -76,18 +76,61 @@ function unitSection(row, ctx, { openId }) {
   return details;
 }
 
+/** Contiguous runs of units sharing a band, in course order — the outer grouping. */
+function bandGroups(rows) {
+  const groups = [];
+  for (const row of rows) {
+    const last = groups.at(-1);
+    if (last && last.band === row.band) last.rows.push(row);
+    else groups.push({ band: row.band, rows: [row] });
+  }
+  return groups;
+}
+
 /**
- * The tree of every unit, overall progress on top. `openId` is the unit to expand (the current
- * one by default). Reused by the page, the rail, and the mobile sheet.
+ * One band as a collapsible section holding its units (Phase 10 A2). The course is the whole
+ * HSK vocabulary — hundreds of units — so a flat list scrolls forever; grouping by band keeps
+ * the top level to a handful of sections, each drilling into its units and then their steps.
+ * The band in play opens by default and builds its units lazily; the rest stay a single line.
+ */
+function bandSection(group, ctx, { openBand, openId }) {
+  const done = group.rows.reduce((n, r) => n + r.stepDone, 0);
+  const total = group.rows.reduce((n, r) => n + r.stepTotal, 0);
+  const percent = total ? Math.round((done / total) * 100) : 0;
+
+  const details = el('details', { class: `syllabus-band band-${group.band}` });
+  const summary = el('summary', { class: 'syllabus-band-head' }, [
+    span({ class: 'band-title', text: s.bandTitle(group.band) }),
+    span({ class: 'band-pct', text: s.unitProgress(percent) }),
+  ]);
+  const units = div({ class: 'syllabus-band-units' });
+
+  const fill = () => {
+    if (!units.childElementCount) units.append(...group.rows.map((row) => unitSection(row, ctx, { openId })));
+  };
+  if (group.band === openBand) { details.open = true; fill(); }
+  details.addEventListener('toggle', () => { if (details.open) fill(); });
+
+  details.append(summary, units);
+  return details;
+}
+
+/**
+ * The whole course as a Band → Unit → Step tree, overall progress on top. `openId` is the unit
+ * to expand (the current one by default); its band opens with it. Reused by the page, the rail,
+ * and the mobile sheet.
  */
 export function syllabusTree(ctx, { openId, view = courseView() } = {}) {
+  const open = openId ?? view.currentId;
+  const openBand = view.rows.find((r) => r.id === open)?.band ?? view.rows[0]?.band;
+
   const tree = div({ class: 'syllabus' }, [
     div({ class: 'syllabus-overall' }, [
       span({ class: 'syllabus-overall-label', text: s.overall(view.overall.percent) }),
       progressBar(view.overall.total ? view.overall.done / view.overall.total : 0),
     ]),
     div({ class: 'syllabus-units' },
-      view.rows.map((row) => unitSection(row, ctx, { openId: openId ?? view.currentId }))),
+      bandGroups(view.rows).map((group) => bandSection(group, ctx, { openBand, openId: open }))),
   ]);
   return tree;
 }
