@@ -74,8 +74,8 @@ describe('tagTopics (§1)', () => {
       w('f2', '肉', 1, ['meat']),
       w('f3', '菜', 2, ['vegetable']),
     ];
-    const { topics } = tagTopics(plain);
+    const tagged = tagTopics(plain);
     // Food has no sequence, so it sorts by band ascending (a frequency proxy) — 肉(1) 菜(2) 茶(3).
-    expect(topics.food).toEqual(['f2', 'f3', 'f1']);
+    expect(tagged.topics.food).toEqual(['f2', 'f3', 'f1']);
   });
 });
