@@ -1009,3 +1009,11 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   `TOPIC_COHESION = 5`, so no tuning was needed. The build (`build.mjs`/`report.txt`) and
   `regen-course.mjs` print the table and fail/warn on a floor breach; a test asserts the
   committed course's new order clears both floors and that the clean-% drop stays bounded.
+
+- Phase 11 §5 — dictionary surfaces: Browse consumes the re-tagged topics.json directly. Its
+  topic collections render each topic's ids in the array order the tagger emits — orderedTopics
+  sequence where defined (numbers by value, time by scale), else band → frequency — so the
+  八-then-电话 class is impossible: 电话 is `tech`, and 八 sorts by value among the cardinals. No
+  Browse code change was needed beyond the live-topics fix; tests assert the ordering contract.
+  Acceptance also adds `tests/deck-stability.test.js`: a frozen sha256 over the committed deck
+  words fails on ANY deck-word change, making the "deck untouchable" law mechanical.

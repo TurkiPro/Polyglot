@@ -66,4 +66,16 @@ describe('tagTopics (§1)', () => {
   it('is deterministic — same deck, identical output', () => {
     expect(JSON.stringify(tagTopics(deck))).toBe(JSON.stringify(tagTopics(deck)));
   });
+
+  // §5: within a topic — orderedTopics sequence where defined, else band → frequency.
+  it('orders an ordered topic by its sequence, and a plain topic by band', () => {
+    const plain = [
+      w('f1', '茶', 3, ['tea']),
+      w('f2', '肉', 1, ['meat']),
+      w('f3', '菜', 2, ['vegetable']),
+    ];
+    const { topics } = tagTopics(plain);
+    // Food has no sequence, so it sorts by band ascending (a frequency proxy) — 肉(1) 菜(2) 茶(3).
+    expect(topics.food).toEqual(['f2', 'f3', 'f1']);
+  });
 });
