@@ -955,3 +955,12 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   stays green against the new topic seams — a throwaway step; §2 replaces the slicer. Deck bytes
   untouched. **The review report is `packs/zh/data/topic-report.txt` — the maintainer signs off
   on the bands 1-2 lists before §2 builds theme-first units on them.**
+
+- Per-word usage notes + topics sync fix: added `packs/zh/usage-notes.json` (reviewable data,
+  wordId → note) so a word can carry a short explanation without touching the deck — first use
+  is the 两/二 "two words for two" note, shown on the teach screen and the word page with its
+  hanzi hoverable. Loaded via `store.usageNotes`, precached like the other pack artifacts. While
+  wiring it, found and fixed a real gap: nothing copied `topics.json` into the runtime-served
+  `app/assets/packs/zh/`, so the §1 re-tag was sitting in the source while the app kept reading a
+  stale copy. `regen-topics.mjs` now writes both, and `build.mjs` copies `topics.json` +
+  `usage-notes.json` into the served pack. The §1 tags are now actually live.
