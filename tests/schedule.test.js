@@ -66,6 +66,23 @@ describe('scheduleUnits (§2)', () => {
     expect(JSON.stringify(scheduleUnits(words, words, opts))).toBe(JSON.stringify(scheduleUnits(words, words, opts)));
   });
 
+  it('teaches an ordered topic as one whole sequence, not a readiness-shuffled subset', () => {
+    // Numbers, in value order, but 三/四 are gated behind a core word so they are NOT "ready"
+    // when the topic opens. An ordered topic must still teach the WHOLE sequence, in order.
+    const words = [
+      w('n0', '零', 1), w('n1', '一', 1), w('n2', '二', 1),
+      w('n3', '三', 1, ['本', '三']), w('n4', '四', 1, ['本', '四']),
+      w('n5', '五', 1), w('n6', '六', 1),
+    ];
+    const orderedTopics = { numbers: ['零', '一', '二', '三', '四', '五', '六'] };
+    const home = Object.fromEntries(words.map((x) => [x.id, 'numbers']));
+    const { units } = scheduleUnits(words, words, { home, core: [], seedOrder: [], unitSize: 22, cohesion: 3, orderedTopics });
+
+    const numberUnits = units.filter((u) => u.topic === 'numbers');
+    expect(numberUnits).toHaveLength(1); // one unit, not split by readiness
+    expect(numberUnits[0].wordIds).toEqual(['n0', 'n1', 'n2', 'n3', 'n4', 'n5', 'n6']); // full sequence, in order
+  });
+
   it('returns to a topic in a later unit ("Numbers 2" means more numbers)', () => {
     // Eight numbers; four are ready immediately, four gated behind a later core word.
     const words = [

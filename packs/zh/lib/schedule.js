@@ -82,6 +82,7 @@ export function scheduleUnits(scope, allWords, {
   const drop = (arr, w) => { const i = arr.indexOf(w); if (i >= 0) arr.splice(i, 1); };
   const readyCount = (pool, maxU) => pool.reduce((n, w) => n + (ready(w, maxU) ? 1 : 0), 0);
   const avgBand = (pool) => pool.reduce((s, w) => s + w.band, 0) / (pool.length || 1);
+  const isOrdered = (t) => Array.isArray(orderedTopics[t]) && orderedTopics[t].length > 0;
 
   /** Fill a unit from one topic's pool, in pool order, re-checking readiness as known grows. */
   const fillTopic = (t, maxU) => {
@@ -93,6 +94,29 @@ export function scheduleUnits(scope, allWords, {
       introduce(w); drop(pool, w); taken.push(w.id);
     }
     return taken;
+  };
+
+  /**
+   * Open a topic into one or more units. An ORDERED topic (numbers, time) is drained WHOLE in
+   * sequence, readiness ignored — a learner counts 一 二 三 …, never a readiness-shuffled subset
+   * split across units; that sequence coherence is worth the few relaxed intros §3 measures. A
+   * plain topic fills one unit with its ready words. Returns true if any unit was emitted.
+   */
+  const openTopic = (t, maxU) => {
+    if (isOrdered(t)) {
+      const pool = topicPools.get(t);
+      let emitted = false;
+      while (pool.length) {
+        const taken = pool.splice(0, unitSize);
+        taken.forEach(introduce);
+        pushUnit(t, taken.map((w) => w.id));
+        emitted = true;
+      }
+      return emitted;
+    }
+    const taken = fillTopic(t, maxU);
+    if (taken.length) { pushUnit(t, taken); return true; }
+    return false;
   };
 
   const anyTopicWords = () => [...topicPools.values()].some((p) => p.length);
@@ -159,8 +183,7 @@ export function scheduleUnits(scope, allWords, {
       break;
     }
 
-    // 1. The topic with the most ready words. A topic opens once it reaches the cohesion
-    //    threshold, so units are fuller and cleaner; below it we first try to unblock via core.
+    // The topic with the most ready words (used by the later fallback tiers too).
     let best = null; let bestReady = 0; let bestBand = Infinity;
     for (const [t, pool] of topicPools) {
       if (!pool.length) continue;
@@ -168,9 +191,20 @@ export function scheduleUnits(scope, allWords, {
       const ab = avgBand(pool);
       if (rc > bestReady || (rc === bestReady && ab < bestBand)) { best = t; bestReady = rc; bestBand = ab; }
     }
-    if (best && bestReady >= cohesion) {
-      const taken = fillTopic(best, 0);
-      if (taken.length) { pushUnit(best, taken); continue; }
+
+    // 1. Open a topic that has reached its gate. A plain topic opens at the cohesion threshold; an
+    //    ORDERED topic waits until most of its words have ripened, because it is drained whole in
+    //    sequence — opening it late keeps the counting sequence AND most of its intros clean.
+    const openGate = (t, pool) => (isOrdered(t) ? Math.max(cohesion, Math.ceil(pool.length * 0.6)) : cohesion);
+    let gated = null; let gatedReady = 0; let gatedBand = Infinity;
+    for (const [t, pool] of topicPools) {
+      const rc = readyCount(pool, 0);
+      if (!pool.length || rc < openGate(t, pool)) continue;
+      const ab = avgBand(pool);
+      if (rc > gatedReady || (rc === gatedReady && ab < gatedBand)) { gated = t; gatedReady = rc; gatedBand = ab; }
+    }
+    if (gated) {
+      if (openTopic(gated, 0)) continue;
     }
 
     // 2. Core words, most-demanded first, to ripen more topic words.
@@ -187,8 +221,7 @@ export function scheduleUnits(scope, allWords, {
 
     // 3. Below cohesion and core cannot help: open the best short topic unit anyway (clean).
     if (best && bestReady >= 1) {
-      const taken = fillTopic(best, 0);
-      if (taken.length) { pushUnit(best, taken); continue; }
+      if (openTopic(best, 0)) continue;
     }
 
     // 4. Nothing is clean-ready: relax the intro sentence progressively (the coherence price the
@@ -203,10 +236,7 @@ export function scheduleUnits(scope, allWords, {
         const ab = avgBand(pool);
         if (rc > relaxedReady || (rc === relaxedReady && ab < relaxedBand)) { relaxed = t; relaxedReady = rc; relaxedBand = ab; }
       }
-      if (relaxed) {
-        const taken = fillTopic(relaxed, maxU);
-        if (taken.length) { pushUnit(relaxed, taken); opened = true; }
-      }
+      if (relaxed) opened = openTopic(relaxed, maxU);
     }
     if (opened) continue;
 
