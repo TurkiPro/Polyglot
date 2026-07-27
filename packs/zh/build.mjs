@@ -12,6 +12,7 @@ import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { config } from '../../config/app.config.js';
 import { parseCedict, pickPrimary } from './lib/cedict.js';
 import { buildCourse } from './lib/course.js';
+import { measureIntro, introRankOrder } from './lib/introcost.js';
 import { SOUNDS_UNIT } from './lib/sounds-unit.js';
 import { buildCredits, renderCreditsMarkdown } from './lib/credits.js';
 import { DATA_DIR, download, readSource, readSourceText } from './lib/download.js';
@@ -367,7 +368,20 @@ async function writeCourse(words, version, generatedAt) {
   log(`  course.${LANG}.json — ${units.length} units (${stats.themed} themed, ${stats.core} core, ` +
       `${stats.auto} auto, ${stats.withNote} noted, sizes ${stats.sizes.min}-${stats.sizes.max}); steps: ` +
       `${stats.steps.WORD}w ${stats.steps.PHRASE}p ${stats.steps.PRACTICE}x ${stats.steps.CHECKPOINT}c`);
-  courseInfo = { units, stats };
+
+  // §3: the measured price of coherence — intro quality under the new order vs the deck's n+1.
+  const seedOrder = deckOverrides.seedOrder ?? [];
+  const introCost = {
+    before: measureIntro(introRankOrder(words), words, { seedOrder }),
+    after: measureIntro(stats.order, words, { seedOrder }),
+  };
+  const { before, after } = introCost;
+  log(`  intro quality (bands 1-3) before→after: band-1 clean ${before.band1CleanPct}→${after.band1CleanPct}% ` +
+      `(floor 80), bands 1-3 clean ${before.cleanPct}→${after.cleanPct}% (floor 75)`);
+  if (after.band1CleanPct < 80 || after.cleanPct < 75) {
+    warn(`intro-quality floor breached — raise TOPIC_COHESION (currently ${config.course.topicCohesion}) and rebuild`);
+  }
+  courseInfo = { units, stats, introCost };
 }
 
 /**

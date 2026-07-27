@@ -9,6 +9,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildCourse, unitId } from '../packs/zh/lib/course.js';
 import { tagTopics } from '../packs/zh/lib/topics.js';
+import { measureIntro, introRankOrder } from '../packs/zh/lib/introcost.js';
 import { SOUNDS_UNIT } from '../packs/zh/lib/sounds-unit.js';
 import { config } from '../config/app.config.js';
 
@@ -198,6 +199,23 @@ describe('committed course.zh.json (§9.1)', () => {
     expect(units.map((u) => u.wordIds.join(','))).toEqual(course.units.map((u) => u.wordIds.join(',')));
     // steps[] is derived data too — the committed course must match a fresh rebuild exactly.
     expect(units.map((u) => JSON.stringify(u.steps))).toEqual(course.units.map((u) => JSON.stringify(u.steps)));
+  });
+
+  it.skipIf(!has(path))('holds the §3 intro-quality floors under the new order', () => {
+    const course = read(path);
+    const deck = read('app/assets/packs/zh/deck.zh.json');
+    const seedOrder = read('packs/zh/overrides.json').seedOrder ?? [];
+    // The new global order = early-band words in the order the scheduled units introduce them.
+    const early = new Set(deck.words.filter((w) => w.band >= 1 && w.band <= 3).map((w) => w.id));
+    const newOrder = course.units.flatMap((u) => u.wordIds).filter((id) => early.has(id));
+
+    const after = measureIntro(newOrder, deck.words, { seedOrder });
+    expect(after.band1CleanPct).toBeGreaterThanOrEqual(80); // §3 floor
+    expect(after.cleanPct).toBeGreaterThanOrEqual(75); // §3 floor
+
+    // The coherence price is real but bounded: no worse than a few points off the n+1 order.
+    const before = measureIntro(introRankOrder(deck.words), deck.words, { seedOrder });
+    expect(before.cleanPct - after.cleanPct).toBeLessThan(10);
   });
 
   it.skipIf(!has(path))('gives every committed unit a WORD-per-word run ending in one CHECKPOINT', () => {

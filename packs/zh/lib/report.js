@@ -84,12 +84,25 @@ function courseReport(course) {
   const { units, stats } = course;
   const st = stats.steps ?? { WORD: 0, PHRASE: 0, PRACTICE: 0, CHECKPOINT: 0 };
   const lines = [
-    `the course (Phase 9 §1): ${stats.units} units, ${stats.authored} authored (bands ≤3), ` +
+    `the course (Phase 11 §2): ${stats.units} units — ${stats.themed ?? '?'} themed, ` +
+      `${stats.core ?? '?'} core, ${stats.auto ?? '?'} auto (bands 4+), ` +
       `${stats.withNote} with a pattern note, sizes ${stats.sizes.min}-${stats.sizes.max}`,
     `steps (Phase 10 A1): ${st.WORD} word, ${st.PHRASE} phrase, ${st.PRACTICE} practice, ` +
       `${st.CHECKPOINT} checkpoint`,
-    '',
   ];
+  if (course.introCost) {
+    const { before, after } = course.introCost;
+    lines.push(
+      '',
+      'intro quality — price of coherence (Phase 11 §3), bands 1-3:',
+      '  metric                before(n+1)  after(theme)',
+      `  band-1 clean %        ${String(before.band1CleanPct).padStart(8)}   ${String(after.band1CleanPct).padStart(8)}   (floor 80)`,
+      `  bands 1-3 clean %     ${String(before.cleanPct).padStart(8)}   ${String(after.cleanPct).padStart(8)}   (floor 75)`,
+      `  bands 1-3 relaxed %   ${String(before.relaxedPct).padStart(8)}   ${String(after.relaxedPct).padStart(8)}`,
+      `  bands 1-3 bare %      ${String(before.nonePct).padStart(8)}   ${String(after.nonePct).padStart(8)}`,
+    );
+  }
+  lines.push('');
   for (const unit of units) {
     const counts = (unit.steps ?? []).reduce((acc, s) => ((acc[s.kind] = (acc[s.kind] ?? 0) + 1), acc), {});
     const stepLabel = `${counts.WORD ?? 0}w ${counts.PHRASE ?? 0}p ${counts.PRACTICE ?? 0}x ${counts.CHECKPOINT ?? 0}c`;

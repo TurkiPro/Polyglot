@@ -991,3 +991,21 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   intact by construction; the derivation stays pure and stored nothing. Old-unit practice rows
   remain untouched in the log. Test: a synthetic history that cleared old-u07's words yields a
   cleared (here gold) state on the new unit covering them, and thin/sloppy histories do not.
+
+- Phase 11 §3 — the measured price of coherence (`packs/zh/lib/introcost.js`): the theme-first
+  order was re-run through the deck's n+1 intro-attachment and reported side by side with the old
+  order. The price is small and the floors hold:
+
+  ```
+  intro quality (bands 1-3)     before (n+1)   after (theme-first)   floor
+  band-1 clean %                    90.7            87.0             ≥ 80
+  bands 1-3 clean %                 78.7            78.1             ≥ 75
+  bands 1-3 relaxed %               16.7            17.0
+  bands 1-3 bare %                   4.7             5.0
+  ```
+
+  Coherence costs ~3.7 points of band-1 clean introductions and ~0.6 of bands-1-3 — a modest
+  price for units whose membership is finally honest. Both floors hold comfortably at
+  `TOPIC_COHESION = 5`, so no tuning was needed. The build (`build.mjs`/`report.txt`) and
+  `regen-course.mjs` print the table and fail/warn on a floor breach; a test asserts the
+  committed course's new order clears both floors and that the clean-% drop stays bounded.

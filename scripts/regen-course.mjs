@@ -13,6 +13,7 @@
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import { buildCourse } from '../packs/zh/lib/course.js';
+import { measureIntro, introRankOrder } from '../packs/zh/lib/introcost.js';
 import { SOUNDS_UNIT } from '../packs/zh/lib/sounds-unit.js';
 import { config } from '../config/app.config.js';
 
@@ -54,3 +55,19 @@ console.log(
     `${stats.steps.WORD} word / ${stats.steps.PHRASE} phrase / ` +
     `${stats.steps.PRACTICE} practice / ${stats.steps.CHECKPOINT} checkpoint`,
 );
+
+// §3: the price of coherence — intro quality under the new order vs the deck's n+1 order.
+const before = measureIntro(introRankOrder(deck.words), deck.words, { seedOrder: deckOverrides.seedOrder });
+const after = measureIntro(stats.order, deck.words, { seedOrder: deckOverrides.seedOrder });
+const row = (label, b, a, floor) => `  ${label.padEnd(18)} ${String(b).padStart(6)}   ${String(a).padStart(6)}${floor ? `   (floor ${floor})` : ''}`;
+console.log('\nintro quality (bands 1-3) — before (n+1) vs after (theme-first):');
+console.log('  metric                before    after');
+console.log(row('band-1 clean %', before.band1CleanPct, after.band1CleanPct, 80));
+console.log(row('bands 1-3 clean %', before.cleanPct, after.cleanPct, 75));
+console.log(row('bands 1-3 relaxed %', before.relaxedPct, after.relaxedPct));
+console.log(row('bands 1-3 bare %', before.nonePct, after.nonePct));
+if (after.band1CleanPct < 80 || after.cleanPct < 75) {
+  console.error(`\nFLOOR BREACH — raise TOPIC_COHESION (currently ${config.course.topicCohesion}) and rebuild.`);
+  process.exit(1);
+}
+console.log('  floors hold.');
