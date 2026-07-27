@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   clearedSets,
   courseProgress,
+  grandfatheredClears,
   introducedFromEvents,
   introducedSet,
   metWords,
@@ -124,6 +125,37 @@ describe('courseProgress (§10 A3)', () => {
     const { current, currentId } = courseProgress({}, withSounds, [], []);
     expect(currentId).toBe('u000');
     expect(current).toEqual({ unitId: 'u000', index: 0 });
+  });
+
+  // Phase 11 §4: unit ids/membership changed, so a learner who cleared "old-u07" must still see
+  // the NEW unit(s) covering those same words as cleared — grandfathered from word-level practice.
+  it('grandfathers a clear onto the new unit covering the old unit\'s words', () => {
+    const oldWords = ['a', 'b', 'c', 'd', 'e'];
+    // The old checkpoint logged per-item practice over those words (all correct) plus a summary
+    // for the OLD unit id — which names no current unit.
+    const history = [
+      { type: 'CHECKPOINT', unitId: 'u07-OLD', wordId: 'u07-OLD', correct: 1 },
+      ...oldWords.map((w, i) => ({ id: `p${i}`, unitId: 'u07-OLD', type: 'MCQ_MEANING', wordId: w, correct: 1, ts: i })),
+    ];
+    // The new course re-cut those words into a different unit id.
+    const newCourse = { units: [unit('u031', 1, oldWords)] };
+    const { rows } = courseProgress({}, newCourse, recEvents(...oldWords), history);
+    expect(rows[0].status).toBe('gold'); // 100% accuracy ⇒ gold, and therefore cleared
+    expect(rows[0].steps.at(-1).state).toBe('done'); // its checkpoint reads as passed
+  });
+
+  it('grandfathers only with pass-level coverage and accuracy', () => {
+    const words = ['a', 'b', 'c', 'd', 'e'];
+    // Two words practised, three untouched → 40% coverage, below QUIZ_PASS. Not cleared.
+    const thin = [
+      { id: 'p1', unitId: 'x', type: 'CLOZE', wordId: 'a', correct: 1, ts: 1 },
+      { id: 'p2', unitId: 'x', type: 'CLOZE', wordId: 'b', correct: 1, ts: 2 },
+    ];
+    expect(grandfatheredClears([unit('u1', 1, words)], thin).cleared.size).toBe(0);
+
+    // Full coverage but sloppy accuracy (3/5) → below QUIZ_PASS. Not cleared.
+    const sloppy = words.map((w, i) => ({ id: `q${i}`, unitId: 'x', type: 'CLOZE', wordId: w, correct: i < 3 ? 1 : 0, ts: i }));
+    expect(grandfatheredClears([unit('u1', 1, words)], sloppy).cleared.size).toBe(0);
   });
 
   it('clears Unit 0 from its checkpoint event alone — no words involved', () => {

@@ -8,6 +8,7 @@
  *
  * Language-agnostic; it reads card states and ids, nothing zh-specific.
  */
+import { config } from '../../../config/app.config.js';
 import { parseCardId } from './deck.js';
 
 /** Words the learner has actually met — their REC card has been graded at least once. */
@@ -71,7 +72,13 @@ function unitHeadline(unit, count, total, cleared, gold) {
 export function courseProgress(deck, course, events, practiceEvents) {
   const units = course?.units ?? [];
   const introduced = introducedFromEvents(events);
-  const { cleared, gold } = clearedSets(practiceEvents);
+  // Direct clears (a checkpoint event for THIS unit id) plus grandfathered ones — a new unit
+  // whose words already carry QUIZ_PASS-equivalent practice evidence counts cleared, so the
+  // Phase 11 §2 re-org (which changed unit ids and membership) devalues nobody's history.
+  const direct = clearedSets(practiceEvents);
+  const grand = grandfatheredClears(units, practiceEvents);
+  const cleared = new Set([...direct.cleared, ...grand.cleared]);
+  const gold = new Set([...direct.gold, ...grand.gold]);
   const allWordsIn = (unit) => unit.wordIds.every((id) => introduced.has(id));
 
   // Flatten every step so the frontier is a single pass across the whole course.
@@ -166,6 +173,50 @@ export function clearedSets(practiceEvents) {
     if (event.type === 'CHECKPOINT_GOLD') gold.add(event.unitId);
   }
   return { cleared, gold };
+}
+
+/**
+ * Grandfathered clears (Phase 11 §4): a unit whose words already carry QUIZ_PASS-equivalent
+ * practice evidence counts cleared even without a checkpoint event for its (new) id.
+ *
+ * When §2 re-cut the course, unit ids and membership changed, so a learner's old checkpoint rows
+ * no longer name any current unit. Rather than migrate the log (it is append-only), this reads
+ * the word-level practice — the per-item exercise results, checkpoint summaries excluded — and
+ * clears a new unit when most of its words have been practised at pass-level accuracy. Word/card
+ * ids never changed, so that evidence is intact by construction. Pure and monotonic-friendly.
+ *
+ * @param {{ id: string, wordIds: string[] }[]} units
+ * @param {object[]} practiceEvents
+ */
+export function grandfatheredClears(units, practiceEvents, {
+  pass = config.course.quizPass, gold = config.course.quizGold,
+} = {}) {
+  const byWord = new Map();
+  for (const event of practiceEvents ?? []) {
+    if (typeof event.type === 'string' && event.type.startsWith('CHECKPOINT')) continue; // summaries, not word evidence
+    const tally = byWord.get(event.wordId) ?? { attempts: 0, correct: 0 };
+    tally.attempts += 1;
+    tally.correct += event.correct ? 1 : 0;
+    byWord.set(event.wordId, tally);
+  }
+
+  const cleared = new Set();
+  const goldSet = new Set();
+  for (const unit of units) {
+    const words = unit.wordIds ?? [];
+    if (!words.length) continue;
+    const practiced = words.map((id) => byWord.get(id)).filter(Boolean);
+    if (!practiced.length) continue;
+    const coverage = practiced.length / words.length;
+    const attempts = practiced.reduce((n, t) => n + t.attempts, 0);
+    const correct = practiced.reduce((n, t) => n + t.correct, 0);
+    const accuracy = attempts ? correct / attempts : 0;
+    if (coverage >= pass && accuracy >= pass) {
+      cleared.add(unit.id);
+      if (accuracy >= gold) goldSet.add(unit.id);
+    }
+  }
+  return { cleared, gold: goldSet };
 }
 
 /** How many times this unit's checkpoint has been attempted — seeds a retake's regeneration. */

@@ -981,3 +981,13 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   regenerated; the id-stability test rebuilds with the same seed/cohesion and a new coherence
   test asserts every themed unit's words share its topic. Course unit ids/membership changed as
   the phase allows — §4 grandfathers progress.
+
+- Phase 11 §4 — progress grandfathering: §2 changed unit ids and membership, so a learner's old
+  checkpoint rows no longer name any current unit. Rather than migrate the append-only log,
+  `courseProgress` now unions the direct clears (`clearedSets`, a checkpoint event for THIS unit
+  id) with grandfathered ones (`grandfatheredClears`): a new unit counts cleared when most of its
+  words carry pass-level practice evidence — the per-item exercise results, checkpoint summaries
+  excluded — and gold at gold-level accuracy. Word/card ids never changed, so that evidence is
+  intact by construction; the derivation stays pure and stored nothing. Old-unit practice rows
+  remain untouched in the log. Test: a synthetic history that cleared old-u07's words yields a
+  cleared (here gold) state on the new unit covering them, and thin/sloppy histories do not.
