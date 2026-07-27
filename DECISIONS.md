@@ -964,3 +964,20 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   `app/assets/packs/zh/`, so the §1 re-tag was sitting in the source while the app kept reading a
   stale copy. `regen-topics.mjs` now writes both, and `build.mjs` copies `topics.json` +
   `usage-notes.json` into the served pack. The §1 tags are now actually live.
+
+- Phase 11 §2 — theme-first scheduler (`packs/zh/lib/schedule.js`): the slice-then-title
+  generator is gone. `buildCourse` now schedules the early bands (1-3) with a readiness-driven
+  scheduler and keeps bands 4+ as spine-ordered auto-units. It walks a growing known-set (seeded
+  with `overrides.seedOrder`) and each round opens a unit for the topic with the most READY words
+  — a word is ready when one intro sentence leaves ≤0 other words unknown (relaxing progressively
+  only when a topic would otherwise strand stragglers, the coherence price §3 measures). Function
+  words carry no topic; they are introduced in "Core words" units ranked by DEMAND — how many
+  pending topic words each still blocks — so 有/是/个 land early and ripen many words at once. A
+  topic is returned to as more of it ripens, so "Everyday verbs 2" means more verbs. Result: unit
+  membership is LITERAL — the "Numbers" units hold only 零一二三…, "People & family" only people,
+  and the old "Numbers unit opening with 好玩儿" is impossible. 570 units, avg ~19 words, 24 short.
+  The dominant-topic titler and the seam-nudging slicer were deleted. `TOPIC_COHESION` (=5) is the
+  ready-word threshold a topic needs to open. Deck bytes untouched; the committed course was
+  regenerated; the id-stability test rebuilds with the same seed/cohesion and a new coherence
+  test asserts every themed unit's words share its topic. Course unit ids/membership changed as
+  the phase allows — §4 grandfathers progress.

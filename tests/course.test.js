@@ -8,6 +8,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildCourse, unitId } from '../packs/zh/lib/course.js';
+import { tagTopics } from '../packs/zh/lib/topics.js';
 import { SOUNDS_UNIT } from '../packs/zh/lib/sounds-unit.js';
 import { config } from '../config/app.config.js';
 
@@ -36,45 +37,45 @@ describe('buildCourse (§9.1)', () => {
     expect(new Set(placed)).toEqual(new Set(words.map((w) => w.id)));
   });
 
-  it('keeps unit sizes within UNIT_SIZE ± 3', () => {
-    const { units } = buildCourse(makeWords(80), {}, { unitSize: 22 });
-    for (const unit of units) {
-      expect(unit.wordIds.length).toBeGreaterThanOrEqual(19);
-      expect(unit.wordIds.length).toBeLessThanOrEqual(25);
-    }
-  });
-
   it('is deterministic — same inputs, identical output', () => {
     const words = makeWords(60);
-    const topics = { food: words.slice(0, 20).map((w) => w.id) };
-    const a = buildCourse(words, { topics, labels: { food: 'Food' } }, { unitSize: 22 });
-    const b = buildCourse(words, { topics, labels: { food: 'Food' } }, { unitSize: 22 });
+    const home = Object.fromEntries(words.slice(0, 20).map((w) => [w.id, 'food']));
+    const opts = { unitSize: 22, home, core: [] };
+    const a = buildCourse(words, { labels: { food: 'Food' } }, opts);
+    const b = buildCourse(words, { labels: { food: 'Food' } }, opts);
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
   });
 
   it('numbers unit ids sequentially, zero-padded', () => {
-    const { units } = buildCourse(makeWords(50), {}, { unitSize: 22 });
+    const { units } = buildCourse(makeWords(50), {}, { unitSize: 22, home: {}, core: [] });
     expect(units[0].id).toBe('u001');
     expect(units[1].id).toBe('u002');
     expect(unitId(6)).toBe('u007'); // the §1 example
   });
 
-  it('titles authored bands from their dominant topic, higher bands by number', () => {
-    const words = makeWords(30, 5); // bands 1..5
-    const topics = { food: words.filter((w) => w.band === 1).map((w) => w.id) };
-    const { units } = buildCourse(words, { topics, labels: { food: 'Food & drink' } },
-      { unitSize: 22, courseBands: [1, 2, 3] });
+  it('schedules theme-first: a topic unit is titled its label and holds only its words (§2)', () => {
+    // Six band-1 words, no sentences (so all ready): three tagged food, three tagged animals.
+    const words = ['a', 'b', 'c', 'd', 'e', 'f'].map((s, i) => ({ id: s, simp: s, introRank: i + 1, band: 1 }));
+    const home = { a: 'food', b: 'food', c: 'food', d: 'animals', e: 'animals', f: 'animals' };
+    const { units } = buildCourse(words, { labels: { food: 'Food', animals: 'Animals' } },
+      { unitSize: 22, cohesion: 3, home, core: [] });
 
-    const band1 = units.find((u) => u.band === 1);
-    expect(band1.title).toBe('Food & drink');
-    const band5 = units.find((u) => u.band === 5);
-    expect(band5.title).toMatch(/^Band 5 · Unit \d+$/);
+    const food = units.find((u) => u.title === 'Food');
+    const animals = units.find((u) => u.title === 'Animals');
+    expect(food.wordIds.sort()).toEqual(['a', 'b', 'c']); // literal membership
+    expect(animals.wordIds.sort()).toEqual(['d', 'e', 'f']);
+  });
+
+  it('titles function-word units "Core words", not a topical costume (§2)', () => {
+    const words = ['x', 'y', 'z'].map((s, i) => ({ id: s, simp: s, introRank: i + 1, band: 1 }));
+    const { units } = buildCourse(words, {}, { unitSize: 22, home: {}, core: ['x', 'y', 'z'] });
+    expect(units.every((u) => u.title === 'Core words')).toBe(true);
   });
 
   it('lets overrides replace a title and attach a note', () => {
     const words = makeWords(50);
     const { units } = buildCourse(words, {}, {
-      unitSize: 22,
+      unitSize: 22, home: {}, core: [],
       titles: { u001: 'Getting started' },
       notes: { u002: '了 marks a completed action.' },
     });
@@ -123,7 +124,8 @@ describe('deriveSteps via buildCourse (§10 A1)', () => {
       { id: 'w4', simp: '们', introRank: 4, band: 1,
         sentences: [{ zh: '我爱你们', en: 'I love you all', src: 't#1' }] },
     ];
-    const { units } = buildCourse(words, {}, { unitSize: 4, lessonWords: 6 });
+    const home = { w1: 'food', w2: 'food', w3: 'food', w4: 'food' }; // one unit keeps them together
+    const { units } = buildCourse(words, {}, { unitSize: 4, lessonWords: 6, cohesion: 1, home, core: [] });
     const phrase = units[0].steps.find((s) => s.kind === 'PHRASE');
     expect(phrase).toEqual({ kind: 'PHRASE', wordId: 'w4', src: 't#1' });
     // The phrase step follows its word, never precedes it.
@@ -152,15 +154,23 @@ describe('committed course.zh.json (§9.1)', () => {
     expect(new Set(placed)).toEqual(new Set(deck.words.map((w) => w.id)));
   });
 
-  it.skipIf(!has(path))('keeps every word-bearing unit within size bounds', () => {
-    // Unit 0 "The Sounds" (band 0) carries no deck words, so the size bounds do not apply to it.
-    // Bounds are loosened transitionally: the §1 re-tag shifted topic seams, so this old slicer
-    // now varies a little more (16–26). Phase 11 §2 replaces it with a scheduler whose units are
-    // theme-first and deliberately variable in length ("short units are fine"), and re-tightens
-    // the assertion around coherence rather than raw size.
-    for (const unit of read(path).units.filter((u) => u.wordIds.length)) {
-      expect(unit.wordIds.length).toBeGreaterThanOrEqual(16);
-      expect(unit.wordIds.length).toBeLessThanOrEqual(26);
+  it.skipIf(!has(path))('gives every themed unit literal membership (§2 coherence)', () => {
+    const course = read(path);
+    const deck = read('app/assets/packs/zh/deck.zh.json');
+    const { home, labels } = tagTopics(deck.words);
+    const labelToTopic = Object.fromEntries(Object.entries(labels).map(([t, l]) => [l, t]));
+
+    // No unit exceeds UNIT_SIZE; units are theme-first so short ones are fine (no lower bound).
+    for (const unit of course.units) expect(unit.wordIds.length).toBeLessThanOrEqual(config.course.unitSize);
+
+    // A unit titled with a topic label holds only that topic's words — the whole point of §2.
+    // (Auto units "Band N · Unit M", "Core words", and Unit 0 are exempt.)
+    for (const unit of course.units) {
+      const topic = labelToTopic[unit.title];
+      if (!topic) continue; // core / auto / sounds
+      for (const id of unit.wordIds) {
+        expect(home[id], `${id} in "${unit.title}"`).toBe(topic);
+      }
     }
   });
 
@@ -173,11 +183,15 @@ describe('committed course.zh.json (§9.1)', () => {
     const deck = read('app/assets/packs/zh/deck.zh.json');
     const topics = read('packs/zh/topics.json');
     const overrides = read('packs/zh/course-overrides.json');
+    const deckOverrides = read('packs/zh/overrides.json');
     const { units } = buildCourse(deck.words, topics, {
       titles: overrides.titles,
       notes: overrides.notes,
       courseBands: config.course.courseBands,
       unitSize: config.course.unitSize,
+      lessonWords: config.course.lessonWords,
+      cohesion: config.course.topicCohesion,
+      seedOrder: deckOverrides.seedOrder ?? [],
       soundsUnit: SOUNDS_UNIT,
     });
     expect(units.map((u) => u.id)).toEqual(course.units.map((u) => u.id));

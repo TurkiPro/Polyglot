@@ -343,6 +343,7 @@ async function writeCourse(words, version, generatedAt) {
   const overrides = JSON.parse(
     await readFile(new URL('course-overrides.json', import.meta.url), 'utf8'),
   );
+  const deckOverrides = JSON.parse(await readFile(new URL('overrides.json', import.meta.url), 'utf8'));
 
   const { units, stats } = buildCourse(words, topics, {
     titles: overrides.titles,
@@ -350,6 +351,8 @@ async function writeCourse(words, version, generatedAt) {
     courseBands: config.course.courseBands,
     unitSize: config.course.unitSize,
     lessonWords: config.course.lessonWords,
+    cohesion: config.course.topicCohesion,
+    seedOrder: deckOverrides.seedOrder ?? [],
     soundsUnit: SOUNDS_UNIT,
   });
 
@@ -361,8 +364,8 @@ async function writeCourse(words, version, generatedAt) {
     units,
   };
   await writeFile(new URL(`course.${LANG}.json`, OUT_DIR), JSON.stringify(course));
-  log(`  course.${LANG}.json — ${units.length} units (${stats.authored} authored, ` +
-      `${stats.withNote} noted, sizes ${stats.sizes.min}-${stats.sizes.max}); steps: ` +
+  log(`  course.${LANG}.json — ${units.length} units (${stats.themed} themed, ${stats.core} core, ` +
+      `${stats.auto} auto, ${stats.withNote} noted, sizes ${stats.sizes.min}-${stats.sizes.max}); steps: ` +
       `${stats.steps.WORD}w ${stats.steps.PHRASE}p ${stats.steps.PRACTICE}x ${stats.steps.CHECKPOINT}c`);
   courseInfo = { units, stats };
 }
