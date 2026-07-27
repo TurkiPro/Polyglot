@@ -317,6 +317,12 @@ async function writeArtifacts({ words, cedict, version, generatedAt }) {
 
   await writeCourse(words, version, generatedAt);
 
+  // topics.json is a runtime-served artifact (Browse, §5), so the reviewed source is copied to
+  // the served pack — without this the app kept reading a stale copy while the source moved on.
+  await cp(new URL('topics.json', import.meta.url), new URL('topics.json', OUT_DIR));
+  await cp(new URL('usage-notes.json', import.meta.url), new URL('usage-notes.json', OUT_DIR));
+  log('  topics.json + usage-notes.json');
+
   const credits = buildCredits(sources, { packVersion: version, generatedAt });
   await writeFile(new URL('credits.json', OUT_DIR), JSON.stringify(credits, null, 2));
   await writeFile(

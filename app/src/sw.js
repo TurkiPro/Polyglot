@@ -52,6 +52,7 @@ const SHELL_PRECACHE = [
 const PACK_PRECACHE = [
   `/assets/packs/${LANG}/deck.${LANG}.json`,
   `/assets/packs/${LANG}/topics.json`,
+  `/assets/packs/${LANG}/usage-notes.json`,
   `/assets/packs/${LANG}/course.${LANG}.json`,
 ];
 

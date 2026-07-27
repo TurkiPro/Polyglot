@@ -2,7 +2,8 @@
  * A single word: everything the deck knows about it, plus this device's progress.
  */
 import { cardIdsForWord, parseCardId } from '../engine/deck.js';
-import { addToMyWords, inMyWords, store } from '../store.js';
+import { addToMyWords, inMyWords, store, usageNoteFor } from '../store.js';
+import { glossify } from '../ui/tooltip.js';
 import { audioControl, button, checkStamp, div, el, empty, h, p, relativeDay, replace, span } from '../ui/components.js';
 import { stage } from '../ui/arcade.js';
 import { strings } from '../ui/strings.js';
@@ -41,6 +42,14 @@ export function renderWord(root, ctx, wordId) {
       el('ul', { class: 'defs' }, humanDefs(word.defs).map((d) => el('li', { text: d }))),
     ),
   ];
+
+  // A committed usage note (e.g. 两 vs 二), characters hoverable for their gloss.
+  const usage = usageNoteFor(word.id);
+  if (usage) {
+    const body = p('', 'usage-note-text');
+    body.append(glossify(usage));
+    sections.push(section(strings.teach.usageLabel, body));
+  }
 
   // Classifiers are rendered as language, not as the raw CL: field.
   const measures = classifiers(word.defs);

@@ -284,6 +284,7 @@ export const strings = Object.freeze({
     eyebrow: 'New word',
     inContext: 'In a sentence',
     madeOf: 'Made of',
+    usageLabel: 'Good to know',
     gotIt: 'Got it',
   },
 

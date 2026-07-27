@@ -2572,6 +2572,24 @@ body {
 }
 .lesson-note-text { margin: 0; }
 
+/* Per-word usage note (e.g. 两 vs 二) on the teach screen and word page. */
+.usage-note {
+  border-left: 3px solid var(--accent);
+  padding-left: var(--space-3);
+  margin: var(--space-2) 0;
+  text-align: left;
+}
+.usage-note-label {
+  display: block;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+}
+.usage-note-text { margin: 0; color: var(--fg-dim); line-height: 1.5; }
+
 .practice-actions { display: flex; gap: var(--space-2); justify-content: center; margin-top: var(--space-3); }
 .word-added { display: inline-flex; align-items: center; }
 

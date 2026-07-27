@@ -1,0 +1,7 @@
+{
+  "$schema": "wordId → a short usage note, shown on the teach screen and the word page. Reviewable data, like topics.json. Characters in the note are hoverable for their gloss.",
+  "notes": {
+    "zh:两:liang3": "Chinese has two words for “two”. 两 (liǎng) is used before a measure word — 两个人 (two people), 两本书 (two books), 两点 (2 o’clock), 两块钱 (two yuan). For counting, dates, phone numbers and math, use 二 (èr).",
+    "zh:二:er4": "二 (èr) is the counting number two — 二十 (20), 第二 (second), 二〇二六. But “two of something”, before a measure word, is 两 (liǎng): 两个人, 两本书."
+  }
+}

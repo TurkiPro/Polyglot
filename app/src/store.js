@@ -77,6 +77,8 @@ export const store = {
   toneStats: null,
   /** Committed topic collections for the Browse signboard (v3 §5.1). */
   topics: null,
+  /** Committed per-word usage notes (wordId → note), shown on teach + word screens. */
+  usageNotes: {},
   /** The committed course (Phase 9 §1): units over the introRank spine. */
   course: null,
   /** The course's practice-event log and its derived tallies (Phase 9 §2). */
@@ -130,6 +132,7 @@ export async function init() {
   // Committed data, cached by the service worker like the deck — a miss is not fatal.
   store.topics = await fetchPack('topics.json');
   store.course = await fetchPack(`course.${LANG}.json`);
+  store.usageNotes = (await fetchPack('usage-notes.json'))?.notes ?? {};
   store.practice = await db.getAll(store.db, db.STORES.practice);
   store.practiceState = rebuildPractice(store.practice);
   store.lastSyncAt = await db.getMeta(store.db, LAST_SYNC_KEY, null);
@@ -157,6 +160,9 @@ export function courseView() {
   if (!store.course) return { rows: [], currentId: null, current: null, overall: { percent: 0, done: 0, total: 0 } };
   return courseProgress(store.deck, store.course, store.events, store.practice);
 }
+
+/** A committed usage note for a word (e.g. 两 vs 二), or null. Shown on teach + word screens. */
+export const usageNoteFor = (wordId) => store.usageNotes?.[wordId] ?? null;
 
 /** Append an exercise result to the practice stream (Phase 9 §2) — never touches FSRS. */
 export async function recordPractice({ unitId, type, wordId, correct, now = Date.now() }) {

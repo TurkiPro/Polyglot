@@ -36,7 +36,9 @@ const out = {
   core,
   topics,
 };
-await writeFile(new URL('topics.json', SRC), `${JSON.stringify(out, null, 2)}\n`);
+const json = `${JSON.stringify(out, null, 2)}\n`;
+await writeFile(new URL('topics.json', SRC), json); // source of truth (reviewed)
+await writeFile(new URL('topics.json', PACKS), json); // the runtime-served artifact (Browse)
 
 /* ── The review report (§1): bands 1-2 topic lists + changed tags ── */
 const simp = (id) => byId.get(id)?.simp ?? id;

@@ -10,9 +10,20 @@ import { audioControl, div, el, featureButton, p, span, tianzige } from '../ui/c
 import { strings } from '../ui/strings.js';
 import { colorMarkedPinyin, colorPinyin, highlightWord } from '../zh/tones.js';
 import { humanDefs } from '../zh/defs.js';
+import { glossify } from '../ui/tooltip.js';
+import { usageNoteFor } from '../store.js';
 import * as tts from '../zh/audio.js';
 
 const s = strings.teach;
+
+/** A committed usage note (e.g. 两 vs 二), characters hoverable for their gloss. */
+function usageBlock(word) {
+  const note = usageNoteFor(word.id);
+  if (!note) return null;
+  const body = p('', 'usage-note-text');
+  body.append(glossify(note));
+  return div({ class: 'usage-note' }, [span({ class: 'usage-note-label', text: s.usageLabel }), body]);
+}
 
 /** The sentence this word was ordered to debut in, if the pack picked one. */
 export function introSentenceFor(word) {
@@ -46,6 +57,7 @@ export function renderTeach(word, onDone) {
     tianzige([div({ class: 'hanzi', text: word.simp })]),
     pinyin,
     el('ul', { class: 'defs teach-defs' }, humanDefs(word.defs).map((def) => el('li', { text: def }))),
+    usageBlock(word),
     speakable
       ? audioControl(
           () => tts.speak(word.simp, { key: word.id, rotate: true }),
