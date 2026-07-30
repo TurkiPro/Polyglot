@@ -122,11 +122,38 @@ describe('syllabus + runner (A2)', () => {
     expect(checkpoint.getAttribute('aria-disabled')).toBe('true');
   });
 
-  it('a step link starts the runner at that step (free navigation)', () => {
+  it('a legacy step link still deep-resumes at that step (free navigation)', () => {
     store.store.settings.newPerDay = 10;
     store.store.settings.newPerDayExplicit = true;
     renderLesson(root, { navigate: vi.fn() }, 'u001/1');
     expect(text()).toContain('乙'); // jumped straight to the second word
+  });
+
+  it('a lesson link opens that lesson', () => {
+    store.store.settings.newPerDay = 10;
+    store.store.settings.newPerDayExplicit = true;
+    renderLesson(root, { navigate: vi.fn() }, 'u001/l2');
+    expect(text()).toContain('丙'); // the second lesson's only word
+  });
+
+  it('ENDS the sitting at the lesson boundary instead of falling into the checkpoint', async () => {
+    // The defect: the runner chained every remaining step and dropped the learner into the quiz.
+    const navigate = vi.fn();
+    store.store.settings.newPerDay = 10;
+    store.store.settings.newPerDayExplicit = true;
+    renderLesson(root, { navigate }, 'u001/l2'); // the last lesson, one word before the checkpoint
+
+    // Walk the lesson to its end; grading is async, so let each click settle.
+    for (let i = 0; i < 12 && !root.querySelector('.lesson-done'); i += 1) {
+      const next = [...root.querySelectorAll('button')]
+        .find((b) => /got it|show answer|good/i.test(b.textContent));
+      if (!next) break;
+      next.click();
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+
+    expect(root.querySelector('.lesson-done'), 'a lesson must end on its own screen').not.toBeNull();
+    expect(navigate).not.toHaveBeenCalledWith('#quiz/u001');
   });
 
   it('gives one section per band even when bands are interleaved (not repeated runs)', () => {

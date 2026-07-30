@@ -359,6 +359,10 @@ export const strings = Object.freeze({
     practiceDone: 'A round of practice done.',
     leftToGo: (n) => (n === 1 ? '1 word left in this unit.' : `${n} words left in this unit.`),
     checkpointHint: 'Every word met — the checkpoint is unlocked.',
+    capNote: (left, needed) =>
+      (left === 0
+        ? `Today’s new words are used up — this lesson’s ${needed} will wait for tomorrow.`
+        : `${left} of this lesson’s ${needed} new words fit in today’s budget; the rest wait for tomorrow.`),
     cappedTitle: 'That is today’s new words',
     cappedBody: 'You have hit the daily limit for new words — that is the pace that makes them stick. Practise what you have, or run your reviews.',
     practiceUnit: 'Practise this unit',

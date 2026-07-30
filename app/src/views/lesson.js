@@ -1,12 +1,18 @@
 /**
- * A lesson sitting (Phase 10 A2): `#lesson/:unit` or `#lesson/:unit/:stepIndex`.
+ * A lesson sitting (Phase 12): `#lesson/:unit/l3`, or `#lesson/:unit` to resume.
  *
  * The runner walks the unit's generated `steps[]` — the ONE sequence the syllabus also reads
- * (§A1), so there is no second sequencing logic. WORD steps teach a word and take its first REC
- * review (a real review, counted against the daily new-card cap and ramp — the course paces
- * THROUGH the limits, never around them); PHRASE and PRACTICE steps run exercises over words
- * already met; CHECKPOINT hands off to the quiz. Navigation is free: the syllabus can drop you
- * at any step, and jumping past undone ones just leaves them `skipped` in the derived view.
+ * (§A1), so there is no second sequencing logic — but only the slice belonging to ONE lesson.
+ * Before Phase 12 it chained through every remaining step in the unit and fell into the checkpoint
+ * quiz unannounced, while the syllabus listed each step as its own "lesson" of a single card.
+ *
+ * WORD steps teach a word and take its first REC review (a real review, counted against the daily
+ * new-card cap and ramp — the course paces THROUGH the limits, never around them); PHRASE and
+ * PRACTICE run exercises over words already met. The sitting ends on its own finish screen, and
+ * the CHECKPOINT is only ever entered by choosing it there.
+ *
+ * Navigation is free: any lesson can be opened directly, and jumping past undone ones just leaves
+ * them `skipped` in the derived view.
  */
 import {
   activeDays, countNewToday, courseView, recordPractice, recordReview, store,
@@ -14,7 +20,8 @@ import {
 import { rampedNewCards } from '../engine/queue.js';
 import { generate, hashSeed, makeRng, prepareExercises, shuffle } from '../engine/exercises.js';
 import { introducedSet } from '../engine/coursestate.js';
-import { button, div, featureButton, h, p, replace, sealMark, span } from '../ui/components.js';
+import { lessonSpans, resumeLesson } from '../engine/lessons.js';
+import { button, div, featureButton, h, p, replace, span } from '../ui/components.js';
 import { stage } from '../ui/arcade.js';
 import { glossify } from '../ui/tooltip.js';
 import { strings } from '../ui/strings.js';
@@ -22,6 +29,7 @@ import { renderBack } from './card.js';
 import { renderTeach } from './teach.js';
 import { renderExercise } from './exercise.js';
 import { syllabusRail, stepStrip } from './syllabus.js';
+import { renderLessonDone } from './lesson-done.js';
 import { renderPinyinStep, renderTonesStep } from './sounds.js';
 
 const s = strings.lesson;
@@ -41,37 +49,64 @@ const knownSimps = () =>
 const wordIdOfItem = (item, unit) =>
   item.wordId ?? (Array.isArray(item.answer) ? item.answer[0] : undefined) ?? unit.id;
 
+/**
+ * Run ONE lesson (Phase 12).
+ *
+ * `#lesson/:unit/l3` is lesson 3; a bare `#lesson/:unit` resumes the unit's first unfinished
+ * lesson; a legacy bare integer is still honoured as a step index and resolves to the lesson
+ * containing it, so old links deep-resume instead of silently restarting the unit at step 0.
+ */
 export function renderLesson(root, ctx, arg) {
-  const [unitId, stepArg] = String(arg ?? '').split('/');
+  const [unitId, lessonArg] = String(arg ?? '').split('/');
   const unit = store.course?.units.find((u) => u.id === unitId);
   if (!unit) return void ctx.navigate('#course');
-  runStep(root, ctx, unit, resolveStart(unit, unitId, stepArg));
-}
 
-/** Where to begin: an explicit step from the syllabus, else this unit's current step, else 0. */
-function resolveStart(unit, unitId, stepArg) {
-  if (stepArg !== undefined && stepArg !== '') {
-    const n = Number(stepArg);
-    if (Number.isInteger(n) && n >= 0 && n < unit.steps.length) return n;
-  }
   const row = courseView().rows.find((r) => r.id === unitId);
-  const current = row?.steps.findIndex((step) => step.state === 'current') ?? -1;
-  return current >= 0 ? current : 0;
+  const lessons = row?.lessons ?? lessonSpans(unit).map((only) => ({ ...only, state: 'upcoming' }));
+  if (!lessons.length) return void ctx.navigate('#course');
+
+  const { lesson, index } = resolveStart(lessons, lessonArg);
+  const host = div({ class: 'lesson' });
+  // The shell is mounted ONCE per sitting. It used to be rebuilt on every card, and rebuilding
+  // it re-ran courseProgress over every step in the course — a full recompute per flashcard.
+  mountShell(root, ctx, unit, lesson, host);
+  runStep(root, ctx, unit, lesson, index, host, { taught: 0, practised: 0 });
 }
 
-/** Run the step at `index`, mounting the shell (rail + head + host) around it. */
-function runStep(root, ctx, unit, index) {
-  if (index >= unit.steps.length) return void ctx.navigate('#course');
+/** Which lesson to open, and which step inside it to resume at. */
+function resolveStart(lessons, arg) {
+  if (arg) {
+    const asLesson = /^l(\d+)$/.exec(arg);
+    if (asLesson) {
+      // Clamp rather than restart: an out-of-range deep link lands on the last lesson.
+      const i = Math.min(Math.max(Number(asLesson[1]) - 1, 0), lessons.length - 1);
+      return { lesson: lessons[i], index: lessons[i].from };
+    }
+    const step = Number(arg); // legacy `#lesson/:unit/7` — a raw step index
+    if (Number.isInteger(step) && step >= 0) {
+      const found = lessons.find((l) => step >= l.from && step < l.to);
+      if (found) return { lesson: found, index: step };
+    }
+  }
+  const lesson = resumeLesson(lessons) ?? lessons[0];
+  // Resume inside the lesson at its first step that is not already done.
+  const at = lesson.steps?.findIndex((step) => step.state !== 'done') ?? -1;
+  return { lesson, index: at >= 0 ? lesson.from + at : lesson.from };
+}
+
+/** Run the step at `index`; the sitting ENDS at the lesson's last step, never chaining onward. */
+function runStep(root, ctx, unit, lesson, index, host, tally) {
+  if (index >= lesson.to) return finishLesson(root, ctx, unit, lesson, tally);
   const step = unit.steps[index];
-  if (step.kind === 'CHECKPOINT') return void ctx.navigate(`#quiz/${unit.id}`);
+  // A checkpoint is never inside a lesson span; this only guards a fallback span.
+  if (!step || step.kind === 'CHECKPOINT') return finishLesson(root, ctx, unit, lesson, tally);
 
-  const host = div({ class: 'lesson' });
-  mountShell(root, ctx, unit, index, host);
-  const advance = () => runStep(root, ctx, unit, index + 1);
+  const advance = () => runStep(root, ctx, unit, lesson, index + 1, host, tally);
+  const capped = () => finishLesson(root, ctx, unit, lesson, tally, { capped: true });
 
-  if (step.kind === 'WORD') return runWord(host, ctx, unit, step, advance);
+  if (step.kind === 'WORD') return runWord(host, unit, step, advance, capped, tally);
   if (step.kind === 'PHRASE') return runPhrase(host, unit, step, advance);
-  if (step.kind === 'PRACTICE') return runPractice(host, unit, advance);
+  if (step.kind === 'PRACTICE') return runPractice(host, unit, advance, tally);
   // Unit 0 "The Sounds" steps (§B): tone drills and the pinyin crash intro.
   if (step.kind === 'TONES') return renderTonesStep(host, step.set, advance);
   if (step.kind === 'PINYIN') return renderPinyinStep(host, advance);
@@ -79,16 +114,19 @@ function runStep(root, ctx, unit, index) {
 }
 
 /** The two-column shell: the syllabus rail (desktop) / strip (mobile) beside the step. */
-function mountShell(root, ctx, unit, index, host) {
+function mountShell(root, ctx, unit, lesson, host) {
+  const title = lesson.title ?? strings.syllabus.lessonN(lesson.index + 1);
   replace(root, stage('lesson', [
     div({ class: 'lesson-layout' }, [
       syllabusRail(ctx, unit.id),
       div({ class: 'lesson-main' }, [
-        stepStrip(ctx, unit, index),
+        stepStrip(ctx, unit, lesson.from, lesson),
         div({ class: 'lesson-head' }, [
           featureButton(s.leave, () => ctx.navigate('#course'), 'btn-quiet lesson-leave'),
-          h(1, unit.title, 'lesson-title'),
+          h(1, title, 'lesson-title'),
+          span({ class: 'lesson-unit', text: unit.title }),
           unit.note ? noteBlock(unit.note) : null,
+          capNote(lesson),
         ].filter(Boolean)),
         host,
       ]),
@@ -97,11 +135,24 @@ function mountShell(root, ctx, unit, index, host) {
 }
 
 /**
+ * Tell the learner up front when today's budget is smaller than this lesson, instead of letting
+ * them hit the wall mid-sitting. A lesson is a unit of meaning; the cap governs pace, so a
+ * 10-word lesson simply spans two days for someone on the 5/day beginner ramp.
+ */
+function capNote(lesson) {
+  const unmet = (lesson.steps ?? [])
+    .filter((step) => step.kind === 'WORD' && step.state !== 'done').length;
+  const left = remainingNewToday();
+  if (!unmet || left >= unmet) return null;
+  return p(s.capNote(left, unmet), 'muted lesson-cap-note');
+}
+
+/**
  * A WORD step. A word already met is a quick recap (no re-grade); an unmet one teaches then
  * takes a real REC review — but only if the daily new-card budget allows, so the syllabus can
  * never bypass the cap (§A2). A spent cap ends the sitting warmly.
  */
-function runWord(host, ctx, unit, step, advance) {
+function runWord(host, unit, step, advance, capped, tally) {
   const word = store.deck.word(step.wordId);
   if (!word) return advance();
 
@@ -109,9 +160,12 @@ function runWord(host, ctx, unit, step, advance) {
     replace(host, renderTeach(word, advance)); // recap, ungraded
     return;
   }
-  if (remainingNewToday() <= 0) return cappedScreen(host, ctx, unit);
+  if (remainingNewToday() <= 0) return capped();
 
-  replace(host, renderTeach(word, () => introCard(host, word, advance)));
+  replace(host, renderTeach(word, () => introCard(host, word, () => {
+    tally.taught += 1;
+    advance();
+  })));
 }
 
 /** Introducing the word: a real REC review, so it counts against the cap. */
@@ -156,7 +210,7 @@ function runPhrase(host, unit, step, advance) {
 }
 
 /** A PRACTICE step: a short mixed set over the unit's met words; each logs a practice event. */
-function runPractice(host, unit, advance) {
+function runPractice(host, unit, advance, tally) {
   const introduced = introducedSet(store.states);
   const met = unit.wordIds.filter((id) => introduced.has(id)).map((id) => store.deck.word(id)).filter(Boolean);
   if (!met.length) return advance();
@@ -177,6 +231,7 @@ function runPractice(host, unit, advance) {
     if (!item) return advance();
     replace(host, renderExercise(item, async (correct) => {
       await recordPractice({ unitId: unit.id, type: item.type, wordId: wordIdOfItem(item, unit), correct });
+      tally.practised += 1;
       nextExercise();
     }));
   };
@@ -193,18 +248,13 @@ function noteBlock(note) {
   return div({ class: 'lesson-note' }, [span({ class: 'lesson-note-label', text: s.patternLabel }), body]);
 }
 
-/** The cap-spent screen: warm, and it points at what the learner CAN still do. */
-function cappedScreen(host, ctx, unit) {
-  const introduced = introducedSet(store.states);
-  const met = unit.wordIds.some((id) => introduced.has(id));
-  replace(host, div({ class: 'lesson-done' }, [
-    sealMark(80),
-    h(1, s.cappedTitle, 'lesson-title'),
-    p(s.cappedBody, 'welcome-lead'),
-    div({ class: 'welcome-choices' }, [
-      met ? button(s.practiceUnit, () => runPractice(host, unit, () => ctx.navigate('#course')), { variant: 'btn-primary btn-cta' }) : null,
-      button(s.doReviews, () => ctx.navigate('#review'), { variant: 'btn-quiet' }),
-      button(s.backToPath, () => ctx.navigate('#course'), { variant: 'btn-quiet' }),
-    ].filter(Boolean)),
-  ]));
+/**
+ * End the sitting. This is the terminus the runner never had: it used to chain on through the
+ * unit and fall straight into the checkpoint quiz. The checkpoint is now only ever entered by
+ * choosing it here.
+ */
+function finishLesson(root, ctx, unit, lesson, tally, options) {
+  const host = div({ class: 'lesson' });
+  mountShell(root, ctx, unit, lesson, host);
+  renderLessonDone(host, ctx, unit, lesson, tally, options);
 }
