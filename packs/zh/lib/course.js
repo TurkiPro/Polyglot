@@ -141,6 +141,7 @@ export function buildCourse(words, topicsFile = {}, options = {}) {
     unitSize = config.course.unitSize,
     lessonWords = config.course.lessonWords,
     cohesion = config.course.topicCohesion,
+    minUnitSize = 0, // Phase 12: merge stragglers; opt-in so synthetic test fixtures are untouched
     seedOrder = [],
     soundsUnit = null, // Phase 10 B: prepend Unit 0 "The Sounds" when the caller supplies it
   } = options;
@@ -169,12 +170,16 @@ export function buildCourse(words, topicsFile = {}, options = {}) {
   const early = words.filter((w) => (w.band ?? 99) >= 1 && (w.band ?? 99) <= maxAuthored);
   const late = words.filter((w) => (w.band ?? 99) > maxAuthored);
   const scheduled = scheduleUnits(early, words, {
-    home, core, seedOrder, unitSize, cohesion, orderedTopics,
+    home, core, seedOrder, unitSize, cohesion, orderedTopics, minSize: minUnitSize,
   });
 
   const titleFor = (topic) => (topic === 'core' ? coreLabel : labels[topic] ?? topic);
+  // A merged unit spanning two topics is named for both rather than mislabelled as one (§12).
+  // The separator is `·`, not `&`: the labels themselves contain "&" ("Food & drink"), so joining
+  // with another "&" produced unreadable titles like "Money & shopping & Tech & media".
+  const titleOf = (u) => (u.mixed ? u.topics.map(titleFor).join(' · ') : titleFor(u.topic));
   const raw = [
-    ...scheduled.units.map((u) => ({ title: titleFor(u.topic), band: 1, wordIds: u.wordIds })),
+    ...scheduled.units.map((u) => ({ title: titleOf(u), band: 1, wordIds: u.wordIds })),
     ...autoUnits(late, unitSize),
   ];
 
@@ -185,7 +190,9 @@ export function buildCourse(words, topicsFile = {}, options = {}) {
     const slice = r.wordIds.map((wid) => byId.get(wid)).filter(Boolean);
     const band = r.band <= maxAuthored ? dominantBand(slice) : r.band;
     const unit = { id, title: titles[id] ?? r.title, wordIds: r.wordIds, band };
-    const note = notes[id];
+    // Notes are keyed by the WORD whose pattern they explain, so they follow that word into
+    // whatever unit introduces it — id-keyed notes drifted onto wrong units at every re-cut.
+    const note = slice.map((w) => notes[w.simp]).find(Boolean) ?? notes[id];
     if (note) unit.note = note;
     unit.steps = deriveSteps(slice, knownSimp, bySimp, maxLen, lessonWords);
     units.push(unit);

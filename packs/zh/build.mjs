@@ -353,6 +353,7 @@ async function writeCourse(words, version, generatedAt) {
     unitSize: config.course.unitSize,
     lessonWords: config.course.lessonWords,
     cohesion: config.course.topicCohesion,
+    minUnitSize: config.course.minUnitSize,
     seedOrder: deckOverrides.seedOrder ?? [],
     soundsUnit: SOUNDS_UNIT,
   });

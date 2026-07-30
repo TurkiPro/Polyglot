@@ -28,11 +28,12 @@ const RELAX_MAX = 1;
  * @param {object[]} scope words to schedule (bands ≤ course bands), each `id/simp/band/introRank/sentences`
  * @param {object[]} allWords the whole deck, for the segmenter's vocabulary
  * @param {{ home: Record<string,string>, core: Set<string>|string[], seedOrder?: string[],
- *   unitSize: number, cohesion: number, orderedTopics?: Record<string,string[]> }} opts
+ *   unitSize: number, cohesion: number, orderedTopics?: Record<string,string[]>,
+ *   minSize?: number }} opts
  * @returns {{ units: { topic: string, wordIds: string[] }[], order: string[], stats: object }}
  */
 export function scheduleUnits(scope, allWords, {
-  home, core, seedOrder = [], unitSize, cohesion, orderedTopics = {},
+  home, core, seedOrder = [], unitSize, cohesion, orderedTopics = {}, minSize = 0,
 }) {
   const coreSet = new Set(core);
   const vocab = new Set(allWords.map((w) => w.simp));
@@ -257,11 +258,67 @@ export function scheduleUnits(scope, allWords, {
   // Leftover core words that never crossed a demand threshold: final core unit(s).
   while (corePool.length) pushUnit('core', corePool.splice(0, unitSize).map((w) => w.id));
 
+  const before = units.length;
+  const merged = mergeTiny(units, { minSize, unitSize, isOrdered });
+
   const stats = {
-    units: units.length,
-    core: units.filter((u) => u.topic === 'core').length,
+    units: merged.length,
+    core: merged.filter((u) => u.topic === 'core').length,
     scheduled: introduced.size,
     scope: scope.length,
+    mergedAway: before - merged.length,
   };
-  return { units, order, stats };
+  return { units: merged, order, stats };
+}
+
+/**
+ * Fold units below `minSize` into an adjacent neighbour (Phase 12).
+ *
+ * The scheduler leaves stragglers — a topic whose pool ripens a word at a time yields one- and
+ * two-word units, which read as noise in the syllabus. This is a pure post-pass over the emitted
+ * units: it only concatenates ADJACENT units, so `units.flatMap(u => u.wordIds)` is byte-identical
+ * before and after. The global introduction order is therefore untouched, and the §3 intro-quality
+ * floors are unchanged by construction (asserted in tests/schedule.test.js).
+ *
+ * A same-topic neighbour is preferred so merging does not dilute the §2 coherence guarantee; a
+ * mixed merge is marked `mixed` so the caller can title it honestly rather than mislabel it.
+ * Ordered topics (numbers, time) never merge in either direction — they are taught as one whole
+ * sequence and are never tiny anyway.
+ */
+export function mergeTiny(units, { minSize = 0, unitSize = Infinity, isOrdered = () => false } = {}) {
+  if (!minSize) return units;
+  const out = units.map((u) => ({ ...u, wordIds: [...u.wordIds] }));
+
+  const fits = (a, b) => a && b && a.wordIds.length + b.wordIds.length <= unitSize
+    && !isOrdered(a.topic) && !isOrdered(b.topic);
+  const absorb = (host, victim) => {
+    // Keep course order: the earlier unit's words come first.
+    const [first, second] = host.index < victim.index ? [host, victim] : [victim, host];
+    first.wordIds = [...first.wordIds, ...second.wordIds];
+    if (first.topic !== second.topic) {
+      first.topics = [...new Set([...(first.topics ?? [first.topic]), ...(second.topics ?? [second.topic])])];
+      first.mixed = true;
+    }
+    second.dead = true;
+    return first;
+  };
+
+  out.forEach((u, i) => { u.index = i; });
+  for (const unit of out) {
+    if (unit.dead || unit.wordIds.length === 0 || unit.wordIds.length >= minSize) continue;
+    const live = out.filter((u) => !u.dead && u.wordIds.length > 0);
+    const at = live.indexOf(unit);
+    const prev = live[at - 1];
+    const next = live[at + 1];
+
+    // 1. same-topic neighbour, previous first; 2. any neighbour, smaller result wins.
+    const sameTopic = [prev, next].find((n) => n && n.topic === unit.topic && fits(unit, n));
+    const any = [prev, next]
+      .filter((n) => fits(unit, n))
+      .sort((a, b) => a.wordIds.length - b.wordIds.length)[0];
+    const target = sameTopic ?? any;
+    if (target) absorb(target, unit); // no fitting neighbour: it stays, honestly small
+  }
+
+  return out.filter((u) => !u.dead).map(({ index, dead, ...unit }) => unit);
 }

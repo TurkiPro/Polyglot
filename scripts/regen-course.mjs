@@ -36,6 +36,7 @@ const { units, stats } = buildCourse(deck.words, topics, {
   unitSize: config.course.unitSize,
   lessonWords: config.course.lessonWords,
   cohesion: config.course.topicCohesion,
+  minUnitSize: config.course.minUnitSize,
   seedOrder: deckOverrides.seedOrder ?? [],
   soundsUnit: SOUNDS_UNIT,
 });

@@ -6,7 +6,7 @@
  * units by demand, dependency order is respected, and the whole thing is deterministic.
  */
 import { describe, expect, it } from 'vitest';
-import { scheduleUnits } from '../packs/zh/lib/schedule.js';
+import { mergeTiny, scheduleUnits } from '../packs/zh/lib/schedule.js';
 
 /** A word with an intro sentence built from the given simps (so readiness is real). */
 const w = (id, simp, band, sentenceSimps) => ({
@@ -96,5 +96,76 @@ describe('scheduleUnits (§2)', () => {
     const numberUnits = units.filter((u) => u.topic === 'numbers');
     expect(numberUnits.length).toBeGreaterThanOrEqual(2); // came back for more numbers
     for (const u of numberUnits) for (const id of u.wordIds) expect(id.startsWith('n')).toBe(true);
+  });
+});
+
+/* ── Tiny-unit merging (Phase 12) ────────────────────────── */
+
+describe('mergeTiny (§12)', () => {
+  const unit = (topic, ...wordIds) => ({ topic, wordIds });
+
+  it('preserves the flattened word order EXACTLY — this is what keeps the §3 floors valid', () => {
+    // The intro-quality floors are measured over the flattened introduction order. Merging may
+    // only move unit BOUNDARIES; if it ever reordered a word the floors would silently shift.
+    const units = [
+      unit('food', 'a', 'b', 'c', 'd', 'e', 'f'),
+      unit('food', 'g'),
+      unit('verbs', 'h', 'i'),
+      unit('verbs', 'j', 'k', 'l', 'm', 'n', 'o'),
+    ];
+    const before = units.flatMap((u) => u.wordIds);
+    const after = mergeTiny(units, { minSize: 5, unitSize: 22 }).flatMap((u) => u.wordIds);
+    expect(after).toEqual(before);
+  });
+
+  it('folds a straggler into its same-topic neighbour', () => {
+    const merged = mergeTiny([
+      unit('food', 'a', 'b', 'c', 'd', 'e'),
+      unit('food', 'f'), // the straggler
+      unit('verbs', 'g', 'h', 'i', 'j', 'k'),
+    ], { minSize: 5, unitSize: 22 });
+
+    expect(merged).toHaveLength(2);
+    expect(merged[0]).toMatchObject({ topic: 'food', wordIds: ['a', 'b', 'c', 'd', 'e', 'f'] });
+    expect(merged[0].mixed).toBeUndefined(); // same topic, so not a mixed merge
+  });
+
+  it('marks a cross-topic merge so it can be titled honestly', () => {
+    const merged = mergeTiny([
+      unit('food', 'a', 'b', 'c', 'd', 'e'),
+      unit('colors', 'f'), // no same-topic neighbour
+    ], { minSize: 5, unitSize: 22 });
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0].mixed).toBe(true);
+    expect(merged[0].topics).toEqual(['food', 'colors']);
+  });
+
+  it('never exceeds unitSize, leaving a straggler alone rather than overfilling', () => {
+    const merged = mergeTiny([
+      unit('food', ...Array.from({ length: 22 }, (_, i) => `a${i}`)),
+      unit('food', 'x'),
+    ], { minSize: 5, unitSize: 22 });
+
+    expect(merged).toHaveLength(2); // nothing fits, so the small unit survives honestly
+    expect(merged[1].wordIds).toEqual(['x']);
+  });
+
+  it('never merges into or out of an ordered topic (the whole-sequence rule)', () => {
+    const isOrdered = (t) => t === 'numbers';
+    const merged = mergeTiny([
+      unit('numbers', 'n1', 'n2', 'n3', 'n4', 'n5'),
+      unit('food', 'f'),
+    ], { minSize: 5, unitSize: 22, isOrdered });
+
+    expect(merged).toHaveLength(2); // the food straggler may not dissolve into Numbers
+    expect(merged[0].wordIds).toEqual(['n1', 'n2', 'n3', 'n4', 'n5']);
+  });
+
+  it('is a no-op when minSize is 0 (opt-in), and is deterministic', () => {
+    const units = [unit('food', 'a'), unit('verbs', 'b', 'c')];
+    expect(mergeTiny(units, { minSize: 0 })).toBe(units);
+    const opts = { minSize: 5, unitSize: 22 };
+    expect(JSON.stringify(mergeTiny(units, opts))).toBe(JSON.stringify(mergeTiny(units, opts)));
   });
 });
