@@ -10,6 +10,7 @@
  */
 import { config } from '../../../config/app.config.js';
 import { parseCardId } from './deck.js';
+import { lessonSpans, lessonState } from './lessons.js';
 
 /** Words the learner has actually met — their REC card has been graded at least once. */
 export function introducedSet(states) {
@@ -124,9 +125,28 @@ export function courseProgress(deck, course, events, practiceEvents) {
     });
     const count = unit.wordIds.filter((id) => introduced.has(id)).length;
     const stepDone = steps.filter((s) => s.state === 'done').length;
+
+    // §12: the sittings the syllabus lists. A pure fold over step states already computed —
+    // no second frontier pass, and purely additive to the row contract.
+    const lessons = lessonSpans(unit).map((span) => {
+      const mine = steps.slice(span.from, span.to);
+      const finished = mine.filter((s) => s.state === 'done').length;
+      const words = mine.filter((s) => s.kind === 'WORD');
+      return {
+        ...span,
+        steps: mine,
+        state: lessonState(mine),
+        wordIds: words.map((s) => s.wordId),
+        done: words.filter((s) => s.state === 'done').length,
+        total: words.length,
+        percent: mine.length ? Math.round((finished / mine.length) * 100) : 0,
+      };
+    });
+
     return {
       ...unit,
       steps,
+      lessons,
       introduced: count,
       total: unit.wordIds.length,
       stepDone,
@@ -148,10 +168,16 @@ export function courseProgress(deck, course, events, practiceEvents) {
     current = { unitId: currentUnit.id, index: currentIndex - start };
   }
 
+  // The lesson holding the current step. Deliberately NOT a key on `current`: that object is
+  // asserted by exact match in the tests, and its shape is part of the §10 A3 contract.
+  const currentRow = current ? rows.find((row) => row.id === current.unitId) : null;
+  const currentLesson = currentRow?.lessons.find((l) => l.state === 'current') ?? null;
+
   return {
     rows,
     currentId: current?.unitId ?? null,
     current,
+    currentLessonIndex: currentLesson ? currentLesson.index : -1,
     overall: {
       percent: flat.length ? Math.round((doneSteps / flat.length) * 100) : 0,
       done: doneSteps,

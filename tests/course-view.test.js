@@ -158,6 +158,61 @@ describe('courseProgress (§10 A3)', () => {
     expect(grandfatheredClears([unit('u1', 1, words)], sloppy).cleared.size).toBe(0);
   });
 
+  /* ── Lessons: the sittings the syllabus lists (Phase 12) ── */
+
+  const lessonUnit = {
+    id: 'u050', title: 'Numbers', band: 1, wordIds: ['a', 'b', 'c', 'd'],
+    steps: [
+      { kind: 'WORD', wordId: 'a' }, { kind: 'WORD', wordId: 'b' }, { kind: 'PRACTICE' },
+      { kind: 'WORD', wordId: 'c' }, { kind: 'WORD', wordId: 'd' },
+      { kind: 'CHECKPOINT' },
+    ],
+    lessons: [{ title: 'Counting', from: 0, to: 3 }, { from: 3, to: 5 }],
+  };
+
+  it('folds step states into a lesson state, leaving the checkpoint outside every span', () => {
+    // a, b and c introduced: lesson 1 (a, b + its closing practice) is behind the frontier.
+    const { rows } = courseProgress({}, { units: [lessonUnit] }, recEvents('a', 'b', 'c'), []);
+    const [first, second] = rows[0].lessons;
+
+    expect(first.title).toBe('Counting');
+    expect(first.state).toBe('done');
+    expect(first.done).toBe(2);
+    expect(first.total).toBe(2);
+    expect(second.state).toBe('current'); // the frontier sits here
+    // No lesson contains the checkpoint — it is always its own row.
+    expect(rows[0].lessons.flatMap((l) => l.steps).some((s) => s.kind === 'CHECKPOINT')).toBe(false);
+  });
+
+  it('keeps a lesson current until its closing practice set is done, not just its words', () => {
+    // Both words met, but the PRACTICE that closes the lesson is still ahead.
+    const { rows } = courseProgress({}, { units: [lessonUnit] }, recEvents('a', 'b'), []);
+    expect(rows[0].lessons[0].state).toBe('current');
+    expect(rows[0].lessons[0].done).toBe(2); // its words are done…
+    expect(rows[0].lessons[0].steps.at(-1).state).toBe('current'); // …its practice is not
+  });
+
+  it('reports a part-done lesson as current, so a capped sitting resumes there', () => {
+    // 'a' introduced but not 'b' — the learner's day ran out mid-lesson.
+    const { rows, currentLessonIndex } = courseProgress({}, { units: [lessonUnit] }, recEvents('a'), []);
+    expect(rows[0].lessons[0].state).toBe('current');
+    expect(rows[0].lessons[0].done).toBe(1);
+    expect(rows[0].lessons[0].total).toBe(2);
+    expect(currentLessonIndex).toBe(0);
+  });
+
+  it('keeps `current` exactly {unitId, index} — the lesson is a separate top-level fact', () => {
+    const view = courseProgress({}, { units: [lessonUnit] }, recEvents('a'), []);
+    expect(view.current).toEqual({ unitId: 'u050', index: 1 });
+    expect(view.currentLessonIndex).toBe(0);
+  });
+
+  it('falls back to one span for a unit with no lessons[] (older pack, fixtures)', () => {
+    const { rows } = courseProgress({}, course, recEvents('a'), []);
+    expect(rows[0].lessons).toHaveLength(1);
+    expect(rows[0].lessons[0].steps.some((s) => s.kind === 'CHECKPOINT')).toBe(false);
+  });
+
   it('clears Unit 0 from its checkpoint event alone — no words involved', () => {
     const practice = [{ type: 'CHECKPOINT', unitId: 'u000', wordId: 'u000', correct: 1 }];
     const { rows, currentId } = courseProgress({}, withSounds, [], practice);
