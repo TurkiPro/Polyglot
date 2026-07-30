@@ -88,10 +88,15 @@ export const config = deepFreeze({
 
   // ── The Course (Phase 9) ──────────────────────────────────
   course: {
-    unitSize: 22, // words per unit; seams nudge ±3 to land on topic boundaries
+    unitSize: 22, // words per unit (hard cap; the scheduler fills up to it)
     /** Bands with an authored course (titles + notes); bands 4+ auto-generate numbered units. */
     courseBands: [1, 2, 3],
-    lessonWords: 6, // new words introduced per lesson sitting
+    /**
+     * Words per lesson — one sitting, and the cadence the closing PRACTICE set follows. 10 matches
+     * HSK Standard Course (15 lessons over 150 words); an authored group may run a little longer.
+     */
+    lessonWords: 10,
+    minUnitSize: 5, // units smaller than this are merged into a neighbour (§2 post-pass)
     topicCohesion: 5, // §2 scheduler: ready words a topic needs before it opens a themed unit
     quizPass: 0.8, // fraction correct to clear a unit
     quizGold: 0.95, // fraction correct for the unit's medallion

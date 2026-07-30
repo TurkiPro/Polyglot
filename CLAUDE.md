@@ -59,9 +59,10 @@ MULTI_VOICE           = on
 TONE_GYM_SET_SIZE     = 10
 
 # ── The Course (Phase 9) ──────────────────────────────────
-UNIT_SIZE            = 22        # words per unit (seams nudge ±3 to topic boundaries)
+UNIT_SIZE            = 22        # words per unit (hard cap; the scheduler fills up to it)
+MIN_UNIT_SIZE        = 5         # units below this are merged into a neighbour
 COURSE_BANDS         = 1,2,3     # authored course; bands 4+ auto-generate numbered units
-LESSON_WORDS         = 6         # new words introduced per lesson sitting
+LESSON_WORDS         = 10        # words per lesson sitting, and the closing-PRACTICE cadence
 QUIZ_PASS            = 0.80      # unit clear threshold
 QUIZ_GOLD            = 0.95      # medallion threshold
 QUIZ_LENGTH          = 12        # items per checkpoint, mixed types
