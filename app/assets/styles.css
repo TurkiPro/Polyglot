@@ -2344,6 +2344,19 @@ body {
 }
 .syllabus-step.kind-checkpoint .step-label { font-weight: 600; }
 
+/* Rows are real links now (middle-click, copy-link), so drop the anchor underline. */
+.syllabus-step { text-decoration: none; }
+/* A lesson row: its title, or the hanzi it teaches when it has no authored name. */
+.syllabus-step.kind-lesson .step-label { font-weight: 500; }
+.syllabus-step.kind-lesson .step-kind {
+  text-transform: none;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+/* A locked row is not a control — it renders as a span with no handler. */
+.syllabus-step.state-locked { cursor: default; }
+.syllabus-step.state-locked:hover { background: none; }
+
 /* Step states — done filled, current lit, skipped/upcoming quiet, locked dim. */
 .syllabus-step.state-done .step-marker { background: var(--ok); border-color: var(--ok); }
 .syllabus-step.state-current {

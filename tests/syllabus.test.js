@@ -38,6 +38,8 @@ const unit = {
     { kind: 'WORD', wordId: 'zh:c:c1' },
     { kind: 'CHECKPOINT' },
   ],
+  // Two sittings; the checkpoint sits outside both, as the pipeline emits it.
+  lessons: [{ title: 'First lesson', from: 0, to: 3 }, { from: 3, to: 4 }],
 };
 
 describe('syllabus + runner (A2)', () => {
@@ -86,20 +88,38 @@ describe('syllabus + runner (A2)', () => {
     expect(text()).toContain('甲'); // the first word's teach screen
   });
 
-  it('renders the whole course as a tree with overall progress and tappable steps', () => {
+  it('lists LESSONS, not one row per card (Phase 12)', () => {
     const navigate = vi.fn();
     renderSyllabusPage(root, { navigate });
 
     expect(root.querySelector('.syllabus')).not.toBeNull();
     expect(root.querySelector('.syllabus-overall-label').textContent).toMatch(/% of the course/);
-    // The current unit is expanded, so its steps are present and clickable.
-    const steps = root.querySelectorAll('.syllabus-step');
-    expect(steps.length).toBe(unit.steps.length);
-    steps[0].click();
-    expect(navigate).toHaveBeenCalledWith('#lesson/u001/0');
-    // The checkpoint step routes to the quiz, not a lesson step.
-    root.querySelector('.syllabus-step.kind-checkpoint').click();
-    expect(navigate).toHaveBeenCalledWith('#quiz/u001');
+
+    // 5 steps become 2 lessons + 1 checkpoint — the whole point: a unit is a handful of rows.
+    const rows = root.querySelectorAll('.syllabus-step');
+    expect(rows.length).toBe(unit.lessons.length + 1);
+    expect(rows.length).toBeLessThan(unit.steps.length);
+
+    root.querySelector('.syllabus-step.kind-lesson').click();
+    expect(navigate).toHaveBeenCalledWith('#lesson/u001/l1');
+    // The checkpoint is always its own row, never folded inside a lesson.
+    expect(root.querySelector('.syllabus-step.kind-checkpoint')).not.toBeNull();
+  });
+
+  it('renders rows as real links, so middle-click and copy-link work', () => {
+    renderSyllabusPage(root, { navigate: vi.fn() });
+    const row = root.querySelector('.syllabus-step.kind-lesson');
+    expect(row.tagName).toBe('A');
+    expect(row.getAttribute('href')).toBe('#lesson/u001/l1');
+  });
+
+  it('does not make a locked checkpoint clickable', () => {
+    // Nothing introduced ⇒ the checkpoint's words are unmet ⇒ locked.
+    renderSyllabusPage(root, { navigate: vi.fn() });
+    const checkpoint = root.querySelector('.syllabus-step.kind-checkpoint.state-locked');
+    expect(checkpoint).not.toBeNull();
+    expect(checkpoint.tagName).not.toBe('A');
+    expect(checkpoint.getAttribute('aria-disabled')).toBe('true');
   });
 
   it('a step link starts the runner at that step (free navigation)', () => {
@@ -150,14 +170,15 @@ describe('syllabus + runner (A2)', () => {
     const soundsUnit = {
       id: 'u000', title: 'The Sounds', band: 0, sounds: true, wordIds: [],
       steps: [{ kind: 'TONES', set: 'intro' }, { kind: 'PINYIN' }, { kind: 'CHECKPOINT' }],
+      lessons: [{ title: 'The sounds of Chinese', from: 0, to: 2 }],
     };
     store.store.course = { units: [soundsUnit, unit] };
 
-    // The tree shows Unit 0 first, with tone/pinyin step labels rather than a word.
+    // The tree shows Unit 0 first, as one sitting like any other unit.
     renderSyllabusPage(root, { navigate: vi.fn() });
     const first = root.querySelector('.syllabus-unit');
     expect(first.textContent).toContain('The Sounds');
-    expect(root.querySelector('.syllabus-step.kind-tones')).not.toBeNull();
+    expect(first.textContent).toContain('The sounds of Chinese');
 
     // The runner opens Unit 0 on its tone intro — the archetype to tap, not a vocabulary card.
     renderLesson(root, { navigate: vi.fn() }, 'u000');

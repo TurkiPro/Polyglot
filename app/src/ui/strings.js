@@ -315,6 +315,11 @@ export const strings = Object.freeze({
     unitSeries: (title, n) => `${title} ${n}`,
     stepOf: (unitTitle, x, y) => `${unitTitle} · step ${x} of ${y}`,
     openTree: 'Open the syllabus',
+    // Lessons — the sittings a unit is cut into (Phase 12), what the tree actually lists.
+    lessonLabel: 'Lesson',
+    lessonN: (n) => `Lesson ${n}`,
+    lessonProgress: (done, total) => (done ? `${done}/${total}` : `${total} words`),
+    lessonOf: (unitTitle, lessonTitle, x, y) => `${unitTitle} · ${lessonTitle} · ${x} of ${y}`,
     // Step kinds — the short label beside each step's marker.
     kinds: {
       WORD: 'Word',
