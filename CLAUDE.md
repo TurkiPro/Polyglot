@@ -757,16 +757,23 @@ stability and rots retention. The firewall is structural — `rebuildFromEvents`
 the stream, and a practice event has no `cardId`, so a leaked one is a replay no-op (proven
 in `tests/practice.test.js`). New files: `engine/practice.js`, `worker/src/api/practice.js`.
 
-### 15.4 Lessons and the path (9b)
-- `#course` — the units as a signboard (Browse's neon language), current unit prominent with
-  its one next action, cleared units lit, the road ahead dimmed until reached. This is the
-  Home CTA's target for a mid-course account (`Continue · Unit N — Title`); Review keeps an
-  equal CTA beside it.
-- `#lesson/:unit` — teach the unit's next `LESSON_WORDS` unintroduced words (the unchanged
-  Phase 7 teach flow) interleaved with a couple of exercises over words already met.
+### 15.4 Lessons and the path (9b, restructured in Phase 12)
+- **Band → Unit → Lesson.** `#course` is the syllabus: bands collapse to ~8 sections, a unit
+  expands to its handful of LESSON rows plus its checkpoint. The tree never lists individual
+  cards — it did once, and 10,904 words meant 16,002 rows where every "lesson" was one card.
+- A **lesson** is one sitting of ~`LESSON_WORDS` words, cut by the pipeline into `unit.lessons[]`
+  (step ranges) so the syllabus and the runner share one sequence. Cutting is semantic first:
+  an authored group in `packs/zh/lessons.json` is taken whole — counting is 零一二三…十 in ONE
+  lesson, never split — and everything else chunks at the target. Named lessons show their title;
+  unnamed ones show the words they teach. Each lesson closes with its PRACTICE set.
+- `#lesson/:unit/l3` runs lesson 3; `#lesson/:unit` resumes the first unfinished one. The sitting
+  **ends on its own finish screen** (Next lesson / Take the checkpoint / Back to the path) — the
+  checkpoint is never entered automatically.
   Introducing a word is a **real REC review**, so it counts against the daily new-card cap
-  and ramp — the course paces *through* the limits, never around them. A spent cap ends the
-  sitting warmly and offers practice or reviews. A unit fully introduced unlocks its checkpoint.
+  and ramp — the course paces *through* the limits, never around them. A ~10-word lesson simply
+  **spans days** for an account on the beginner ramp: the cap governs pace, the lesson is a unit
+  of meaning, and the row shows `5/11` so resuming is obvious. A unit fully introduced unlocks
+  its checkpoint.
 - Progress derives from the streams (`engine/coursestate.js`): a word is introduced once its
   REC card is graded; a unit is cleared/gold from `CHECKPOINT`/`CHECKPOINT_GOLD` practice
   events (§4). No course state is stored, so the path survives export → wipe → import and sync.

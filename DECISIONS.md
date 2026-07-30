@@ -1017,3 +1017,39 @@ One line per decision made while implementing, per §4.8 of `CLAUDE.md`.
   Browse code change was needed beyond the live-topics fix; tests assert the ordering contract.
   Acceptance also adds `tests/deck-stability.test.js`: a frozen sha256 over the committed deck
   words fails on ANY deck-word change, making the "deck untouchable" law mechanical.
+
+- Phase 12 — Band → Unit → LESSON. The syllabus listed every step, so the course was 561 units /
+  16,002 rows and each "lesson" was a single card; `config.course.lessonWords` still said "new
+  words introduced per lesson sitting" but had zero readers in `app/src` — Phase 10 A2's
+  step-driven rewrite had quietly dropped the sitting. Worse, the runner chained every remaining
+  step in a unit and fell into the 12-item checkpoint quiz with no finish screen, and counting
+  split mid-sequence across mechanical chunks. Fixed end to end:
+
+  - **LESSON_WORDS 6 → 10**, matching HSK Standard Course (15 lessons over 150 words, each a
+    communicative topic). New `MIN_UNIT_SIZE = 5`.
+  - **`packs/zh/lib/lessons.js`** cuts each unit into sittings. An authored group from the new
+    reviewable `packs/zh/lessons.json` is taken whole ("Counting to ten" = 零一二三四五六七八九十,
+    one lesson); the rest chunk at the target. Groups apply *partially* when a unit holds only
+    some of their words — units are cut by readiness, so a semantic group often straddles a
+    boundary, and refusing it outright threw the semantics away. Lessons are built whole and then
+    ordered, so extracting a group never strands one-word fragments around it.
+  - **`unit.lessons[]` is baked** into `course.zh.json` (step ranges). Course *structure* has
+    always been committed pack data; the "derived, never stored" law governs progress *state*,
+    which stays a pure replay. Baking is what lets the syllabus and the runner share one sequence.
+  - **`mergeTiny`** folds sub-`MIN_UNIT_SIZE` stragglers into a neighbour (same topic preferred,
+    ordered topics never touched). It moves boundaries only, so the flattened word order is
+    byte-identical and the §3 floors are unchanged by construction. 561 → 537 units, no singletons.
+  - **The runner runs one lesson** and ends on `views/lesson-done.js`, adopting the strings
+    orphaned when Phase 10 deleted the old finish screen. `cappedScreen` folds into it, so a
+    capped sitting gets the same summary; a cap note now warns *before* the wall.
+  - Fixed three latent defects found on the way: `mountShell` was rebuilding the rail — a full
+    `courseProgress` over 16,002 steps — on **every card**; `resolveStart` looked for a `current`
+    step when only one step course-wide is ever current, so a bare `#lesson/u050` silently
+    restarted that unit at step 0; and `stats.order` fed the §3 floor gate a stale sequence once
+    merging and lesson planning moved words, so the gate was measuring an order that no longer
+    shipped. Course-overrides notes were also re-keyed by WORD instead of unit id — ids move at
+    every re-cut, and a note about 几 had drifted onto a band-5 unit.
+
+  Result: **16,002 rows → ~2,050**; a 22-word unit is 3 rows, not 29. Measured price of contiguous
+  lessons: band-1 clean 84.3 → 83.3%, bands 1-3 77.7 → 77.4% — both §3 floors still hold. Deck
+  bytes untouched throughout.
