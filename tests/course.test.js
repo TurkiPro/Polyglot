@@ -193,6 +193,7 @@ describe('committed course.zh.json (§9.1)', () => {
       lessonWords: config.course.lessonWords,
       cohesion: config.course.topicCohesion,
       minUnitSize: config.course.minUnitSize,
+      lessonGroups: read('packs/zh/lessons.json'),
       seedOrder: deckOverrides.seedOrder ?? [],
       soundsUnit: SOUNDS_UNIT,
     });
@@ -200,6 +201,42 @@ describe('committed course.zh.json (§9.1)', () => {
     expect(units.map((u) => u.wordIds.join(','))).toEqual(course.units.map((u) => u.wordIds.join(',')));
     // steps[] is derived data too — the committed course must match a fresh rebuild exactly.
     expect(units.map((u) => JSON.stringify(u.steps))).toEqual(course.units.map((u) => JSON.stringify(u.steps)));
+  });
+
+  it.skipIf(!has(path))('cuts every unit into lessons that partition its steps (§12)', () => {
+    for (const unit of read(path).units) {
+      expect(Array.isArray(unit.lessons), unit.id).toBe(true);
+      expect(unit.lessons.length, unit.id).toBeGreaterThan(0);
+
+      // Lessons tile the step list contiguously, from 0 up to (not including) the CHECKPOINT.
+      let cursor = 0;
+      for (const lesson of unit.lessons) {
+        expect(lesson.from, unit.id).toBe(cursor);
+        expect(lesson.to, unit.id).toBeGreaterThan(lesson.from);
+        cursor = lesson.to;
+      }
+      expect(cursor, `${unit.id} lessons must cover every step but the checkpoint`)
+        .toBe(unit.steps.length - 1);
+      expect(unit.steps.at(-1).kind).toBe('CHECKPOINT');
+
+      // A lesson closes on its PRACTICE set — except the unit's last, where the checkpoint follows.
+      unit.lessons.slice(0, -1).forEach((lesson) => {
+        expect(unit.steps[lesson.to - 1].kind, `${unit.id} lesson should close on PRACTICE`).toBe('PRACTICE');
+      });
+    }
+  });
+
+  it.skipIf(!has(path))('gives the Numbers unit one whole counting lesson (the reported defect)', () => {
+    const course = read(path);
+    const deck = read('app/assets/packs/zh/deck.zh.json');
+    const simp = new Map(deck.words.map((w) => [w.id, w.simp]));
+    const unit = course.units.find((u) => u.title === 'Numbers');
+    const counting = unit.lessons.find((l) => l.title === 'Counting to ten');
+
+    expect(counting, 'counting must be one lesson, not one lesson per number').toBeTruthy();
+    const words = unit.steps.slice(counting.from, counting.to)
+      .filter((s) => s.kind === 'WORD').map((s) => simp.get(s.wordId));
+    expect(words).toEqual(['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十']);
   });
 
   it.skipIf(!has(path))('holds the §3 intro-quality floors under the new order', () => {

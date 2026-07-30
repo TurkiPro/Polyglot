@@ -1,0 +1,48 @@
+{
+  "$schema": "Authored lesson groups for course.zh.json (Phase 12). Reviewable data, hand-edited like topics.json.",
+  "$notes": [
+    "Each group names one sitting: a run of words that must be taught together because they are",
+    "one idea. Counting is the motivating case — 零一二三…十 split across two lessons is not",
+    "counting. Everything unlisted falls into mechanical LESSON_WORDS-sized chunks with no name.",
+    "",
+    "Keyed by word (simp), never by unit id: unit ids move whenever the course is re-cut.",
+    "A group applies only when ALL of its words land in the same unit; a straddling group is",
+    "reported in report.txt and its words chunk mechanically, so this file can never lose a word.",
+    "A group may run a little past LESSON_WORDS (counting is 11) but not far past it."
+  ],
+  "groups": [
+    { "title": "Counting to ten", "words": ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十"] },
+    { "title": "Big numbers", "words": ["百", "千", "万"] },
+    { "title": "Two, halves and ordinals", "words": ["两", "半", "一半", "第"] },
+
+    { "title": "Greetings and manners", "words": ["你好", "谢谢", "不客气", "对不起", "没关系", "没事", "不好意思", "再见"] },
+    { "title": "Immediate family", "words": ["爸爸", "妈妈", "哥哥", "姐姐", "弟弟", "妹妹"] },
+    { "title": "Children and partners", "words": ["儿子", "女儿", "丈夫", "妻子", "男朋友", "女朋友"] },
+    { "title": "Grandparents", "words": ["爷爷", "奶奶"] },
+    { "title": "Asking questions", "words": ["谁", "什么", "哪", "哪个", "哪里", "哪儿", "怎么", "怎么样", "为什么"] },
+
+    { "title": "Telling the time", "words": ["分", "分钟", "点", "刻", "时", "小时", "时候", "时间"] },
+    { "title": "Parts of the day", "words": ["早", "早上", "上午", "中午", "下午", "晚", "晚上", "白天"] },
+    { "title": "Yesterday, today, tomorrow", "words": ["昨天", "今天", "明天", "天", "日", "号"] },
+    { "title": "Weeks and months", "words": ["周", "星期", "星期日", "星期天", "周末", "月"] },
+    { "title": "Years and age", "words": ["年", "今年", "明年", "去年", "岁"] },
+
+    { "title": "Colors", "words": ["颜色", "红色", "白色", "黑色", "绿色"] },
+    { "title": "Parts of the body", "words": ["头", "眼睛", "脸", "牙", "脚", "手"] },
+    { "title": "Falling ill and getting better", "words": ["病", "生病", "看病", "疼", "发烧", "感冒", "药", "医生", "医院"] },
+
+    { "title": "Seeing, hearing, speaking", "words": ["看", "听", "说", "说话", "听见", "看见", "讲"] },
+    { "title": "Coming and going", "words": ["来", "去", "回", "出", "进", "出去", "出来", "进去", "进来", "回来", "回去"] },
+    { "title": "Your daily routine", "words": ["起床", "睡", "睡觉", "洗澡", "休息"] },
+
+    { "title": "Eating and drinking", "words": ["吃", "喝", "好吃", "做饭", "饭"] },
+    { "title": "The three meals", "words": ["早饭", "午饭", "晚饭"] },
+    { "title": "Hot drinks", "words": ["茶", "咖啡", "红茶", "绿茶", "奶茶"] },
+
+    { "title": "Ball games", "words": ["篮球", "足球", "网球", "球", "踢"] },
+    { "title": "School things", "words": ["书", "笔", "本子", "书包", "字", "汉字", "作业"] },
+    { "title": "Buying and paying", "words": ["钱", "买", "卖", "贵", "便宜"] },
+    { "title": "Weather", "words": ["天气", "下雨", "雪", "晴", "阴", "热", "冷"] },
+    { "title": "Getting around town", "words": ["车", "火车", "飞机", "出租车", "公交车", "地铁"] }
+  ]
+}

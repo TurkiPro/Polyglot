@@ -27,6 +27,7 @@ const deck = await readJson(new URL(`deck.${LANG}.json`, PACKS));
 const topics = await readJson(new URL('topics.json', SRC));
 const overrides = await readJson(new URL('course-overrides.json', SRC));
 const deckOverrides = await readJson(new URL('overrides.json', SRC));
+const lessonGroups = await readJson(new URL('lessons.json', SRC));
 const existing = await readJson(new URL(`course.${LANG}.json`, PACKS));
 
 const { units, stats } = buildCourse(deck.words, topics, {
@@ -37,6 +38,7 @@ const { units, stats } = buildCourse(deck.words, topics, {
   lessonWords: config.course.lessonWords,
   cohesion: config.course.topicCohesion,
   minUnitSize: config.course.minUnitSize,
+  lessonGroups,
   seedOrder: deckOverrides.seedOrder ?? [],
   soundsUnit: SOUNDS_UNIT,
 });

@@ -24,4 +24,7 @@ export const SOUNDS_UNIT = Object.freeze({
     { kind: 'PINYIN' },                // the crash intro to the unintuitive letters
     { kind: 'CHECKPOINT' },            // a wordless mini-checkpoint over the tones
   ],
+  // One sitting (Phase 12): the four teaching steps are short and belong together, and the
+  // checkpoint sits outside the span like every other unit's.
+  lessons: [{ title: 'The sounds of Chinese', from: 0, to: 4 }],
 });

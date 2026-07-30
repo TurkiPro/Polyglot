@@ -345,6 +345,7 @@ async function writeCourse(words, version, generatedAt) {
     await readFile(new URL('course-overrides.json', import.meta.url), 'utf8'),
   );
   const deckOverrides = JSON.parse(await readFile(new URL('overrides.json', import.meta.url), 'utf8'));
+  const lessonGroups = JSON.parse(await readFile(new URL('lessons.json', import.meta.url), 'utf8'));
 
   const { units, stats } = buildCourse(words, topics, {
     titles: overrides.titles,
@@ -354,6 +355,7 @@ async function writeCourse(words, version, generatedAt) {
     lessonWords: config.course.lessonWords,
     cohesion: config.course.topicCohesion,
     minUnitSize: config.course.minUnitSize,
+    lessonGroups,
     seedOrder: deckOverrides.seedOrder ?? [],
     soundsUnit: SOUNDS_UNIT,
   });

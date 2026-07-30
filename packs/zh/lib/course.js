@@ -11,6 +11,7 @@
 import { config } from '../../../config/app.config.js';
 import { tagTopics } from './topics.js';
 import { scheduleUnits } from './schedule.js';
+import { indexGroups, planLessons } from './lessons.js';
 
 /** A "new phrase" beat is offered no sooner than this many words after the last one (§10 A1). */
 const PHRASE_GAP = 2;
@@ -60,43 +61,55 @@ function phraseSrc(word, bySimp, maxLen, knownSimp) {
 
 /**
  * A unit's ordered `steps[]` — the ONE sequence the syllabus and the lesson runner both read
- * (Phase 10 A1). Kinds: WORD (teach + first practice, in introRank order), PHRASE (a sentence
- * spotlight when one is now buildable, a beat every 2–3 words), PRACTICE (a mixed set every
- * LESSON_WORDS words), and CHECKPOINT (always last). Derived, deterministic, resequences
- * nothing — it only names structure over the unchanged word order.
+ * (Phase 10 A1) — cut into LESSONS (Phase 12).
+ *
+ * Kinds: WORD (teach + first practice, in introRank order), PHRASE (a sentence spotlight when one
+ * is now buildable, a beat every 2–3 words), PRACTICE (the mixed set that CLOSES each lesson), and
+ * CHECKPOINT (always last). The returned `lessons[]` carries each sitting's step range, so the
+ * syllabus and the runner agree on boundaries without either recomputing them.
+ *
+ * Derived, deterministic, resequences nothing — it only names structure over the word order.
  *
  * @param {object[]} unitWords the unit's words, in order
+ * @param {{ title?: string, wordIds: string[] }[]} plan the unit's lessons (from planLessons)
  * @param {Set<string>} knownSimp simp of every word introduced up to this unit (mutated as we go)
  * @param {Map<string, object>} bySimp deck lookup by spelling
  * @param {number} maxLen longest headword, for the segmenter
- * @param {number} lessonWords LESSON_WORDS
+ * @returns {{ steps: object[], lessons: object[] }}
  */
-function deriveSteps(unitWords, knownSimp, bySimp, maxLen, lessonWords) {
+function deriveSteps(unitWords, plan, knownSimp, bySimp, maxLen) {
+  const byId = new Map(unitWords.map((w) => [w.id, w]));
   const steps = [];
+  const lessons = [];
   let sincePhrase = 0;
-  let sincePractice = 0;
-  unitWords.forEach((word, index) => {
-    steps.push({ kind: 'WORD', wordId: word.id });
-    knownSimp.add(word.simp);
-    sincePhrase += 1;
-    sincePractice += 1;
 
-    if (sincePhrase >= PHRASE_GAP) {
-      const src = phraseSrc(word, bySimp, maxLen, knownSimp);
-      if (src) {
-        steps.push({ kind: 'PHRASE', wordId: word.id, src });
-        sincePhrase = 0;
+  plan.forEach((lesson, li) => {
+    const from = steps.length;
+    for (const wordId of lesson.wordIds) {
+      const word = byId.get(wordId);
+      if (!word) continue;
+      steps.push({ kind: 'WORD', wordId: word.id });
+      knownSimp.add(word.simp);
+      sincePhrase += 1;
+
+      if (sincePhrase >= PHRASE_GAP) {
+        const src = phraseSrc(word, bySimp, maxLen, knownSimp);
+        if (src) {
+          steps.push({ kind: 'PHRASE', wordId: word.id, src });
+          sincePhrase = 0;
+        }
       }
     }
-    // A mixed practice set after each full LESSON_WORDS, but never immediately before the
-    // checkpoint (the last word's set would duplicate it).
-    if (sincePractice >= lessonWords && index < unitWords.length - 1) {
-      steps.push({ kind: 'PRACTICE' });
-      sincePractice = 0;
-    }
+    // The mixed set closes the lesson — teach these words, then practise exactly them. It is
+    // suppressed on the unit's last lesson, where the checkpoint that follows would duplicate it.
+    if (li < plan.length - 1) steps.push({ kind: 'PRACTICE' });
+    const entry = { from, to: steps.length };
+    if (lesson.title) entry.title = lesson.title;
+    lessons.push(entry);
   });
+
   steps.push({ kind: 'CHECKPOINT' });
-  return steps;
+  return { steps, lessons };
 }
 
 /** `u007` — zero-padded so ids sort lexically and stay stable once shipped (§1). */
@@ -142,6 +155,7 @@ export function buildCourse(words, topicsFile = {}, options = {}) {
     lessonWords = config.course.lessonWords,
     cohesion = config.course.topicCohesion,
     minUnitSize = 0, // Phase 12: merge stragglers; opt-in so synthetic test fixtures are untouched
+    lessonGroups = null, // Phase 12: authored lesson groups (packs/zh/lessons.json)
     seedOrder = [],
     soundsUnit = null, // Phase 10 B: prepend Unit 0 "The Sounds" when the caller supplies it
   } = options;
@@ -183,6 +197,9 @@ export function buildCourse(words, topicsFile = {}, options = {}) {
     ...autoUnits(late, unitSize),
   ];
 
+  const groupIndex = indexGroups(lessonGroups, bySimp);
+  const splitGroups = [];
+
   const units = [];
   for (const r of raw) {
     if (!r.wordIds.length) continue;
@@ -194,7 +211,16 @@ export function buildCourse(words, topicsFile = {}, options = {}) {
     // whatever unit introduces it — id-keyed notes drifted onto wrong units at every re-cut.
     const note = slice.map((w) => notes[w.simp]).find(Boolean) ?? notes[id];
     if (note) unit.note = note;
-    unit.steps = deriveSteps(slice, knownSimp, bySimp, maxLen, lessonWords);
+
+    // §12: cut the unit into sittings, then let the steps follow those boundaries. Planning may
+    // reorder words WITHIN the unit so each lesson is contiguous, so the unit's own word list is
+    // re-read from the plan — `wordIds` must always be the order the WORD steps actually run in.
+    const plan = planLessons(r.wordIds, groupIndex.groups, { target: lessonWords });
+    splitGroups.push(...plan.split);
+    unit.wordIds = plan.lessons.flatMap((l) => l.wordIds);
+    const derived = deriveSteps(slice, plan.lessons, knownSimp, bySimp, maxLen);
+    unit.steps = derived.steps;
+    unit.lessons = derived.lessons;
     units.push(unit);
   }
 
@@ -209,6 +235,12 @@ export function buildCourse(words, topicsFile = {}, options = {}) {
   const stepTotals = { WORD: 0, PHRASE: 0, PRACTICE: 0, CHECKPOINT: 0 };
   for (const unit of all) for (const step of unit.steps) stepTotals[step.kind] = (stepTotals[step.kind] ?? 0) + 1;
 
+  // The §3 floor gate measures intro quality over this order, so it must be read off the EMITTED
+  // units — merging and lesson planning both rearrange unit boundaries after the scheduler ran,
+  // and `scheduled.order` would be a stale snapshot of a sequence that no longer ships.
+  const earlyIds = new Set(early.map((w) => w.id));
+  const order = units.flatMap((u) => u.wordIds).filter((id) => earlyIds.has(id));
+
   return {
     units: all,
     stats: {
@@ -217,9 +249,13 @@ export function buildCourse(words, topicsFile = {}, options = {}) {
       core: scheduled.stats.core,
       auto: units.length - scheduled.units.length,
       withNote: units.filter((u) => u.note).length,
+      lessons: units.reduce((n, u) => n + (u.lessons?.length ?? 0), 0),
+      named: units.reduce((n, u) => n + (u.lessons ?? []).filter((l) => l.title).length, 0),
+      splitGroups: [...new Set(splitGroups)],
+      unresolved: groupIndex.unresolved,
       sizes,
       steps: stepTotals,
-      order: scheduled.order, // the new global introduction order over the early bands
+      order, // the global introduction order over the early bands, as actually emitted
     },
   };
 }
